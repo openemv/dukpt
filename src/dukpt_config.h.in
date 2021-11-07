@@ -1,7 +1,5 @@
 /**
- * @file dukpt_tdes.c
- * @brief ANSI X9.24-1:2009 TDES DUKPT implementation
- *        (equivalent to ANSI X9.24-3:2017 Annex C)
+ * @file dukpt_config.h
  *
  * Copyright (c) 2021 Leon Lynch
  *
@@ -20,5 +18,9 @@
  * <https://www.gnu.org/licenses/>.
  */
 
-#include "dukpt_tdes.h"
-#include "dukpt_config.h"
+#ifndef DUKPT_CONFIG_H
+#define DUKPT_CONFIG_H
+
+#define DUKPT_LIB_VERSION_STRING "@CMAKE_PROJECT_VERSION@"
+
+#endif

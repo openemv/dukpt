@@ -9,6 +9,13 @@ cmake_minimum_required(VERSION 3.16)
 
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
+# Generate config file for internal use only
+# This file should NOT be installed or used by an installed header
+configure_file(
+	dukpt_config.h.in
+	dukpt_config.h
+)
+
 add_library(dukpt_tdes dukpt_tdes.c)
 set_target_properties(dukpt_tdes
 	PROPERTIES
@@ -16,6 +23,7 @@ set_target_properties(dukpt_tdes
 		VERSION ${CMAKE_PROJECT_VERSION}
 		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
 )
+target_include_directories(dukpt_tdes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated config file
 target_include_directories(dukpt_tdes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
@@ -28,6 +36,7 @@ set_target_properties(dukpt_aes
 		VERSION ${CMAKE_PROJECT_VERSION}
 		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
 )
+target_include_directories(dukpt_aes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated config file
 target_include_directories(dukpt_aes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>

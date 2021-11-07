@@ -20,3 +20,4 @@
  */
 
 #include "dukpt_aes.h"
+#include "dukpt_config.h"
