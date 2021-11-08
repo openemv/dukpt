@@ -31,6 +31,7 @@ target_include_directories(dukpt_tdes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
+target_link_libraries(dukpt_tdes MbedTLS::mbedcrypto)
 
 add_library(dukpt_aes dukpt_aes.c)
 set_target_properties(dukpt_aes

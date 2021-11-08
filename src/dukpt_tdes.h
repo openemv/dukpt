@@ -24,8 +24,24 @@
 #define DUKPT_TDES_H
 
 #include <sys/cdefs.h>
+#include <stdint.h>
 
 __BEGIN_DECLS
+
+#define DUKPT_TDES_KEY_LEN (16) ///< Key length for TDES DUKPT
+#define DUKPT_TDES_KSN_LEN (10) ///< Key Serial Number length for TDES DUKPT
+
+/**
+ * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
+ * @note This function should only be used by the receiving or key generating
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param bdk Base Derivative Key of length @ref DUKPT_TDES_KEY_LEN
+ * @param iksn Initial Key Serial Number of length @ref DUKPT_TDES_KSN_LEN
+ * @param ik Initial Key output of length @ref DUKPT_TDES_KEY_LEN
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik);
 
 __END_DECLS
 
