@@ -30,6 +30,7 @@ __BEGIN_DECLS
 
 #define DUKPT_TDES_KEY_LEN (16) ///< Key length for TDES DUKPT
 #define DUKPT_TDES_KSN_LEN (10) ///< Key Serial Number length for TDES DUKPT
+#define DUKPT_TDES_TC_BITS (21) ///< Number of Transaction Counter (TC) bits in Key Serial Number
 
 /**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
@@ -42,6 +43,18 @@ __BEGIN_DECLS
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik);
+
+/**
+ * Derive DUKPT transaction key from Initial Key (IK) and Key Serial Number (KSN)
+ * @note This function should only be used by the transaction receiving
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param ik Initial Key of length @ref DUKPT_TDES_KEY_LEN
+ * @param ksn Key Serial Number of length @ref DUKPT_TDES_KSN_LEN
+ * @param txn_key DUKPT transaction key output of length @ref DUKPT_TDES_KEY_LEN
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key);
 
 __END_DECLS
 
