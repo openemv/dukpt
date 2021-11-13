@@ -61,3 +61,53 @@ install(TARGETS dukpt_tdes dukpt_aes dukpt-tool
 	ARCHIVE
 		COMPONENT dukpt_development
 )
+
+if(BUILD_TESTING)
+	add_test(NAME dukpt_tool_tdes_test1
+		COMMAND dukpt-tool --bdk=0123456789ABCDEFFEDCBA9876543210 --ksn=FFFF9876543210E00000 --derive-ik
+	)
+	set_tests_properties(dukpt_tool_tdes_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^6AC292FAA1315B4D858AB3A3D7D5933A"
+	)
+
+	add_test(NAME dukpt_tool_tdes_test2
+		COMMAND dukpt-tool --bdk=0123456789ABCDEFFEDCBA9876543210 --ksn=FFFF9876543210E00003 --derive-ik
+	)
+	set_tests_properties(dukpt_tool_tdes_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^6AC292FAA1315B4D858AB3A3D7D5933A"
+	)
+
+	add_test(NAME dukpt_tool_tdes_test3
+		COMMAND dukpt-tool --bdk=0123456789ABCDEFFEDCBA9876543210 --ksn=FFFF9876543210E00001 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_tdes_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^042666B49184CFA368DE9628D0397BC9"
+	)
+
+	add_test(NAME dukpt_tool_tdes_test4
+		COMMAND dukpt-tool --bdk=0123456789ABCDEFFEDCBA9876543210 --ksn=FFFF9876543210E00002 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_tdes_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^C46551CEF9FD24B0AA9AD834130D3BC7"
+	)
+
+	add_test(NAME dukpt_tool_tdes_test5
+		COMMAND dukpt-tool --ik=6AC292FAA1315B4D858AB3A3D7D5933A --ksn=FFFF9876543210E00001 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_tdes_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^042666B49184CFA368DE9628D0397BC9"
+	)
+
+	add_test(NAME dukpt_tool_tdes_test6
+		COMMAND dukpt-tool --ik=6AC292FAA1315B4D858AB3A3D7D5933A --ksn=FFFF9876543210E00002 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_tdes_test6
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^C46551CEF9FD24B0AA9AD834130D3BC7"
+	)
+endif()
