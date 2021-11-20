@@ -12,6 +12,10 @@ if(BUILD_TESTING)
 	target_link_libraries(dukpt_tdes_test dukpt_tdes)
 	add_test(dukpt_tdes_test dukpt_tdes_test)
 
+	add_executable(dukpt_tdes_ksn_test dukpt_tdes_ksn_test.c)
+	target_link_libraries(dukpt_tdes_ksn_test dukpt_tdes)
+	add_test(dukpt_tdes_ksn_test dukpt_tdes_ksn_test)
+
 	add_executable(dukpt_aes_test dukpt_aes_test.c)
 	target_link_libraries(dukpt_aes_test dukpt_aes)
 	add_test(dukpt_aes_test dukpt_aes_test)

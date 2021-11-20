@@ -235,6 +235,17 @@ exit:
 	return r;
 }
 
+static uint32_t dukpt_tdes_ksn_get_tc(const uint8_t* ksn)
+{
+	// Extract transaction counter value from KSN. The transaction counter is
+	// the last 21 bits of the KSN.
+	return
+		((uint32_t)ksn[DUKPT_TDES_KSN_LEN - 1]) |
+		((uint32_t)ksn[DUKPT_TDES_KSN_LEN - 2]) << 8 |
+		((uint32_t)ksn[DUKPT_TDES_KSN_LEN - 3] & 0x1f) << 16
+	;
+}
+
 int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 {
 	int r;
@@ -322,4 +333,114 @@ exit:
 	dukpt_memset_s(key_reg, sizeof(key_reg));
 
 	return r;
+}
+
+int dukpt_tdes_ksn_advance(uint8_t* ksn)
+{
+	uint32_t tc;
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_tdes_ksn_get_tc(ksn);
+	if (!tc) {
+		// Transaction already counter exhausted
+		return 1;
+	}
+
+	// Advance to next possible transaction counter
+	++tc;
+	tc &= 0x1FFFFF;
+
+	// Loop continues until transaction counter is exhausted (tc == 0) or
+	// until a valid transaction counter is found
+	while (tc) {
+		// Count number of bits in transaction counter
+		// and find least significant set bit
+		unsigned int bit_count = 0;
+		uint32_t lsb_set_bit = 0;
+		uint32_t current_bit = 0x100000; // 21st bit
+		while (current_bit) {
+			if (tc & current_bit) {
+				++bit_count;
+				lsb_set_bit = current_bit;
+			}
+			current_bit >>= 1;
+		}
+
+		// Transaction counter should have 10 or fewer "one" bits
+		// See ANSI X9.24-1:2009 A.3 Key Management Technique
+		// See ANSI X9.24-3:2017 C.4 Key Management Technique
+		if (bit_count <= 10) {
+			// Current transaction counter is valid
+			break;
+		}
+
+		// Advance to next possible transaction counter
+		// If the least significant bit is not set, simply incrementing by one
+		// still yield an invalid transaction counter. And if more than one of
+		// the lowest bits are not set, it would require many iterations to
+		// reach the next valid transaction counter. A better approach is to
+		// add the least significant set bit which will either yield the same
+		// number of set bits or fewer set bits.
+		tc += lsb_set_bit;
+		tc &= 0x1FFFFF;
+	}
+
+	// Update KSN with latest transaction counter
+	ksn[DUKPT_TDES_KSN_LEN - 1] = tc;
+	ksn[DUKPT_TDES_KSN_LEN - 2] = tc >> 8;
+	ksn[DUKPT_TDES_KSN_LEN - 3] &= 0xE0;
+	ksn[DUKPT_TDES_KSN_LEN - 3] |= tc >> 16;
+
+	if (!tc) {
+		// Transaction counter exhausted
+		return 2;
+	}
+
+	// Transaction counter valid
+	return 0;
+}
+
+bool dukpt_tdes_ksn_is_valid(const uint8_t* ksn)
+{
+	uint32_t tc;
+	unsigned int bit_count = 0;
+	uint32_t current_bit;
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_tdes_ksn_get_tc(ksn);
+
+	// Count number of bits in transaction counter
+	current_bit = 0x100000; // 21st bit
+	while (current_bit) {
+		if (tc & current_bit) {
+			++bit_count;
+		}
+		current_bit >>= 1;
+	}
+
+	// Transaction counter should have 10 or fewer "one" bits
+	// See ANSI X9.24-1:2009 A.3 Key Management Technique
+	// See ANSI X9.24-3:2017 C.4 Key Management Technique
+	if (bit_count > 10) {
+		// Too many bits in transaction counter
+		return false;
+	}
+
+	// Valid
+	return true;
+}
+
+bool dukpt_tdes_ksn_is_exhausted(const uint8_t* ksn)
+{
+	uint32_t tc;
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_tdes_ksn_get_tc(ksn);
+	if (!tc) {
+		// Transaction counter exhausted
+		return true;
+	}
+
+	// Transaction counter not exhausted
+	return false;
 }

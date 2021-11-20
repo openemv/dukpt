@@ -42,6 +42,7 @@ enum dukpt_tool_mode_t {
 	DUKPT_TOOL_MODE_NONE,
 	DUKPT_TOOL_MODE_DERIVE_IK,
 	DUKPT_TOOL_MODE_DERIVE_TXN_KEY,
+	DUKPT_TOOL_MODE_ADVANCE_KSN,
 };
 static enum dukpt_tool_mode_t dukpt_tool_mode = DUKPT_TOOL_MODE_NONE;
 
@@ -58,6 +59,7 @@ enum dukpt_tool_option_t {
 
 	DUKPT_TOOL_OPTION_DERIVE_IK,
 	DUKPT_TOOL_OPTION_DERIVE_TXN_KEY,
+	DUKPT_TOOL_OPTION_ADVANCE_KSN,
 };
 
 // argp option structure
@@ -72,6 +74,7 @@ static struct argp_option argp_options[] = {
 	{ "derive-ik", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, 0, "Derive Initial Key (IK). Requires BDK and KSN." },
 	{ "derive-ipek", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, OPTION_ALIAS },
 	{ "derive-txn-key", DUKPT_TOOL_OPTION_DERIVE_TXN_KEY, NULL, 0, "Derive transaction key. Requires either BDK or IK, as well as KSN." },
+	{ "advance-ksn", DUKPT_TOOL_OPTION_ADVANCE_KSN, NULL, 0, "Advance to next valid KSN. Requires KSN." },
 
 	{ 0, 0, NULL, 0, "All argument values are strings of hex digits representing binary data" },
 	{ 0 },
@@ -128,6 +131,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 		case DUKPT_TOOL_OPTION_DERIVE_TXN_KEY:
 			dukpt_tool_mode = DUKPT_TOOL_MODE_DERIVE_TXN_KEY;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_ADVANCE_KSN:
+			dukpt_tool_mode = DUKPT_TOOL_MODE_ADVANCE_KSN;
 			return 0;
 
 		default:
@@ -283,6 +290,39 @@ int main(int argc, char** argv)
 				goto exit;
 			}
 			print_hex(txn_key, txn_key_len);
+			break;
+
+		case DUKPT_TOOL_MODE_ADVANCE_KSN:
+			// Validate required inputs
+			if (!ksn) {
+				fprintf(stderr, "KSN is required to advance to next valid KSN\n");
+				r = 1;
+				goto exit;
+			}
+
+			// Validate KSN length
+			if (ksn_len != DUKPT_TDES_KSN_LEN) {
+				fprintf(stderr, "KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
+				r = 1;
+				goto exit;
+			}
+
+			if (dukpt_tdes_ksn_is_exhausted(ksn)) {
+				// Advance to the first transaction
+				ksn[DUKPT_TDES_KSN_LEN - 1] = 1;
+			} else {
+				// Advance to the next transaction
+				r = dukpt_tdes_ksn_advance(ksn);
+				if (r < 0) {
+					fprintf(stderr, "dukpt_tdes_ksn_advance() failed; r=%d\n", r);
+					goto exit;
+				}
+				if (r > 0) {
+					fprintf(stderr, "KSN exhausted\n");
+					goto exit;
+				}
+			}
+			print_hex(ksn, ksn_len);
 			break;
 	}
 

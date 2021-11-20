@@ -133,11 +133,19 @@ int main(void)
 	}
 
 	// Test transaction key derivation from Initial Key (IK) for initial KSNs
+	memcpy(ksn, ksn_verify[0], DUKPT_TDES_KSN_LEN);
 	for (size_t i = 0; i < sizeof(ksn_verify) / sizeof(ksn_verify[0]); ++i) {
-		// TODO: advance KSN
-		memcpy(ksn, ksn_verify[i], DUKPT_TDES_KSN_LEN);
-
-		// TODO: validate KSN
+		// Validate KSN
+		if (!dukpt_tdes_ksn_is_valid(ksn)) {
+			fprintf(stderr, "KSN %zu is invalid\n", i);
+			r = 1;
+			goto exit;
+		}
+		if (memcmp(ksn, ksn_verify[i], DUKPT_TDES_KSN_LEN) != 0) {
+			fprintf(stderr, "KSN %zu is incorrect\n", i);
+			r = 1;
+			goto exit;
+		}
 
 		// Test transaction key derivation from Initial Key (IK)
 		r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
@@ -150,14 +158,29 @@ int main(void)
 			r = 1;
 			goto exit;
 		}
+
+		// Advance KSN
+		r = dukpt_tdes_ksn_advance(ksn);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_ksn_advance() failed; r=%d\n", r);
+			goto exit;
+		}
 	}
 
 	// Test transaction key derivation from Initial Key (IK) for rollover KSNs
+	memcpy(ksn, ksn_verify2[0], DUKPT_TDES_KSN_LEN);
 	for (size_t i = 0; i < sizeof(ksn_verify2) / sizeof(ksn_verify2[0]); ++i) {
-		// TODO: advance KSN
-		memcpy(ksn, ksn_verify2[i], DUKPT_TDES_KSN_LEN);
-
-		// TODO: validate KSN
+		// Validate KSN
+		if (!dukpt_tdes_ksn_is_valid(ksn)) {
+			fprintf(stderr, "KSN %zu is invalid\n", i);
+			r = 1;
+			goto exit;
+		}
+		if (memcmp(ksn, ksn_verify2[i], DUKPT_TDES_KSN_LEN) != 0) {
+			fprintf(stderr, "KSN %zu is incorrect\n", i);
+			r = 1;
+			goto exit;
+		}
 
 		// Test transaction key derivation from Initial Key (IK)
 		r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
@@ -168,6 +191,13 @@ int main(void)
 		if (memcmp(txn_key, txn_key_verify2[i], sizeof(txn_key_verify2[i])) != 0) {
 			fprintf(stderr, "Transaction key derivation %zu is incorrect\n", i);
 			r = 1;
+			goto exit;
+		}
+
+		// Advance KSN
+		r = dukpt_tdes_ksn_advance(ksn);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_ksn_advance() failed; r=%d\n", r);
 			goto exit;
 		}
 	}

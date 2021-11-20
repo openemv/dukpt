@@ -110,4 +110,44 @@ if(BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^C46551CEF9FD24B0AA9AD834130D3BC7"
 	)
+
+	add_test(NAME dukpt_tool_tdes_ksn_test1
+		COMMAND dukpt-tool --ksn=FFFF9876543210E00000 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_tdes_ksn_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^FFFF9876543210E00001"
+	)
+
+	add_test(NAME dukpt_tool_tdes_ksn_test2
+		COMMAND dukpt-tool --ksn=FFFF9876543210E00001 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_tdes_ksn_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^FFFF9876543210E00002"
+	)
+
+	add_test(NAME dukpt_tool_tdes_ksn_test3
+		COMMAND dukpt-tool --ksn=FFFF9876543210FFF400 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_tdes_ksn_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^FFFF9876543210FFF800"
+	)
+
+	add_test(NAME dukpt_tool_tdes_ksn_test4
+		COMMAND dukpt-tool --ksn=FFFF9876543210EFFC00 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_tdes_ksn_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^FFFF9876543210F00000"
+	)
+
+	add_test(NAME dukpt_tool_tdes_ksn_test5
+		COMMAND dukpt-tool --ksn=FFFF9876543210FFF800 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_tdes_ksn_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^KSN exhausted"
+	)
 endif()
