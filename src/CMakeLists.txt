@@ -10,6 +10,10 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(MbedTLS 2.16 REQUIRED) # Latest version available on Ubuntu 20.04 and Fedora 34
 
+# Check whether compiler supports __builtin_popcount()
+include(CheckCSourceCompiles)
+check_c_source_compiles("int main(void) { return __builtin_popcount(42); }" HAS_BUILTIN_POPCOUNT)
+
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # Generate config file for internal use only

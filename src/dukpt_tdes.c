@@ -353,18 +353,24 @@ int dukpt_tdes_ksn_advance(uint8_t* ksn)
 	// Loop continues until transaction counter is exhausted (tc == 0) or
 	// until a valid transaction counter is found
 	while (tc) {
+		unsigned int bit_count;
+
 		// Count number of bits in transaction counter
-		// and find least significant set bit
-		unsigned int bit_count = 0;
-		uint32_t lsb_set_bit = 0;
-		uint32_t current_bit = 0x100000; // 21st bit
-		while (current_bit) {
-			if (tc & current_bit) {
-				++bit_count;
-				lsb_set_bit = current_bit;
-			}
-			current_bit >>= 1;
+#ifdef HAS_BUILTIN_POPCOUNT
+		bit_count = __builtin_popcount(tc);
+#else
+		// Use optimised bit counting algorithm discovered by:
+		// * Peter Wegner, CACM 3 (1960)
+		// * Derrick Lehmer (1964)
+		// * Brian W. Kernighan and Dennis M. Ritchie, C Programming Language 2nd Ed (1988)
+		// This loop will only have as many iterations as there are set bits
+		// in the transaction counter
+		bit_count = 0;
+		for (uint32_t tmp = tc; tmp != 0; ++bit_count) {
+			// Clear least significant bit
+			tmp &= tmp - 1;
 		}
+#endif
 
 		// Transaction counter should have 10 or fewer "one" bits
 		// See ANSI X9.24-1:2009 A.3 Key Management Technique
@@ -373,6 +379,12 @@ int dukpt_tdes_ksn_advance(uint8_t* ksn)
 			// Current transaction counter is valid
 			break;
 		}
+
+		// Use some bit magic to find the least significant set bit
+		// tc - 1 unsets the least significant set bit
+		// ~(tc - 1) inverts it such that all previously set bits are unset,
+		// except for the previously least significant set bit
+		uint32_t lsb_set_bit = tc & ~(tc - 1);
 
 		// Advance to next possible transaction counter
 		// If the least significant bit is not set, simply incrementing by one
@@ -403,20 +415,27 @@ int dukpt_tdes_ksn_advance(uint8_t* ksn)
 bool dukpt_tdes_ksn_is_valid(const uint8_t* ksn)
 {
 	uint32_t tc;
-	unsigned int bit_count = 0;
-	uint32_t current_bit;
+	unsigned int bit_count;
 
 	// Extract transaction counter value from KSN
 	tc = dukpt_tdes_ksn_get_tc(ksn);
 
 	// Count number of bits in transaction counter
-	current_bit = 0x100000; // 21st bit
-	while (current_bit) {
-		if (tc & current_bit) {
-			++bit_count;
-		}
-		current_bit >>= 1;
+#ifdef HAS_BUILTIN_POPCOUNT
+	bit_count = __builtin_popcount(tc);
+#else
+	// Use optimised bit counting algorithm discovered by:
+	// * Peter Wegner, CACM 3 (1960)
+	// * Derrick Lehmer (1964)
+	// * Brian W. Kernighan and Dennis M. Ritchie, C Programming Language 2nd Ed (1988)
+	// This loop will only have as many iterations as there are set bits
+	// in the transaction counter
+	bit_count = 0;
+	for (uint32_t tmp = tc; tmp != 0; ++bit_count) {
+		// Clear least significant bit
+		tmp &= tmp - 1;
 	}
+#endif
 
 	// Transaction counter should have 10 or fewer "one" bits
 	// See ANSI X9.24-1:2009 A.3 Key Management Technique

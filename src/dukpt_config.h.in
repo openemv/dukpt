@@ -23,5 +23,6 @@
 
 #define DUKPT_LIB_VERSION_STRING "@CMAKE_PROJECT_VERSION@"
 #cmakedefine MBEDTLS_FOUND
+#cmakedefine HAS_BUILTIN_POPCOUNT
 
 #endif
