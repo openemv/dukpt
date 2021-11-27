@@ -22,6 +22,7 @@
 #include "dukpt_aes.h"
 #include "dukpt_config.h"
 
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -67,6 +68,107 @@ struct dukpt_aes_derivation_data_t {
 	uint16_t length;
 	uint8_t ksn_data[8]; // Either IK ID, or rightmost half of IK ID together with transaction counter
 } __attribute__((packed));
+
+typedef int (*aes_ecb_encrypt_func_t)(const void* key, const void* plaintext, void* ciphertext);
+
+#ifdef MBEDTLS_FOUND
+
+#include <mbedtls/aes.h>
+
+#define AES_BLOCK_SIZE (16) ///< AES block size in bytes
+
+static int dukpt_aes128_ecb_encrypt(const void* key, const void* plaintext, void* ciphertext)
+{
+	int r;
+	mbedtls_aes_context ctx;
+
+	mbedtls_aes_init(&ctx);
+
+	r = mbedtls_aes_setkey_enc(&ctx, key, 128);
+	if (r) {
+		r = -1;
+		goto exit;
+	}
+
+	r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
+	if (r) {
+		r = -2;
+		goto exit;
+	}
+
+exit:
+	// Cleanup
+	mbedtls_aes_free(&ctx);
+
+	return r;
+}
+
+static int dukpt_aes192_ecb_encrypt(const void* key, const void* plaintext, void* ciphertext)
+{
+	int r;
+	mbedtls_aes_context ctx;
+
+	mbedtls_aes_init(&ctx);
+
+	r = mbedtls_aes_setkey_enc(&ctx, key, 192);
+	if (r) {
+		r = -1;
+		goto exit;
+	}
+
+	r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
+	if (r) {
+		r = -2;
+		goto exit;
+	}
+
+exit:
+	// Cleanup
+	mbedtls_aes_free(&ctx);
+
+	return r;
+}
+
+static int dukpt_aes256_ecb_encrypt(const void* key, const void* plaintext, void* ciphertext)
+{
+	int r;
+	mbedtls_aes_context ctx;
+
+	mbedtls_aes_init(&ctx);
+
+	r = mbedtls_aes_setkey_enc(&ctx, key, 256);
+	if (r) {
+		r = -1;
+		goto exit;
+	}
+
+	r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
+	if (r) {
+		r = -2;
+		goto exit;
+	}
+
+exit:
+	// Cleanup
+	mbedtls_aes_free(&ctx);
+
+	return r;
+}
+
+#endif
+
+__attribute__((noinline))
+static void dukpt_memset_s(void* ptr, size_t len)
+{
+	memset(ptr, 0, len);
+
+	// From GCC documentation:
+	// If the function does not have side effects, there are optimizations
+	// other than inlining that cause function calls to be optimized away,
+	// although the function call is live. To keep such calls from being
+	// optimized away, put...
+	__asm__ ("");
+}
 
 static int dukpt_aes_create_derivation_data(
 	enum dukpt_aes_key_usage_t key_usage,
@@ -141,4 +243,64 @@ static int dukpt_aes_create_derivation_data(
 	}
 
 	return 0;
+}
+
+static int dukpt_aes_derive_key(
+	enum dukpt_aes_key_type_t key_type,
+	const void* key,
+	struct dukpt_aes_derivation_data_t* derivation_data,
+	void* derived_key
+)
+{
+	int r;
+	size_t derived_key_len;
+	aes_ecb_encrypt_func_t aes_ecb_encrypt;
+
+	// Determine derived key length in bytes
+	derived_key_len = ntohs(derivation_data->length) / 8;
+
+	// Key type determines derivation algorithm
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			aes_ecb_encrypt = &dukpt_aes128_ecb_encrypt;
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			aes_ecb_encrypt = &dukpt_aes192_ecb_encrypt;
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			aes_ecb_encrypt = &dukpt_aes256_ecb_encrypt;
+			break;
+
+		default:
+			// Only AES may be used for derivation
+			// See ANSI X9.24-3:2017 6.3.1
+			r = -1;
+			goto error;
+	}
+
+	// Derive key material
+	// See ANSI X9.24-3:2017 6.3.1
+	for (size_t key_len = 0; key_len < derived_key_len; key_len += AES_BLOCK_SIZE) {
+		// Each AES ECB computation provides key material of length AES_BLOCK_SIZE
+		r = aes_ecb_encrypt(key, derivation_data, derived_key + key_len);
+		if (r) {
+			goto error;
+		}
+
+		// Increment block counter for each block of key material
+		// See ANSI X9.24-3:2017 6.3.2 table 2 and table 3
+		++derivation_data->key_block_counter;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// TODO: randomise instead
+	dukpt_memset_s(derived_key, derived_key_len);
+exit:
+	return r;
 }
