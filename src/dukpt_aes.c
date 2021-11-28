@@ -172,7 +172,7 @@ static void dukpt_memset_s(void* ptr, size_t len)
 
 static int dukpt_aes_create_derivation_data(
 	enum dukpt_aes_key_usage_t key_usage,
-	enum dukpt_aes_algorithm_t key_type,
+	enum dukpt_aes_key_type_t key_type,
 	const uint8_t* ikid,
 	uint32_t tc,
 	struct dukpt_aes_derivation_data_t* derivation_data
@@ -188,25 +188,29 @@ static int dukpt_aes_create_derivation_data(
 	// Key type determines the algorithm for which the derived key will be used
 	// as well as the length of the derived key
 	// See ANSI X9.24-3:2017 6.2.2
-	derivation_data->algorithm = htons(key_type);
 	switch (key_type) {
-		case DUKPT_AES_ALGORITHM_2TDEA:
+		case DUKPT_AES_KEY_TYPE_2TDEA:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_2TDEA);
 			derivation_data->length = htons(DUKPT_AES_KEY_BITS_2TDEA);
 			break;
 
-		case DUKPT_AES_ALGORITHM_3TDEA:
+		case DUKPT_AES_KEY_TYPE_3TDEA:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_3TDEA);
 			derivation_data->length = htons(DUKPT_AES_KEY_BITS_3TDEA);
 			break;
 
-		case DUKPT_AES_ALGORITHM_AES128:
+		case DUKPT_AES_KEY_TYPE_AES128:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_AES128);
 			derivation_data->length = htons(DUKPT_AES_KEY_BITS_AES128);
 			break;
 
-		case DUKPT_AES_ALGORITHM_AES192:
+		case DUKPT_AES_KEY_TYPE_AES192:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_AES192);
 			derivation_data->length = htons(DUKPT_AES_KEY_BITS_AES192);
 			break;
 
-		case DUKPT_AES_ALGORITHM_AES256:
+		case DUKPT_AES_KEY_TYPE_AES256:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_AES256);
 			derivation_data->length = htons(DUKPT_AES_KEY_BITS_AES256);
 			break;
 
@@ -302,5 +306,53 @@ error:
 	// TODO: randomise instead
 	dukpt_memset_s(derived_key, derived_key_len);
 exit:
+	return r;
+}
+
+int dukpt_aes_derive_ik(
+	enum dukpt_aes_key_type_t key_type,
+	const void* bdk,
+	const uint8_t* ikid,
+	void* ik
+)
+{
+	int r;
+	struct dukpt_aes_derivation_data_t derivation_data;
+
+	// Create key derivation data
+	// See ANSI X9.24-3:2017 6.3.3
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_KEY_DERIVATION_INITIAL_KEY,
+		key_type,
+		ikid,
+		0,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Derive initial key
+	// See ANSI X9.24-3:2017 6.3.1
+	r = dukpt_aes_derive_key(
+		key_type,
+		bdk,
+		&derivation_data,
+		ik
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// TODO: randomise instead
+	dukpt_memset_s(ik, sizeof(ik));
+exit:
+	dukpt_memset_s(&derivation_data, sizeof(derivation_data));
+
 	return r;
 }

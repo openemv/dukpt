@@ -23,6 +23,7 @@
 #define DUKPT_AES_H
 
 #include <sys/cdefs.h>
+#include <stdint.h>
 
 __BEGIN_DECLS
 
@@ -55,6 +56,34 @@ enum dukpt_aes_key_bits_t {
 	DUKPT_AES_KEY_BITS_AES192 = 0x00C0, ///< AES 192-bit
 	DUKPT_AES_KEY_BITS_AES256 = 0x0100, ///< AES 256-bit
 };
+
+/**
+ * Key length in bytes for AES DUKPT (depends on @ref dukpt_aes_key_bits_t)
+ * @remark See ANSI X9.24-3:2017 6.2.2
+ *
+ * @param key_type Key type
+ */
+#define DUKPT_AES_KEY_LEN(key_type) ((DUKPT_AES_KEY_BITS_##key_type) / 8)
+
+/**
+ * Derive Initial Key (IK) from Base Derivative Key (BDK) and Initial Key ID.
+ * @note This function should only be used by the receiving or key generating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param key_type Key type of Base Derivation Key. Only AES key types are allowed.
+ *        This parameter also determines the underlying derivation algorithm.
+ * @param bdk Base Derivative Key of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @param ikid Initial Key ID of length @ref DUKPT_AES_IK_ID_LEN
+ * @param ik Initial DUKPT key output of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_derive_ik(
+	enum dukpt_aes_key_type_t key_type,
+	const void* bdk,
+	const uint8_t* ikid,
+	void* ik
+);
 
 __END_DECLS
 
