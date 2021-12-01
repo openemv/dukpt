@@ -85,6 +85,26 @@ int dukpt_aes_derive_ik(
 	void* ik
 );
 
+/**
+ * Derive DUKPT transaction key from Initial Key (IK) and Key Serial Number (KSN)
+ * @note This function should only be used by the receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param key_type Key type of Initial Key. Only AES key types are allowed.
+ *        This parameter also determines the underlying derivation algorithm.
+ * @param ik Initial Key of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param txn_key DUKPT transaction key output of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_derive_txn_key(
+	enum dukpt_aes_key_type_t key_type,
+	const void* ik,
+	const uint8_t* ksn,
+	void* txn_key
+);
+
 __END_DECLS
 
 #endif

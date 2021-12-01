@@ -260,6 +260,10 @@ static int dukpt_aes_derive_key(
 	size_t derived_key_len;
 	aes_ecb_encrypt_func_t aes_ecb_encrypt;
 
+	// Use separate output buffer to avoid overriding the input key if it
+	// happens to use the same buffer as the derived key
+	uint8_t derived_key_output[DUKPT_AES_KEY_LEN(AES256)];
+
 	// Determine derived key length in bytes
 	derived_key_len = ntohs(derivation_data->length) / 8;
 
@@ -288,7 +292,7 @@ static int dukpt_aes_derive_key(
 	// See ANSI X9.24-3:2017 6.3.1
 	for (size_t key_len = 0; key_len < derived_key_len; key_len += AES_BLOCK_SIZE) {
 		// Each AES ECB computation provides key material of length AES_BLOCK_SIZE
-		r = aes_ecb_encrypt(key, derivation_data, derived_key + key_len);
+		r = aes_ecb_encrypt(key, derivation_data, derived_key_output + key_len);
 		if (r) {
 			goto error;
 		}
@@ -299,6 +303,7 @@ static int dukpt_aes_derive_key(
 	}
 
 	// Success
+	memcpy(derived_key, derived_key_output, derived_key_len);
 	r = 0;
 	goto exit;
 
@@ -306,6 +311,7 @@ error:
 	// TODO: randomise instead
 	dukpt_memset_s(derived_key, derived_key_len);
 exit:
+	dukpt_memset_s(derived_key_output, sizeof(derived_key_output));
 	return r;
 }
 
@@ -351,6 +357,108 @@ int dukpt_aes_derive_ik(
 error:
 	// TODO: randomise instead
 	dukpt_memset_s(ik, sizeof(ik));
+exit:
+	dukpt_memset_s(&derivation_data, sizeof(derivation_data));
+
+	return r;
+}
+
+int dukpt_aes_derive_txn_key(
+	enum dukpt_aes_key_type_t key_type,
+	const void* ik,
+	const uint8_t* ksn,
+	void* txn_key
+)
+{
+	int r;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint32_t tc;
+	uint32_t working_tc;
+
+	// This process is explained in ANSI X9.24-3:2017 6.1 and 6.3.1
+	// A recursive description of the process would be that the key associated
+	// with a specific KSN is derived from the key associated with a KSN
+	// formed by unsettign the least significant transaction counter bit set
+	// in the previous KSN. When no transaction counter bits are set, the
+	// associated key is the IK.
+
+	// An iterative description of the process would be that one starts with
+	// the IK and IKSN, thus no transaction bits are set, and then derives
+	// each subsequent key from the previous key according to the transaction
+	// counter bits. For each bit set in the transaction counter, starting at
+	// the most most significant bit set, the corresponding bit is set in the
+	// KSN and the next key is derived from the previous key and this KSN.
+	// This continues until the last key is derived when the KSN contains all
+	// the set bits of the transaction counter.
+
+	// Start with Initial Key (IK) and current Transaction Counter
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			memcpy(txn_key, ik, DUKPT_AES_KEY_BITS_AES128 / 8);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			memcpy(txn_key, ik, DUKPT_AES_KEY_BITS_AES192 / 8);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			memcpy(txn_key, ik, DUKPT_AES_KEY_BITS_AES256 / 8);
+			break;
+
+		default:
+			// Only AES may be used for derivation
+			// See ANSI X9.24-3:2017 6.3.1
+			return 1;
+	}
+	memcpy(&tc, ksn + DUKPT_AES_IK_ID_LEN, DUKPT_AES_TC_LEN);
+	tc = ntohl(tc);
+
+	// For each mask bit, starting at the highest bit:
+	// If the corresponding bit in the transaction counter is set, then set
+	// the corresponding bit in the KSN register and derive the next key from
+	// the previous key.
+	working_tc = 0;
+	for (uint32_t mask = 0x80000000; mask != 0; mask >>= 1) {
+		if ((tc & mask) == 0) {
+			// Transaction counter bit not set; skip
+			continue;
+		}
+
+		working_tc |= mask;
+
+		// Create key derivation data
+		// See ANSI X9.24-3:2017 6.3.3
+		r = dukpt_aes_create_derivation_data(
+			DUKPT_AES_KEY_USAGE_KEY_DERIVATION,
+			key_type,
+			ksn,
+			working_tc,
+			&derivation_data
+		);
+		if (r) {
+			goto error;
+		}
+
+		// Derive current derivation key from previous derivation key
+		// See ANSI X9.24-3:2017 6.4
+		r = dukpt_aes_derive_key(
+			key_type,
+			txn_key,
+			&derivation_data,
+			txn_key
+		);
+		if (r) {
+			goto error;
+		}
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// TODO: randomise instead
+	dukpt_memset_s(txn_key, txn_key_len);
 exit:
 	dukpt_memset_s(&derivation_data, sizeof(derivation_data));
 
