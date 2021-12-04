@@ -60,17 +60,19 @@ static const uint8_t txn_key_verify[][DUKPT_AES_KEY_LEN(AES256)] = {
 };
 
 // ANSI X9.24-3:2017 Supplement Test Vectors (transaction counters 0x1fffe, 0x1ffff, 0x20000, 0x20001)
+// NOTE: transaction counter 0x1ffff is commented out because it has more than the allowed 16 set bits
 static const uint8_t ksn_verify2[][DUKPT_AES_KSN_LEN] = {
 	{ 0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56, 0x00, 0x01, 0xFF, 0xFE },
-	{ 0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56, 0x00, 0x01, 0xFF, 0xFF },
+	//{ 0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56, 0x00, 0x01, 0xFF, 0xFF },
 	{ 0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56, 0x00, 0x02, 0x00, 0x00 },
 	{ 0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56, 0x00, 0x02, 0x00, 0x01 },
 };
 
 // ANSI X9.24-3:2017 Supplement Test Vectors for AES-256 BDK (transaction keys for 0x1fffe, 0x1ffff, 0x20000, 0x20001; middle of page 10)
+// NOTE: transaction counter 0x1ffff is commented out because it has more than the allowed 16 set bits
 static const uint8_t txn_key_verify2[][DUKPT_AES_KEY_LEN(AES256)] = {
 	{ 0xA2, 0x89, 0x50, 0x8C, 0xBF, 0x12, 0x28, 0x45, 0x2C, 0xD8, 0x6A, 0xB7, 0x7B, 0x15, 0xCB, 0x35, 0x57, 0x7A, 0xC8, 0x28, 0xC1, 0x8B, 0xB6, 0x66, 0x81, 0xE5, 0xA1, 0x6D, 0x6C, 0x9C, 0xCE, 0xD3 },
-	{ 0x7C, 0x1F, 0x24, 0xBC, 0x33, 0xC5, 0xB1, 0x46, 0xE1, 0xD3, 0x01, 0x51, 0x26, 0xF4, 0xAC, 0x2E, 0x0C, 0x48, 0xAC, 0x08, 0x0D, 0xC9, 0x23, 0x41, 0x37, 0xB8, 0x28, 0x90, 0xE8, 0xE9, 0x1F, 0xB8 },
+	//{ 0x7C, 0x1F, 0x24, 0xBC, 0x33, 0xC5, 0xB1, 0x46, 0xE1, 0xD3, 0x01, 0x51, 0x26, 0xF4, 0xAC, 0x2E, 0x0C, 0x48, 0xAC, 0x08, 0x0D, 0xC9, 0x23, 0x41, 0x37, 0xB8, 0x28, 0x90, 0xE8, 0xE9, 0x1F, 0xB8 },
 	{ 0xD6, 0x2D, 0xDA, 0x94, 0xA4, 0x7D, 0x7D, 0xA5, 0xD7, 0x63, 0x44, 0x3B, 0x4E, 0xCB, 0x15, 0xEA, 0x8D, 0xD6, 0x2E, 0x0E, 0x4F, 0x91, 0x59, 0x58, 0xBA, 0x45, 0x95, 0x91, 0xF8, 0x31, 0x2E, 0x37 },
 	{ 0x44, 0x11, 0x0A, 0x11, 0x02, 0x74, 0x8D, 0x4A, 0x3A, 0xC3, 0x26, 0xF5, 0x3D, 0x8C, 0xAC, 0x65, 0x02, 0x12, 0x59, 0x0C, 0xA7, 0x12, 0x6D, 0x54, 0x54, 0x6D, 0xDE, 0x0F, 0x20, 0xE8, 0x9C, 0xEE },
 };
@@ -123,9 +125,19 @@ int main(void)
 	}
 
 	// Test transaction key derivation from Initial Key (IK) for initial KSNs
+	memcpy(ksn, ksn_verify[0], DUKPT_AES_KSN_LEN);
 	for (size_t i = 0; i < sizeof(ksn_verify) / sizeof(ksn_verify[0]); ++i) {
-		// TODO: Validate KSN
-		memcpy(ksn, ksn_verify[i], DUKPT_AES_KSN_LEN);
+		// Validate KSN
+		if (!dukpt_aes_ksn_is_valid(ksn)) {
+			fprintf(stderr, "KSN %zu is invalid\n", i);
+			r = 1;
+			goto exit;
+		}
+		if (memcmp(ksn, ksn_verify[i], DUKPT_AES_KSN_LEN) != 0) {
+			fprintf(stderr, "KSN %zu is incorrect\n", i);
+			r = 1;
+			goto exit;
+		}
 
 		// Test transaction key derivation from Initial Key (IK)
 		r = dukpt_aes_derive_txn_key(DUKPT_AES_KEY_TYPE_AES256, ik, ksn, txn_key);
@@ -139,13 +151,28 @@ int main(void)
 			goto exit;
 		}
 
-		// TODO: Advance KSN
+		// Advance KSN
+		r = dukpt_aes_ksn_advance(ksn);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_ksn_advance() failed; r=%d\n", r);
+			goto exit;
+		}
 	}
 
 	// Test transaction key derivation from Initial Key (IK) for rollover KSNs
+	memcpy(ksn, ksn_verify2[0], DUKPT_AES_KSN_LEN);
 	for (size_t i = 0; i < sizeof(ksn_verify2) / sizeof(ksn_verify2[0]); ++i) {
-		// TODO: Validate KSN
-		memcpy(ksn, ksn_verify2[i], DUKPT_AES_KSN_LEN);
+		// Validate KSN
+		if (!dukpt_aes_ksn_is_valid(ksn)) {
+			fprintf(stderr, "KSN %zu is invalid\n", i);
+			r = 1;
+			goto exit;
+		}
+		if (memcmp(ksn, ksn_verify2[i], DUKPT_AES_KSN_LEN) != 0) {
+			fprintf(stderr, "KSN %zu is incorrect\n", i);
+			r = 1;
+			goto exit;
+		}
 
 		// Test transaction key derivation from Initial Key (IK)
 		r = dukpt_aes_derive_txn_key(DUKPT_AES_KEY_TYPE_AES256, ik, ksn, txn_key);
@@ -159,13 +186,28 @@ int main(void)
 			goto exit;
 		}
 
-		// TODO: Advance KSN
+		// Advance KSN
+		r = dukpt_aes_ksn_advance(ksn);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_ksn_advance() failed; r=%d\n", r);
+			goto exit;
+		}
 	}
 
 	// Test transaction key derivation from Initial Key (IK) for last KSNs
+	memcpy(ksn, ksn_verify3[0], DUKPT_AES_KSN_LEN);
 	for (size_t i = 0; i < sizeof(ksn_verify3) / sizeof(ksn_verify3[0]); ++i) {
-		// TODO: Validate KSN
-		memcpy(ksn, ksn_verify3[i], DUKPT_AES_KSN_LEN);
+		// Validate KSN
+		if (!dukpt_aes_ksn_is_valid(ksn)) {
+			fprintf(stderr, "KSN %zu is invalid\n", i);
+			r = 1;
+			goto exit;
+		}
+		if (memcmp(ksn, ksn_verify3[i], DUKPT_AES_KSN_LEN) != 0) {
+			fprintf(stderr, "KSN %zu is incorrect\n", i);
+			r = 1;
+			goto exit;
+		}
 
 		// Test transaction key derivation from Initial Key (IK)
 		r = dukpt_aes_derive_txn_key(DUKPT_AES_KEY_TYPE_AES256, ik, ksn, txn_key);
@@ -179,7 +221,15 @@ int main(void)
 			goto exit;
 		}
 
-		// TODO: Advance KSN
+		// Advance KSN
+		r = dukpt_aes_ksn_advance(ksn);
+		if (i != (sizeof(ksn_verify3) / sizeof(ksn_verify3[0])) - 1) {
+			// If not last KSN, it must advance
+			if (r) {
+				fprintf(stderr, "dukpt_aes_ksn_advance() failed; r=%d\n", r);
+				goto exit;
+			}
+		}
 	}
 
 	printf("All tests passed.\n");

@@ -363,6 +363,14 @@ exit:
 	return r;
 }
 
+static uint32_t dukpt_aes_ksn_get_tc(const uint8_t* ksn)
+{
+	uint32_t tc;
+
+	memcpy(&tc, ksn + DUKPT_AES_IK_ID_LEN, DUKPT_AES_TC_LEN);
+	return ntohl(tc);
+}
+
 int dukpt_aes_derive_txn_key(
 	enum dukpt_aes_key_type_t key_type,
 	const void* ik,
@@ -410,8 +418,7 @@ int dukpt_aes_derive_txn_key(
 			// See ANSI X9.24-3:2017 6.3.1
 			return 1;
 	}
-	memcpy(&tc, ksn + DUKPT_AES_IK_ID_LEN, DUKPT_AES_TC_LEN);
-	tc = ntohl(tc);
+	tc = dukpt_aes_ksn_get_tc(ksn);
 
 	// For each mask bit, starting at the highest bit:
 	// If the corresponding bit in the transaction counter is set, then set
@@ -463,4 +470,127 @@ exit:
 	dukpt_memset_s(&derivation_data, sizeof(derivation_data));
 
 	return r;
+}
+
+int dukpt_aes_ksn_advance(uint8_t* ksn)
+{
+	uint32_t tc;
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+	if (!tc) {
+		// Transaction already counter exhausted
+		return 1;
+	}
+
+	// Advance to next possible transaction counter
+	++tc;
+
+	// Loop continues until transaction counter is exhausted (tc == 0) or
+	// until a valid transaction counter is found
+	while (tc) {
+		unsigned int bit_count;
+
+		// Count number of bits in transaction counter
+#ifdef HAS_BUILTIN_POPCOUNT
+		bit_count = __builtin_popcount(tc);
+#else
+		// Use optimised bit counting algorithm discovered by:
+		// * Peter Wegner, CACM 3 (1960)
+		// * Derrick Lehmer (1964)
+		// * Brian W. Kernighan and Dennis M. Ritchie, C Programming Language 2nd Ed (1988)
+		// This loop will only have as many iterations as there are set bits
+		// in the transaction counter
+		bit_count = 0;
+		for (uint32_t tmp = tc; tmp != 0; ++bit_count) {
+			// Clear least significant bit
+			tmp &= tmp - 1;
+		}
+#endif
+
+		// Transaction counter should have 16 or fewer "one" bits
+		// See ANSI X9.24-3:2017 6.1 Algorithm Description
+		if (bit_count <= 16) {
+			// Current transaction counter is valid
+			break;
+		}
+
+		// Use some bit magic to find the least significant set bit
+		// tc - 1 unsets the least significant set bit
+		// ~(tc - 1) inverts it such that all previously set bits are unset,
+		// except for the previously least significant set bit
+		uint32_t lsb_set_bit = tc & ~(tc - 1);
+
+		// Advance to next possible transaction counter
+		// If the least significant bit is not set, simply incrementing by one
+		// still yield an invalid transaction counter. And if more than one of
+		// the lowest bits are not set, it would require many iterations to
+		// reach the next valid transaction counter. A better approach is to
+		// add the least significant set bit which will either yield the same
+		// number of set bits or fewer set bits.
+		tc += lsb_set_bit;
+	}
+
+	// Update KSN with latest transaction counter
+	tc = htonl(tc);
+	memcpy(ksn + DUKPT_AES_IK_ID_LEN, &tc, DUKPT_AES_TC_LEN);
+
+	if (!tc) {
+		// Transaction counter exhausted
+		return 2;
+	}
+
+	// Transaction counter valid
+	return 0;
+}
+
+bool dukpt_aes_ksn_is_valid(const uint8_t* ksn)
+{
+	uint32_t tc;
+	unsigned int bit_count;
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Count number of bits in transaction counter
+#ifdef HAS_BUILTIN_POPCOUNT
+	bit_count = __builtin_popcount(tc);
+#else
+	// Use optimised bit counting algorithm discovered by:
+	// * Peter Wegner, CACM 3 (1960)
+	// * Derrick Lehmer (1964)
+	// * Brian W. Kernighan and Dennis M. Ritchie, C Programming Language 2nd Ed (1988)
+	// This loop will only have as many iterations as there are set bits
+	// in the transaction counter
+	bit_count = 0;
+	for (uint32_t tmp = tc; tmp != 0; ++bit_count) {
+		// Clear least significant bit
+		tmp &= tmp - 1;
+	}
+#endif
+
+	// Transaction counter should have 16 or fewer "one" bits
+	// See ANSI X9.24-3:2017 6.1 Algorithm Description
+	if (bit_count > 16) {
+		// Too many bits in transaction counter
+		return false;
+	}
+
+	// Valid
+	return true;
+}
+
+bool dukpt_aes_ksn_is_exhausted(const uint8_t* ksn)
+{
+	uint32_t tc;
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+	if (!tc) {
+		// Transaction counter exhausted
+		return true;
+	}
+
+	// Transaction counter not exhausted
+	return false;
 }

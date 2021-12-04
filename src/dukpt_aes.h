@@ -24,6 +24,7 @@
 
 #include <sys/cdefs.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 __BEGIN_DECLS
 
@@ -104,6 +105,30 @@ int dukpt_aes_derive_txn_key(
 	const uint8_t* ksn,
 	void* txn_key
 );
+
+/**
+ * Advance Key Serial Number (KSN) to next transaction
+ * @note This function will not advance the Initial Key Serial Number as it is
+ *       indistinguishable from an exhausted Key Serial Number
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for exhausted transaction counter.
+ */
+int dukpt_aes_ksn_advance(uint8_t* ksn);
+
+/**
+ * Determine whether KSN, specifically the transaction counter bits, are valid
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @return Boolean indicating whether KSN transaction counter is valid
+ */
+bool dukpt_aes_ksn_is_valid(const uint8_t* ksn);
+
+/**
+ * Determine whether Key Serial Number (KSN) transaction counter is exhausted
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @return Boolean indicating whether KSN transaction counter is exhausted
+ */
+bool dukpt_aes_ksn_is_exhausted(const uint8_t* ksn);
 
 __END_DECLS
 
