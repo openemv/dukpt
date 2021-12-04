@@ -341,7 +341,7 @@ int dukpt_tdes_ksn_advance(uint8_t* ksn)
 
 	// Extract transaction counter value from KSN
 	tc = dukpt_tdes_ksn_get_tc(ksn);
-	if (!tc) {
+	if (tc > DUKPT_TDES_TC_MAX) {
 		// Transaction already counter exhausted
 		return 1;
 	}
@@ -350,9 +350,9 @@ int dukpt_tdes_ksn_advance(uint8_t* ksn)
 	++tc;
 	tc &= 0x1FFFFF;
 
-	// Loop continues until transaction counter is exhausted (tc == 0) or
+	// Loop continues until transaction counter is exhausted or
 	// until a valid transaction counter is found
-	while (tc) {
+	while (tc <= DUKPT_TDES_TC_MAX) {
 		unsigned int bit_count;
 
 		// Count number of bits in transaction counter
@@ -403,7 +403,7 @@ int dukpt_tdes_ksn_advance(uint8_t* ksn)
 	ksn[DUKPT_TDES_KSN_LEN - 3] &= 0xE0;
 	ksn[DUKPT_TDES_KSN_LEN - 3] |= tc >> 16;
 
-	if (!tc) {
+	if (tc > DUKPT_TDES_TC_MAX) {
 		// Transaction counter exhausted
 		return 2;
 	}
@@ -455,7 +455,7 @@ bool dukpt_tdes_ksn_is_exhausted(const uint8_t* ksn)
 
 	// Extract transaction counter value from KSN
 	tc = dukpt_tdes_ksn_get_tc(ksn);
-	if (!tc) {
+	if (tc > DUKPT_TDES_TC_MAX) {
 		// Transaction counter exhausted
 		return true;
 	}

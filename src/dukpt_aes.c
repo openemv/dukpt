@@ -478,7 +478,7 @@ int dukpt_aes_ksn_advance(uint8_t* ksn)
 
 	// Extract transaction counter value from KSN
 	tc = dukpt_aes_ksn_get_tc(ksn);
-	if (!tc) {
+	if (tc > DUKPT_AES_TC_MAX) {
 		// Transaction already counter exhausted
 		return 1;
 	}
@@ -486,9 +486,9 @@ int dukpt_aes_ksn_advance(uint8_t* ksn)
 	// Advance to next possible transaction counter
 	++tc;
 
-	// Loop continues until transaction counter is exhausted (tc == 0) or
+	// Loop continues until transaction counter is exhausted or
 	// until a valid transaction counter is found
-	while (tc) {
+	while (tc <= DUKPT_AES_TC_MAX) {
 		unsigned int bit_count;
 
 		// Count number of bits in transaction counter
@@ -532,10 +532,10 @@ int dukpt_aes_ksn_advance(uint8_t* ksn)
 	}
 
 	// Update KSN with latest transaction counter
-	tc = htonl(tc);
-	memcpy(ksn + DUKPT_AES_IK_ID_LEN, &tc, DUKPT_AES_TC_LEN);
+	uint32_t tc_msb = htonl(tc); // Must be big endian
+	memcpy(ksn + DUKPT_AES_IK_ID_LEN, &tc_msb, DUKPT_AES_TC_LEN);
 
-	if (!tc) {
+	if (tc > DUKPT_AES_TC_MAX) {
 		// Transaction counter exhausted
 		return 2;
 	}
@@ -586,7 +586,7 @@ bool dukpt_aes_ksn_is_exhausted(const uint8_t* ksn)
 
 	// Extract transaction counter value from KSN
 	tc = dukpt_aes_ksn_get_tc(ksn);
-	if (!tc) {
+	if (tc > DUKPT_AES_TC_MAX) {
 		// Transaction counter exhausted
 		return true;
 	}

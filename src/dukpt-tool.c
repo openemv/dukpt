@@ -307,21 +307,17 @@ int main(int argc, char** argv)
 				goto exit;
 			}
 
-			if (dukpt_tdes_ksn_is_exhausted(ksn)) {
-				// Advance to the first transaction
-				ksn[DUKPT_TDES_KSN_LEN - 1] = 1;
-			} else {
-				// Advance to the next transaction
-				r = dukpt_tdes_ksn_advance(ksn);
-				if (r < 0) {
-					fprintf(stderr, "dukpt_tdes_ksn_advance() failed; r=%d\n", r);
-					goto exit;
-				}
-				if (r > 0) {
-					fprintf(stderr, "KSN exhausted\n");
-					goto exit;
-				}
+			// Advance to the next transaction
+			r = dukpt_tdes_ksn_advance(ksn);
+			if (r < 0) {
+				fprintf(stderr, "dukpt_tdes_ksn_advance() failed; r=%d\n", r);
+				goto exit;
 			}
+			if (r > 0) {
+				fprintf(stderr, "KSN exhausted\n");
+				goto exit;
+			}
+
 			print_hex(ksn, ksn_len);
 			break;
 	}

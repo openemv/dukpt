@@ -32,6 +32,7 @@ __BEGIN_DECLS
 #define DUKPT_AES_DERIVATION_ID_LEN (4) ///< Derivation ID length for AES DUKPT
 #define DUKPT_AES_IK_ID_LEN (DUKPT_AES_BDK_ID_LEN + DUKPT_AES_DERIVATION_ID_LEN) ///< Initial Key ID length for AES DUKPT
 #define DUKPT_AES_TC_LEN (4) ///< Transaction counter length for AES DUKPT
+#define DUKPT_AES_TC_MAX  (0xFFFF0000) ///< Maximum transaction counter value for AES DUKPT
 #define DUKPT_AES_KSN_LEN (DUKPT_AES_IK_ID_LEN + DUKPT_AES_TC_LEN) ///< Key Serial Number length for AES DUKPT
 
 /**
@@ -108,8 +109,6 @@ int dukpt_aes_derive_txn_key(
 
 /**
  * Advance Key Serial Number (KSN) to next transaction
- * @note This function will not advance the Initial Key Serial Number as it is
- *       indistinguishable from an exhausted Key Serial Number
  * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for exhausted transaction counter.

@@ -32,6 +32,7 @@ __BEGIN_DECLS
 #define DUKPT_TDES_KEY_LEN (16) ///< Key length for TDES DUKPT
 #define DUKPT_TDES_KSN_LEN (10) ///< Key Serial Number length for TDES DUKPT
 #define DUKPT_TDES_TC_BITS (21) ///< Number of Transaction Counter (TC) bits in Key Serial Number
+#define DUKPT_TDES_TC_MAX  (0x1FF800) ///< Maximum transaction counter value for TDES DUKPT
 
 /**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
@@ -59,8 +60,6 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 
 /**
  * Advance Key Serial Number (KSN) to next transaction
- * @note This function will not advance the Initial Key Serial Number as it is
- *       indistinguishable from an exhausted Key Serial Number
  * @param ksn Key Serial Number of length @ref DUKPT_TDES_KSN_LEN
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for exhausted transaction counter.

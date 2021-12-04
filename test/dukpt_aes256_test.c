@@ -124,8 +124,16 @@ int main(void)
 		goto exit;
 	}
 
+	// Advance to first KSN
+	memcpy(ksn, ikid, DUKPT_AES_KSN_LEN);
+	memset(ksn + DUKPT_AES_IK_ID_LEN, 0, DUKPT_AES_KSN_LEN - DUKPT_AES_IK_ID_LEN);
+	r = dukpt_aes_ksn_advance(ksn);
+	if (r) {
+		fprintf(stderr, "dukpt_aes_ksn_advance() failed; r=%d\n", r);
+		goto exit;
+	}
+
 	// Test transaction key derivation from Initial Key (IK) for initial KSNs
-	memcpy(ksn, ksn_verify[0], DUKPT_AES_KSN_LEN);
 	for (size_t i = 0; i < sizeof(ksn_verify) / sizeof(ksn_verify[0]); ++i) {
 		// Validate KSN
 		if (!dukpt_aes_ksn_is_valid(ksn)) {
