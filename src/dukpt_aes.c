@@ -69,84 +69,55 @@ struct dukpt_aes_derivation_data_t {
 	uint8_t ksn_data[8]; // Either IK ID, or rightmost half of IK ID together with transaction counter
 } __attribute__((packed));
 
-typedef int (*aes_ecb_encrypt_func_t)(const void* key, const void* plaintext, void* ciphertext);
-
 #ifdef MBEDTLS_FOUND
 
 #include <mbedtls/aes.h>
 
 #define AES_BLOCK_SIZE (16) ///< AES block size in bytes
 
-static int dukpt_aes128_ecb_encrypt(const void* key, const void* plaintext, void* ciphertext)
+static int dukpt_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
 	int r;
 	mbedtls_aes_context ctx;
+	uint8_t iv_buf[AES_BLOCK_SIZE];
+
+	// Ensure that plaintext length is a multiple of the AES block length
+	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	// Only allow a single block for ECB block mode
+	if (!iv && plen != AES_BLOCK_SIZE) {
+		return -2;
+	}
+
+	if (key_len != DUKPT_AES_KEY_LEN(AES128) &&
+		key_len != DUKPT_AES_KEY_LEN(AES192) &&
+		key_len != DUKPT_AES_KEY_LEN(AES256)
+	) {
+		return -3;
+	}
 
 	mbedtls_aes_init(&ctx);
-
-	r = mbedtls_aes_setkey_enc(&ctx, key, 128);
+	r = mbedtls_aes_setkey_enc(&ctx, key, key_len * 8);
 	if (r) {
-		r = -1;
+		r = -4;
 		goto exit;
 	}
 
-	r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
+		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
+	} else {
+		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
+	}
 	if (r) {
-		r = -2;
+		r = -5;
 		goto exit;
 	}
 
-exit:
-	// Cleanup
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-
-static int dukpt_aes192_ecb_encrypt(const void* key, const void* plaintext, void* ciphertext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-
-	mbedtls_aes_init(&ctx);
-
-	r = mbedtls_aes_setkey_enc(&ctx, key, 192);
-	if (r) {
-		r = -1;
-		goto exit;
-	}
-
-	r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
-	if (r) {
-		r = -2;
-		goto exit;
-	}
-
-exit:
-	// Cleanup
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-
-static int dukpt_aes256_ecb_encrypt(const void* key, const void* plaintext, void* ciphertext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-
-	mbedtls_aes_init(&ctx);
-
-	r = mbedtls_aes_setkey_enc(&ctx, key, 256);
-	if (r) {
-		r = -1;
-		goto exit;
-	}
-
-	r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
-	if (r) {
-		r = -2;
-		goto exit;
-	}
+	r = 0;
+	goto exit;
 
 exit:
 	// Cleanup
@@ -250,15 +221,14 @@ static int dukpt_aes_create_derivation_data(
 }
 
 static int dukpt_aes_derive_key(
-	enum dukpt_aes_key_type_t key_type,
 	const void* key,
+	size_t key_len,
 	struct dukpt_aes_derivation_data_t* derivation_data,
 	void* derived_key
 )
 {
 	int r;
 	size_t derived_key_len;
-	aes_ecb_encrypt_func_t aes_ecb_encrypt;
 
 	// Use separate output buffer to avoid overriding the input key if it
 	// happens to use the same buffer as the derived key
@@ -267,32 +237,11 @@ static int dukpt_aes_derive_key(
 	// Determine derived key length in bytes
 	derived_key_len = ntohs(derivation_data->length) / 8;
 
-	// Key type determines derivation algorithm
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			aes_ecb_encrypt = &dukpt_aes128_ecb_encrypt;
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			aes_ecb_encrypt = &dukpt_aes192_ecb_encrypt;
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			aes_ecb_encrypt = &dukpt_aes256_ecb_encrypt;
-			break;
-
-		default:
-			// Only AES may be used for derivation
-			// See ANSI X9.24-3:2017 6.3.1
-			r = -1;
-			goto error;
-	}
-
 	// Derive key material
 	// See ANSI X9.24-3:2017 6.3.1
-	for (size_t key_len = 0; key_len < derived_key_len; key_len += AES_BLOCK_SIZE) {
+	for (size_t offset = 0; offset < derived_key_len; offset += AES_BLOCK_SIZE) {
 		// Each AES ECB computation provides key material of length AES_BLOCK_SIZE
-		r = aes_ecb_encrypt(key, derivation_data, derived_key_output + key_len);
+		r = dukpt_aes_encrypt(key, key_len, NULL, derivation_data, AES_BLOCK_SIZE, derived_key_output + offset);
 		if (r) {
 			goto error;
 		}
@@ -316,14 +265,35 @@ exit:
 }
 
 int dukpt_aes_derive_ik(
-	enum dukpt_aes_key_type_t key_type,
 	const void* bdk,
+	size_t bdk_len,
 	const uint8_t* ikid,
 	void* ik
 )
 {
 	int r;
+	enum dukpt_aes_key_type_t key_type;
 	struct dukpt_aes_derivation_data_t derivation_data;
+
+	// Determine key type from key length
+	switch (bdk_len) {
+		case DUKPT_AES_KEY_LEN(AES128):
+			key_type = DUKPT_AES_KEY_TYPE_AES128;
+			break;
+
+		case DUKPT_AES_KEY_LEN(AES192):
+			key_type = DUKPT_AES_KEY_TYPE_AES192;
+			break;
+
+		case DUKPT_AES_KEY_LEN(AES256):
+			key_type = DUKPT_AES_KEY_TYPE_AES256;
+			break;
+
+		default:
+			// Only AES may be used for derivation
+			// See ANSI X9.24-3:2017 6.3.1
+			return 1;
+	}
 
 	// Create key derivation data
 	// See ANSI X9.24-3:2017 6.3.3
@@ -341,8 +311,8 @@ int dukpt_aes_derive_ik(
 	// Derive initial key
 	// See ANSI X9.24-3:2017 6.3.1
 	r = dukpt_aes_derive_key(
-		key_type,
 		bdk,
+		bdk_len,
 		&derivation_data,
 		ik
 	);
@@ -372,13 +342,15 @@ static uint32_t dukpt_aes_ksn_get_tc(const uint8_t* ksn)
 }
 
 int dukpt_aes_derive_txn_key(
-	enum dukpt_aes_key_type_t key_type,
 	const void* ik,
+	size_t ik_len,
 	const uint8_t* ksn,
 	void* txn_key
 )
 {
 	int r;
+	size_t txn_key_len;
+	enum dukpt_aes_key_type_t key_type;
 	struct dukpt_aes_derivation_data_t derivation_data;
 	uint32_t tc;
 	uint32_t working_tc;
@@ -400,17 +372,22 @@ int dukpt_aes_derive_txn_key(
 	// the set bits of the transaction counter.
 
 	// Start with Initial Key (IK) and current Transaction Counter
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			memcpy(txn_key, ik, DUKPT_AES_KEY_BITS_AES128 / 8);
+	memcpy(txn_key, ik, ik_len);
+	txn_key_len = ik_len;
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Determine key type from key length
+	switch (ik_len) {
+		case DUKPT_AES_KEY_LEN(AES128):
+			key_type = DUKPT_AES_KEY_TYPE_AES128;
 			break;
 
-		case DUKPT_AES_KEY_TYPE_AES192:
-			memcpy(txn_key, ik, DUKPT_AES_KEY_BITS_AES192 / 8);
+		case DUKPT_AES_KEY_LEN(AES192):
+			key_type = DUKPT_AES_KEY_TYPE_AES192;
 			break;
 
-		case DUKPT_AES_KEY_TYPE_AES256:
-			memcpy(txn_key, ik, DUKPT_AES_KEY_BITS_AES256 / 8);
+		case DUKPT_AES_KEY_LEN(AES256):
+			key_type = DUKPT_AES_KEY_TYPE_AES256;
 			break;
 
 		default:
@@ -418,7 +395,6 @@ int dukpt_aes_derive_txn_key(
 			// See ANSI X9.24-3:2017 6.3.1
 			return 1;
 	}
-	tc = dukpt_aes_ksn_get_tc(ksn);
 
 	// For each mask bit, starting at the highest bit:
 	// If the corresponding bit in the transaction counter is set, then set
@@ -449,8 +425,8 @@ int dukpt_aes_derive_txn_key(
 		// Derive current derivation key from previous derivation key
 		// See ANSI X9.24-3:2017 6.4
 		r = dukpt_aes_derive_key(
-			key_type,
 			txn_key,
+			txn_key_len,
 			&derivation_data,
 			txn_key
 		);

@@ -111,7 +111,7 @@ int main(void)
 	uint8_t txn_key[DUKPT_AES_KEY_LEN(AES256)];
 
 	// Test Initial Key (IK) derivation using AES256
-	r = dukpt_aes_derive_ik(DUKPT_AES_KEY_TYPE_AES256, bdk, ikid, ik);
+	r = dukpt_aes_derive_ik(bdk, sizeof(bdk), ikid, ik);
 	if (r) {
 		fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
 		goto exit;
@@ -148,7 +148,7 @@ int main(void)
 		}
 
 		// Test transaction key derivation from Initial Key (IK)
-		r = dukpt_aes_derive_txn_key(DUKPT_AES_KEY_TYPE_AES256, ik, ksn, txn_key);
+		r = dukpt_aes_derive_txn_key(ik, sizeof(ik), ksn, txn_key);
 		if (r) {
 			fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
 			goto exit;
@@ -183,7 +183,7 @@ int main(void)
 		}
 
 		// Test transaction key derivation from Initial Key (IK)
-		r = dukpt_aes_derive_txn_key(DUKPT_AES_KEY_TYPE_AES256, ik, ksn, txn_key);
+		r = dukpt_aes_derive_txn_key(ik, sizeof(ik), ksn, txn_key);
 		if (r) {
 			fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
 			goto exit;
@@ -218,7 +218,7 @@ int main(void)
 		}
 
 		// Test transaction key derivation from Initial Key (IK)
-		r = dukpt_aes_derive_txn_key(DUKPT_AES_KEY_TYPE_AES256, ik, ksn, txn_key);
+		r = dukpt_aes_derive_txn_key(ik, sizeof(ik), ksn, txn_key);
 		if (r) {
 			fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
 			goto exit;

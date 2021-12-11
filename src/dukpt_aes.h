@@ -23,6 +23,7 @@
 #define DUKPT_AES_H
 
 #include <sys/cdefs.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -72,17 +73,16 @@ enum dukpt_aes_key_bits_t {
  * @note This function should only be used by the receiving or key generating
  *       Secure Cryptographic Device (SCD)
  *
- * @param key_type Key type of Base Derivation Key. Only AES key types are allowed.
- *        This parameter also determines the underlying derivation algorithm.
- * @param bdk Base Derivative Key of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @param bdk Base Derivative Key
+ * @param bdk_len Length of Base Derivation Key in bytes
  * @param ikid Initial Key ID of length @ref DUKPT_AES_IK_ID_LEN
- * @param ik Initial DUKPT key output of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @param ik Initial DUKPT key output of length @c bdk_len
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for invalid/unsupported parameters.
  */
 int dukpt_aes_derive_ik(
-	enum dukpt_aes_key_type_t key_type,
 	const void* bdk,
+	size_t bdk_len,
 	const uint8_t* ikid,
 	void* ik
 );
@@ -92,17 +92,16 @@ int dukpt_aes_derive_ik(
  * @note This function should only be used by the receiving
  *       Secure Cryptographic Device (SCD)
  *
- * @param key_type Key type of Initial Key. Only AES key types are allowed.
- *        This parameter also determines the underlying derivation algorithm.
- * @param ik Initial Key of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @param ik Initial Key
+ * @param ik_len Length of Initial Key in bytes
  * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
- * @param txn_key DUKPT transaction key output of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @param txn_key DUKPT transaction key output of length @c ik_len
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for invalid/unsupported parameters.
  */
 int dukpt_aes_derive_txn_key(
-	enum dukpt_aes_key_type_t key_type,
 	const void* ik,
+	size_t ik_len,
 	const uint8_t* ksn,
 	void* txn_key
 );
