@@ -155,4 +155,140 @@ if(BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^KSN exhausted"
 	)
+
+	add_test(NAME dukpt_tool_aes128_test1
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456 --derive-ik
+	)
+	set_tests_properties(dukpt_tool_aes128_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^1273671EA26AC29AFA4D1084127652A1"
+	)
+
+	add_test(NAME dukpt_tool_aes128_test2
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000003 --derive-ik
+	)
+	set_tests_properties(dukpt_tool_aes128_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^1273671EA26AC29AFA4D1084127652A1"
+	)
+
+	add_test(NAME dukpt_tool_aes128_test3
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes128_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^4F21B565BAD9835E112B6465635EAE44"
+	)
+
+	add_test(NAME dukpt_tool_aes128_test4
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000002 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes128_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^2F34D68DE10F68D38091A73B9E7C437C"
+	)
+
+	add_test(NAME dukpt_tool_aes128_test5
+		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 123456789012345600000001 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes128_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^4F21B565BAD9835E112B6465635EAE44"
+	)
+
+	add_test(NAME dukpt_tool_aes128_test6
+		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 123456789012345600000002 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes128_test6
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^2F34D68DE10F68D38091A73B9E7C437C"
+	)
+
+	add_test(NAME dukpt_tool_aes256_test1
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456 --derive-ik
+	)
+	set_tests_properties(dukpt_tool_aes256_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F"
+	)
+
+	add_test(NAME dukpt_tool_aes256_test2
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000003 --derive-ik
+	)
+	set_tests_properties(dukpt_tool_aes256_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F"
+	)
+
+	add_test(NAME dukpt_tool_aes256_test3
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes256_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^54AC2B32B145EA4A554CB8BC44B17467063A799856B1CCC2A138D36E8DBF78B3"
+	)
+
+	add_test(NAME dukpt_tool_aes256_test4
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000002 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes256_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^5DD5A0253842BBBE1D7C0DA27021412C6F1FAB53FB928DEAE56DA06090A9DE97"
+	)
+
+	add_test(NAME dukpt_tool_aes256_test5
+		COMMAND dukpt-tool --mode AES --ik CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F --ksn 123456789012345600000001 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes256_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^54AC2B32B145EA4A554CB8BC44B17467063A799856B1CCC2A138D36E8DBF78B3"
+	)
+
+	add_test(NAME dukpt_tool_aes256_test6
+		COMMAND dukpt-tool --mode AES --ik CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F --ksn 123456789012345600000002 --derive-txn-key
+	)
+	set_tests_properties(dukpt_tool_aes256_test6
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^5DD5A0253842BBBE1D7C0DA27021412C6F1FAB53FB928DEAE56DA06090A9DE97"
+	)
+
+	add_test(NAME dukpt_tool_aes_ksn_test1
+		COMMAND dukpt-tool --mode AES --ksn 123456789012345600000000 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_aes_ksn_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^123456789012345600000001"
+	)
+
+	add_test(NAME dukpt_tool_aes_ksn_test2
+		COMMAND dukpt-tool --mode AES --ksn 123456789012345600000001 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_aes_ksn_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^123456789012345600000002"
+	)
+
+	add_test(NAME dukpt_tool_aes_ksn_test3
+		COMMAND dukpt-tool --mode AES --ksn 12345678901234560001FFFE --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_aes_ksn_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^123456789012345600020000"
+	)
+
+	add_test(NAME dukpt_tool_aes_ksn_test4
+		COMMAND dukpt-tool --mode AES --ksn 1234567890123456FFFE8000 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_aes_ksn_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^1234567890123456FFFF0000"
+	)
+
+	add_test(NAME dukpt_tool_aes_ksn_test5
+		COMMAND dukpt-tool --mode AES --ksn 1234567890123456FFFF0000 --advance-ksn
+	)
+	set_tests_properties(dukpt_tool_aes_ksn_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^KSN exhausted"
+	)
 endif()

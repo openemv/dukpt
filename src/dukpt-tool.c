@@ -20,6 +20,7 @@
  */
 
 #include "dukpt_tdes.h"
+#include "dukpt_aes.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -39,12 +40,18 @@ static uint8_t* txn_key = NULL;
 static size_t txn_key_len = 0;
 
 enum dukpt_tool_mode_t {
-	DUKPT_TOOL_MODE_NONE,
-	DUKPT_TOOL_MODE_DERIVE_IK,
-	DUKPT_TOOL_MODE_DERIVE_TXN_KEY,
-	DUKPT_TOOL_MODE_ADVANCE_KSN,
+	DUKPT_TOOL_MODE_TDES,
+	DUKPT_TOOL_MODE_AES,
 };
-static enum dukpt_tool_mode_t dukpt_tool_mode = DUKPT_TOOL_MODE_NONE;
+static enum dukpt_tool_mode_t dukpt_tool_mode = DUKPT_TOOL_MODE_TDES;
+
+enum dukpt_tool_action_t {
+	DUKPT_TOOL_ACTION_NONE,
+	DUKPT_TOOL_ACTION_DERIVE_IK,
+	DUKPT_TOOL_ACTION_DERIVE_TXN_KEY,
+	DUKPT_TOOL_ACTION_ADVANCE_KSN,
+};
+static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
 
 // Helper functions
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
@@ -53,6 +60,8 @@ static void print_hex(const void* buf, size_t length);
 
 // argp option keys
 enum dukpt_tool_option_t {
+	DUKPT_TOOL_OPTION_MODE,
+
 	DUKPT_TOOL_OPTION_BDK,
 	DUKPT_TOOL_OPTION_IK,
 	DUKPT_TOOL_OPTION_KSN,
@@ -64,19 +73,21 @@ enum dukpt_tool_option_t {
 
 // argp option structure
 static struct argp_option argp_options[] = {
-	{ NULL, 0, NULL, 0, "Inputs:", 1 },
+	{ NULL, 0, NULL, 0, "Mode:", 1 },
+	{ "mode", DUKPT_TOOL_OPTION_MODE, "TDES|AES", 0, "Derivation mode. Default is TDES." },
+
+	{ NULL, 0, NULL, 0, "Inputs:", 2 },
 	{ "bdk", DUKPT_TOOL_OPTION_BDK, "BDK", 0, "Base Derivation Key (BDK)" },
 	{ "ik", DUKPT_TOOL_OPTION_IK, "IK", 0, "Initial Key (IK)" },
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "KSN", 0, "Key Serial Number (KSN)" },
 
-	{ NULL, 0, NULL, 0, "Actions:", 2 },
+	{ NULL, 0, NULL, 0, "Actions:", 3 },
 	{ "derive-ik", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, 0, "Derive Initial Key (IK). Requires BDK and KSN." },
 	{ "derive-ipek", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, OPTION_ALIAS },
 	{ "derive-txn-key", DUKPT_TOOL_OPTION_DERIVE_TXN_KEY, NULL, 0, "Derive transaction key. Requires either BDK or IK, as well as KSN." },
-	{ "advance-ksn", DUKPT_TOOL_OPTION_ADVANCE_KSN, NULL, 0, "Advance to next valid KSN. Requires KSN." },
+	{ "advance-ksn", DUKPT_TOOL_OPTION_ADVANCE_KSN, NULL, 0, "Advance to next valid KSN. Requires KSN. Non-zero exit status if current or next KSN is invalid." },
 
-	{ 0, 0, NULL, 0, "All argument values are strings of hex digits representing binary data" },
 	{ 0 },
 };
 
@@ -84,6 +95,12 @@ static struct argp_option argp_options[] = {
 static struct argp argp_config = {
 	argp_options,
 	argp_parser_helper,
+	0,
+	" \v" // Force the text to be after the options in the help message
+	"Use derivation mode TDES for ANSI X9.24-1:2009 TDES DUKPT.\n"
+	"Use derivation mode AES for ANSI X9.24-3:2017 AES DUKPT.\n"
+	"\n"
+	"All key or KSN argument values are strings of hex digits representing binary data."
 };
 
 // argp parser helper function
@@ -93,7 +110,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 	uint8_t* buf = 0;
 	size_t buf_len = 0;
 
-	if (arg) {
+	if (arg && key != DUKPT_TOOL_OPTION_MODE) {
 		size_t arg_len = strlen(arg);
 
 		if (arg_len % 2 != 0) {
@@ -110,6 +127,17 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 	}
 
 	switch (key) {
+		case DUKPT_TOOL_OPTION_MODE:
+			if (strcmp(arg, "TDES") == 0) {
+				dukpt_tool_mode = DUKPT_TOOL_MODE_TDES;
+			} else if (strcmp(arg, "AES") == 0) {
+				dukpt_tool_mode = DUKPT_TOOL_MODE_AES;
+			} else {
+				argp_error(state, "Invalid derivation mode");
+			}
+
+			return 0;
+
 		case DUKPT_TOOL_OPTION_BDK:
 			bdk = buf;
 			bdk_len = buf_len;
@@ -126,15 +154,36 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 
 		case DUKPT_TOOL_OPTION_DERIVE_IK:
-			dukpt_tool_mode = DUKPT_TOOL_MODE_DERIVE_IK;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DERIVE_IK;
 			return 0;
 
 		case DUKPT_TOOL_OPTION_DERIVE_TXN_KEY:
-			dukpt_tool_mode = DUKPT_TOOL_MODE_DERIVE_TXN_KEY;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DERIVE_TXN_KEY;
 			return 0;
 
 		case DUKPT_TOOL_OPTION_ADVANCE_KSN:
-			dukpt_tool_mode = DUKPT_TOOL_MODE_ADVANCE_KSN;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_ADVANCE_KSN;
+			return 0;
+
+		case ARGP_KEY_END:
+			// Validate options
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_NONE) {
+				argp_error(state, "No action specified");
+			}
+			if (!ksn) {
+				argp_error(state, "Key serial number (--ksn) is required");
+			}
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_DERIVE_IK &&
+				(!bdk || ik)
+			) {
+				argp_error(state, "Initial key derivation (--derive-ik/--derive-ipek) requires Base Derivation Key (--bdk)");
+			}
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_DERIVE_TXN_KEY &&
+				((!bdk && !ik) || (bdk && ik))
+			) {
+				argp_error(state, "Transaction key derivation (--derive-txn-key) requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+			}
+
 			return 0;
 
 		default:
@@ -179,6 +228,223 @@ static void print_hex(const void* buf, size_t length)
 	printf("\n");
 }
 
+static int do_tdes_mode(void)
+{
+	int r;
+
+	switch (dukpt_tool_action) {
+		case DUKPT_TOOL_ACTION_NONE: {
+			fprintf(stderr, "No action specified");
+			return 1;
+		}
+
+		case DUKPT_TOOL_ACTION_DERIVE_IK:
+			// Validate BDK length
+			if (bdk_len != DUKPT_TDES_KEY_LEN) {
+				fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
+				return 1;
+			}
+
+			// Validate KSN length
+			if (ksn_len != DUKPT_TDES_KSN_LEN) {
+				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
+				return 1;
+			}
+
+			ik_len = DUKPT_TDES_KEY_LEN;
+			ik = malloc(ik_len);
+
+			// Do it
+			r = dukpt_tdes_derive_ik(bdk, ksn, ik);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(ik, ik_len);
+			return 0;
+
+		case DUKPT_TOOL_ACTION_DERIVE_TXN_KEY:
+			// Validate KSN length
+			if (ksn_len != DUKPT_TDES_KSN_LEN) {
+				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// If IK is not available, derive it
+			if (!ik) {
+				// Validate BDK length
+				if (bdk_len != DUKPT_TDES_KEY_LEN) {
+					fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
+					return 1;
+				}
+
+				ik_len = DUKPT_TDES_KEY_LEN;
+				ik = malloc(ik_len);
+
+				r = dukpt_tdes_derive_ik(bdk, ksn, ik);
+				if (r) {
+					fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			txn_key_len = DUKPT_TDES_KEY_LEN;
+			txn_key = malloc(txn_key_len);
+
+			// Do it
+			r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(txn_key, txn_key_len);
+			return 0;
+
+		case DUKPT_TOOL_ACTION_ADVANCE_KSN:
+			// Validate KSN length
+			if (ksn_len != DUKPT_TDES_KSN_LEN) {
+				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// Advance to the next transaction
+			r = dukpt_tdes_ksn_advance(ksn);
+			if (r < 0) {
+				fprintf(stderr, "dukpt_tdes_ksn_advance() failed; r=%d\n", r);
+				return 1;
+			}
+			if (r > 0) {
+				fprintf(stderr, "KSN exhausted\n");
+				return 1;
+			}
+
+			print_hex(ksn, ksn_len);
+			return 0;
+	}
+
+	// This should never happen
+	return -1;
+}
+
+static int do_aes_mode(void)
+{
+	int r;
+
+	switch (dukpt_tool_action) {
+		case DUKPT_TOOL_ACTION_NONE: {
+			fprintf(stderr, "No action specified");
+			return 1;
+		}
+
+		case DUKPT_TOOL_ACTION_DERIVE_IK:
+			// Validate BDK length
+			if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
+				bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
+				bdk_len != DUKPT_AES_KEY_LEN(AES256)
+			) {
+				fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+					DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+					DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256)  * 2
+				);
+				return 1;
+			}
+
+			// Validate KSN length
+			if (ksn_len != DUKPT_AES_IK_ID_LEN &&
+				ksn_len != DUKPT_AES_KSN_LEN
+			) {
+				fprintf(stderr, "AES: KSN must be either %u (for IK ID) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
+					DUKPT_AES_IK_ID_LEN, DUKPT_AES_KSN_LEN,
+					DUKPT_AES_IK_ID_LEN * 2, DUKPT_AES_KSN_LEN * 2
+				);
+				return 1;
+			}
+
+			ik_len = bdk_len;
+			ik = malloc(ik_len);
+
+			// Do it
+			r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(ik, ik_len);
+			return 0;
+
+		case DUKPT_TOOL_ACTION_DERIVE_TXN_KEY:
+			// Validate KSN length
+			if (ksn_len != DUKPT_AES_KSN_LEN) {
+				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// If IK is not available, derive it
+			if (!ik) {
+				// Validate BDK length
+				if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
+					bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
+					bdk_len != DUKPT_AES_KEY_LEN(AES256)
+				) {
+					fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+						DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+						DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256)  * 2
+					);
+					return 1;
+				}
+
+				ik_len = bdk_len;
+				ik = malloc(ik_len);
+
+				r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
+				if (r) {
+					fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			txn_key_len = ik_len;
+			txn_key = malloc(txn_key_len);
+
+			// Do it
+			r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(txn_key, txn_key_len);
+			return 0;
+
+		case DUKPT_TOOL_ACTION_ADVANCE_KSN:
+			// Validate KSN length
+			if (ksn_len != DUKPT_AES_KSN_LEN) {
+				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// Advance to the next transaction
+			r = dukpt_aes_ksn_advance(ksn);
+			if (r < 0) {
+				fprintf(stderr, "dukpt_aes_ksn_advance() failed; r=%d\n", r);
+				return 1;
+			}
+			if (r > 0) {
+				fprintf(stderr, "KSN exhausted\n");
+				return 1;
+			}
+
+			print_hex(ksn, ksn_len);
+			return 0;
+	}
+
+	// This should never happen
+	return -1;
+}
+
 int main(int argc, char** argv)
 {
 	int r;
@@ -196,133 +462,16 @@ int main(int argc, char** argv)
 	}
 
 	switch (dukpt_tool_mode) {
-		case DUKPT_TOOL_MODE_NONE: {
-			// No command line arguments
-			argp_help(&argp_config, stdout, ARGP_HELP_STD_HELP, argv[0]);
-			break;
-		}
-
-		case DUKPT_TOOL_MODE_DERIVE_IK:
-			// Validate required inputs
-			if (!bdk) {
-				fprintf(stderr, "BDK is required to derive IK\n");
-				r = 1;
-				goto exit;
-			}
-			if (!ksn) {
-				fprintf(stderr, "KSN is required to derive IK\n");
-				r = 1;
-				goto exit;
-			}
-
-			// Validate BDK length
-			if (bdk_len != DUKPT_TDES_KEY_LEN) {
-				fprintf(stderr, "BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
-				r = 1;
-				goto exit;
-			}
-
-			// Validate KSN length
-			if (ksn_len != DUKPT_TDES_KSN_LEN) {
-				fprintf(stderr, "KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
-				r = 1;
-				goto exit;
-			}
-
-			ik_len = DUKPT_TDES_KEY_LEN;
-			ik = malloc(ik_len);
-
-			// Do it
-			r = dukpt_tdes_derive_ik(bdk, ksn, ik);
-			if (r) {
-				fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
-				goto exit;
-			}
-			print_hex(ik, ik_len);
+		case DUKPT_TOOL_MODE_TDES:
+			r = do_tdes_mode();
 			break;
 
-		case DUKPT_TOOL_MODE_DERIVE_TXN_KEY:
-			// Validate required inputs
-			if (!bdk && !ik) {
-				fprintf(stderr, "Either BDK or IK is required to derive transaction key\n");
-				r = 1;
-				goto exit;
-			}
-			if (!ksn) {
-				fprintf(stderr, "KSN is required to derive transaction key\n");
-				r = 1;
-				goto exit;
-			}
-
-			// Validate KSN length
-			if (ksn_len != DUKPT_TDES_KSN_LEN) {
-				fprintf(stderr, "KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
-				r = 1;
-				goto exit;
-			}
-
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_TDES_KEY_LEN) {
-					fprintf(stderr, "BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
-					r = 1;
-					goto exit;
-				}
-
-				ik_len = DUKPT_TDES_KEY_LEN;
-				ik = malloc(ik_len);
-
-				r = dukpt_tdes_derive_ik(bdk, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
-					goto exit;
-				}
-			}
-
-			txn_key_len = DUKPT_TDES_KEY_LEN;
-			txn_key = malloc(txn_key_len);
-
-			// Do it
-			r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
-			if (r) {
-				fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
-				goto exit;
-			}
-			print_hex(txn_key, txn_key_len);
-			break;
-
-		case DUKPT_TOOL_MODE_ADVANCE_KSN:
-			// Validate required inputs
-			if (!ksn) {
-				fprintf(stderr, "KSN is required to advance to next valid KSN\n");
-				r = 1;
-				goto exit;
-			}
-
-			// Validate KSN length
-			if (ksn_len != DUKPT_TDES_KSN_LEN) {
-				fprintf(stderr, "KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
-				r = 1;
-				goto exit;
-			}
-
-			// Advance to the next transaction
-			r = dukpt_tdes_ksn_advance(ksn);
-			if (r < 0) {
-				fprintf(stderr, "dukpt_tdes_ksn_advance() failed; r=%d\n", r);
-				goto exit;
-			}
-			if (r > 0) {
-				fprintf(stderr, "KSN exhausted\n");
-				goto exit;
-			}
-
-			print_hex(ksn, ksn_len);
+		case DUKPT_TOOL_MODE_AES:
+			r = do_aes_mode();
 			break;
 	}
 
-exit:
+	// Cleanup
 	if (bdk) {
 		free(bdk);
 		bdk = NULL;
