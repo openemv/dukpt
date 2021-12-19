@@ -41,8 +41,8 @@ __BEGIN_DECLS
  * @remark See ANSI X9.24-3:2017 6.2.1
  */
 enum dukpt_aes_key_type_t {
-	DUKPT_AES_KEY_TYPE_2TDEA,  ///< Key type: Double-length TDEA
-	DUKPT_AES_KEY_TYPE_3TDEA,  ///< Key type: Triple-length TDEA
+	DUKPT_AES_KEY_TYPE_TDES2,  ///< Key type: Double-length TDES
+	DUKPT_AES_KEY_TYPE_TDES3,  ///< Key type: Triple-length TDES
 	DUKPT_AES_KEY_TYPE_AES128, ///< Key type: AES-128
 	DUKPT_AES_KEY_TYPE_AES192, ///< Key type: AES-192
 	DUKPT_AES_KEY_TYPE_AES256, ///< Key type: AES-256
@@ -53,8 +53,8 @@ enum dukpt_aes_key_type_t {
  * @remark See ANSI X9.24-3:2017 6.2.2
  */
 enum dukpt_aes_key_bits_t {
-	DUKPT_AES_KEY_BITS_2TDEA = 0x0080,  ///< TDES2 128-bit
-	DUKPT_AES_KEY_BITS_3TDEA = 0x00C0,  ///< TDES3 192-bit
+	DUKPT_AES_KEY_BITS_TDES2 = 0x0080,  ///< TDES2 128-bit
+	DUKPT_AES_KEY_BITS_TDES3 = 0x00C0,  ///< TDES3 192-bit
 	DUKPT_AES_KEY_BITS_AES128 = 0x0080, ///< AES 128-bit
 	DUKPT_AES_KEY_BITS_AES192 = 0x00C0, ///< AES 192-bit
 	DUKPT_AES_KEY_BITS_AES256 = 0x0100, ///< AES 256-bit
@@ -127,6 +127,27 @@ bool dukpt_aes_ksn_is_valid(const uint8_t* ksn);
  * @return Boolean indicating whether KSN transaction counter is exhausted
  */
 bool dukpt_aes_ksn_is_exhausted(const uint8_t* ksn);
+
+/**
+ * Derive DUKPT update key from Initial Key (IK) and Key Initial Key ID
+ * @note This function should only be used by the receiving or key generating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param ik Initial Key
+ * @param ik_len Length of Initial Key in bytes
+ * @param ikid Initial Key ID of length @ref DUKPT_AES_IK_ID_LEN
+ * @param key_type Key type of update key
+ * @param update_key DUKPT update key output of length @ref DUKPT_AES_KEY_LEN(key_type)
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_derive_update_key(
+	const void* ik,
+	size_t ik_len,
+	const uint8_t* ikid,
+	enum dukpt_aes_key_type_t key_type,
+	void* update_key
+);
 
 __END_DECLS
 

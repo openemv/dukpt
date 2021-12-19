@@ -160,14 +160,14 @@ static int dukpt_aes_create_derivation_data(
 	// as well as the length of the derived key
 	// See ANSI X9.24-3:2017 6.2.2
 	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_2TDEA:
+		case DUKPT_AES_KEY_TYPE_TDES2:
 			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_2TDEA);
-			derivation_data->length = htons(DUKPT_AES_KEY_BITS_2TDEA);
+			derivation_data->length = htons(DUKPT_AES_KEY_BITS_TDES2);
 			break;
 
-		case DUKPT_AES_KEY_TYPE_3TDEA:
+		case DUKPT_AES_KEY_TYPE_TDES3:
 			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_3TDEA);
-			derivation_data->length = htons(DUKPT_AES_KEY_BITS_3TDEA);
+			derivation_data->length = htons(DUKPT_AES_KEY_BITS_TDES3);
 			break;
 
 		case DUKPT_AES_KEY_TYPE_AES128:
@@ -569,4 +569,91 @@ bool dukpt_aes_ksn_is_exhausted(const uint8_t* ksn)
 
 	// Transaction counter not exhausted
 	return false;
+}
+
+int dukpt_aes_derive_update_key(
+	const void* ik,
+	size_t ik_len,
+	const uint8_t* ikid,
+	enum dukpt_aes_key_type_t key_type,
+	void* update_key
+)
+{
+	int r;
+	uint8_t ksn[DUKPT_AES_KSN_LEN];
+	uint8_t txn_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t update_key_len;
+	struct dukpt_aes_derivation_data_t derivation_data;
+
+	// Determine length of update key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_TDES2:
+			update_key_len = DUKPT_AES_KEY_LEN(TDES2);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_TDES3:
+			update_key_len = DUKPT_AES_KEY_LEN(TDES3);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES128:
+			update_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			update_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			update_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// Unsupported key type
+			return 1;
+	}
+
+	// Prepare KSN with transaction counter 0xFFFFFFFF
+	// See ANSI X9.24-3:2017 6.5.2 Transaction Counter
+	memcpy(ksn, ikid, DUKPT_AES_IK_ID_LEN);
+	memset(ksn + DUKPT_AES_IK_ID_LEN, 0xFF, DUKPT_AES_TC_LEN);
+
+	// Derive transaction key for transaction counter 0xFFFFFFFF
+	// See ANSI X9.24-3:2017 6.5.3 Calculate DUKPT Update Key
+	r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+	if (r) {
+		goto error;
+	}
+
+	// Derive update key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_KEY_ENCRYPTION_KEY,
+		key_type,
+		ikid,
+		0xFFFFFFFF,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		ik_len,
+		&derivation_data,
+		update_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// TODO: randomise instead
+	dukpt_memset_s(update_key, update_key_len);
+
+exit:
+	dukpt_memset_s(txn_key, sizeof(txn_key));
+	return r;
 }
