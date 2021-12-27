@@ -35,6 +35,7 @@ __BEGIN_DECLS
 #define DUKPT_AES_TC_LEN (4) ///< Transaction counter length for AES DUKPT
 #define DUKPT_AES_TC_MAX  (0xFFFF0000) ///< Maximum transaction counter value for AES DUKPT
 #define DUKPT_AES_KSN_LEN (DUKPT_AES_IK_ID_LEN + DUKPT_AES_TC_LEN) ///< Key Serial Number length for AES DUKPT
+#define DUKPT_AES_PINBLOCK_LEN (16) ///< PIN block length for AES DUKPT. See ISO 9564-1:2017 9.4.2, format 4.
 
 /**
  * Key types for AES DUKPT
@@ -147,6 +148,58 @@ int dukpt_aes_derive_update_key(
 	const uint8_t* ikid,
 	enum dukpt_aes_key_type_t key_type,
 	void* update_key
+);
+
+/**
+ * Encrypt PIN block using DUKPT transaction key. This functions only supports
+ * ISO 9564-1:2017 PIN block format 4. See ISO 9564-1:2017 9.4.2.
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of PIN key
+ * @param pinblock Encoded PIN block of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @param panblock Encoded PAN block of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @param ciphertext Encrypted PIN block output of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_encrypt_pinblock(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const uint8_t* pinblock,
+	const uint8_t* panblock,
+	void* ciphertext
+);
+
+/**
+ * Decrypt PIN block using DUKPT transaction key. This function only supports
+ * ISO 9564-1:2017 PIN block format 4. See ISO 9564-1:2017 9.4.2.
+ * @note This function should only be used by the transaction receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of PIN key
+ * @param ciphertext Encrypted PIN block of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @param panblock Encoded PAN block of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @param pinblock Encoded PIN block output of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_decrypt_pinblock(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* ciphertext,
+	const uint8_t* panblock,
+	uint8_t* pinblock
 );
 
 __END_DECLS

@@ -126,6 +126,56 @@ exit:
 	return r;
 }
 
+static int dukpt_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
+{
+	int r;
+	mbedtls_aes_context ctx;
+	uint8_t iv_buf[AES_BLOCK_SIZE];
+
+	// Ensure that ciphertext length is a multiple of the AES block length
+	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	// Only allow a single block for ECB block mode
+	if (!iv && clen != AES_BLOCK_SIZE) {
+		return -2;
+	}
+
+	if (key_len != DUKPT_AES_KEY_LEN(AES128) &&
+		key_len != DUKPT_AES_KEY_LEN(AES192) &&
+		key_len != DUKPT_AES_KEY_LEN(AES256)
+	) {
+		return -3;
+	}
+
+	mbedtls_aes_init(&ctx);
+	r = mbedtls_aes_setkey_dec(&ctx, key, key_len * 8);
+	if (r) {
+		r = -4;
+		goto exit;
+	}
+
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
+		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
+	} else {
+		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, ciphertext, plaintext);
+	}
+	if (r) {
+		r = -5;
+		goto exit;
+	}
+
+	r = 0;
+	goto exit;
+
+exit:
+	// Cleanup
+	mbedtls_aes_free(&ctx);
+
+	return r;
+}
 #endif
 
 __attribute__((noinline))
@@ -655,5 +705,180 @@ error:
 
 exit:
 	dukpt_memset_s(txn_key, sizeof(txn_key));
+	return r;
+}
+
+int dukpt_aes_encrypt_pinblock(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const uint8_t* pinblock,
+	const uint8_t* panblock,
+	void* ciphertext
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t pin_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t pin_key_len;
+	uint8_t* ciphertext_buf = ciphertext;
+
+	// Determine length of PIN key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			pin_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			pin_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			pin_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES PIN keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive PIN key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_PIN_ENCRYPTION,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		pin_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Encrypt PIN block
+	// See ISO 9564-1:2017 9.4.2.3
+	r = dukpt_aes_encrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	if (r) {
+		goto error;
+	}
+
+	for (unsigned int i = 0; i < DUKPT_AES_PINBLOCK_LEN; ++i) {
+		ciphertext_buf[i] ^= panblock[i];
+	}
+
+	r = dukpt_aes_encrypt(pin_key, pin_key_len, NULL, ciphertext_buf, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(ciphertext, DUKPT_AES_PINBLOCK_LEN);
+exit:
+	dukpt_memset_s(pin_key, sizeof(pin_key));
+
+	return r;
+}
+
+int dukpt_aes_decrypt_pinblock(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* ciphertext,
+	const uint8_t* panblock,
+	uint8_t* pinblock
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t pin_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t pin_key_len;
+
+	// Determine length of PIN key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			pin_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			pin_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			pin_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES PIN keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive PIN key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_PIN_ENCRYPTION,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		pin_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Decrypt PIN block
+	// See ISO 9564-1:2017 9.4.2.4
+	r = dukpt_aes_decrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	if (r) {
+		goto error;
+	}
+
+	for (unsigned int i = 0; i < DUKPT_AES_PINBLOCK_LEN; ++i) {
+		pinblock[i] ^= panblock[i];
+	}
+
+	r = dukpt_aes_decrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(pinblock, DUKPT_AES_PINBLOCK_LEN);
+exit:
+	dukpt_memset_s(pin_key, sizeof(pin_key));
+
 	return r;
 }
