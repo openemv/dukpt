@@ -30,6 +30,7 @@
 // Helper functions
 static int dukpt_des_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext);
 static int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext);
+static int dukpt_tdes2_decrypt_ecb(const void* key, const void* ciphertext, void* plaintext);
 static void dukpt_memset_s(void* ptr, size_t len);
 
 #ifdef MBEDTLS_FOUND
@@ -76,6 +77,32 @@ static int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext, void*
 	}
 
 	r = mbedtls_des3_crypt_ecb(&ctx, plaintext, ciphertext);
+	if (r) {
+		r = -2;
+		goto exit;
+	}
+
+exit:
+	// Cleanup
+	mbedtls_des3_free(&ctx);
+
+	return r;
+}
+
+static int dukpt_tdes2_decrypt_ecb(const void* key, const void* ciphertext, void* plaintext)
+{
+	int r;
+	mbedtls_des3_context ctx;
+
+	mbedtls_des3_init(&ctx);
+
+	r = mbedtls_des3_set2key_dec(&ctx, key);
+	if (r) {
+		r = -1;
+		goto exit;
+	}
+
+	r = mbedtls_des3_crypt_ecb(&ctx, ciphertext, plaintext);
 	if (r) {
 		r = -2;
 		goto exit;
@@ -462,4 +489,72 @@ bool dukpt_tdes_ksn_is_exhausted(const uint8_t* ksn)
 
 	// Transaction counter not exhausted
 	return false;
+}
+
+int dukpt_tdes_encrypt_pinblock(
+	const void* txn_key,
+	const void* pinblock,
+	void* ciphertext
+)
+{
+	int r;
+	uint8_t pin_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive PIN encryption key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(pin_key, txn_key, DUKPT_TDES_KEY_LEN);
+	pin_key[7] ^= 0xFF;
+	pin_key[15] ^= 0xFF;
+
+	// Encrypt PIN block
+	r = dukpt_tdes2_encrypt_ecb(pin_key, pinblock, ciphertext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(ciphertext, DUKPT_TDES_PINBLOCK_LEN);
+exit:
+	dukpt_memset_s(pin_key, sizeof(pin_key));
+
+	return r;
+}
+
+int dukpt_tdes_decrypt_pinblock(
+	const void* txn_key,
+	const void* ciphertext,
+	void* pinblock
+)
+{
+	int r;
+	uint8_t pin_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive PIN encryption key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(pin_key, txn_key, DUKPT_TDES_KEY_LEN);
+	pin_key[7] ^= 0xFF;
+	pin_key[15] ^= 0xFF;
+
+	// Decrypt PIN block
+	r = dukpt_tdes2_decrypt_ecb(pin_key, ciphertext, pinblock);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(pinblock, DUKPT_TDES_PINBLOCK_LEN);
+exit:
+	dukpt_memset_s(pin_key, sizeof(pin_key));
+
+	return r;
 }

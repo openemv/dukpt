@@ -24,6 +24,7 @@
 #define DUKPT_TDES_H
 
 #include <sys/cdefs.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -33,6 +34,7 @@ __BEGIN_DECLS
 #define DUKPT_TDES_KSN_LEN (10) ///< Key Serial Number length for TDES DUKPT
 #define DUKPT_TDES_TC_BITS (21) ///< Number of Transaction Counter (TC) bits in Key Serial Number
 #define DUKPT_TDES_TC_MAX  (0x1FF800) ///< Maximum transaction counter value for TDES DUKPT
+#define DUKPT_TDES_PINBLOCK_LEN (8) ///< PIN block length for TDES DUKPT. See ISO 9564-1:2017 9.3 formats 0, 1, 3.
 
 /**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
@@ -79,6 +81,38 @@ bool dukpt_tdes_ksn_is_valid(const uint8_t* ksn);
  * @return Boolean indicating whether KSN transaction counter is exhausted
  */
 bool dukpt_tdes_ksn_is_exhausted(const uint8_t* ksn);
+
+/**
+ * Encrypt PIN block using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param pinblock Encoded PIN block of length @ref DUKPT_TDES_PINBLOCK_LEN
+ * @param ciphertext Encrypted PIN block output of length @ref DUKPT_TDES_PINBLOCK_LEN
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_tdes_encrypt_pinblock(
+	const void* txn_key,
+	const void* pinblock,
+	void* ciphertext
+);
+
+/**
+ * Decrypt PIN block using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param ciphertext Encrypted PIN block of length @ref DUKPT_TDES_PINBLOCK_LEN
+ * @param pinblock Encoded PIN block output of length @ref DUKPT_TDES_PINBLOCK_LEN
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_tdes_decrypt_pinblock(
+	const void* txn_key,
+	const void* ciphertext,
+	void* pinblock
+);
 
 __END_DECLS
 
