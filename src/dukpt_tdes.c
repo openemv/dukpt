@@ -28,33 +28,51 @@
 #include <string.h>
 
 // Helper functions
-static int dukpt_des_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext);
-static int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext);
-static int dukpt_tdes2_decrypt_ecb(const void* key, const void* ciphertext, void* plaintext);
 static void dukpt_memset_s(void* ptr, size_t len);
 
 #ifdef MBEDTLS_FOUND
 
 #include <mbedtls/des.h>
 
-static int dukpt_des_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
+#define DES_BLOCK_SIZE (8) ///< DES block size in bytes
+
+static int dukpt_des_encrypt(const void* key, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
 	int r;
 	mbedtls_des_context ctx;
+	uint8_t iv_buf[DES_BLOCK_SIZE];
+
+	// Ensure that plaintext length is a multiple of the DES block length
+	if ((plen & (DES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	// Only allow a single block for ECB block mode
+	if (!iv && plen != DES_BLOCK_SIZE) {
+		return -2;
+	}
 
 	mbedtls_des_init(&ctx);
 
 	r = mbedtls_des_setkey_enc(&ctx, key);
 	if (r) {
-		r = -1;
+		r = -3;
 		goto exit;
 	}
 
-	r = mbedtls_des_crypt_ecb(&ctx, plaintext, ciphertext);
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, DES_BLOCK_SIZE);
+		r = mbedtls_des_crypt_cbc(&ctx, MBEDTLS_DES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
+	} else {
+		r = mbedtls_des_crypt_ecb(&ctx, plaintext, ciphertext);
+	}
 	if (r) {
-		r = -2;
+		r = -4;
 		goto exit;
 	}
+
+	r = 0;
+	goto exit;
 
 exit:
 	// Cleanup
@@ -63,24 +81,48 @@ exit:
 	return r;
 }
 
-static int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
+static inline int dukpt_des_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
+{
+	return dukpt_des_encrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
+}
+
+static int dukpt_tdes2_encrypt(const void* key, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
 	int r;
 	mbedtls_des3_context ctx;
+	uint8_t iv_buf[DES_BLOCK_SIZE];
+
+	// Ensure that plaintext length is a multiple of the DES block length
+	if ((plen & (DES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	// Only allow a single block for ECB block mode
+	if (!iv && plen != DES_BLOCK_SIZE) {
+		return -2;
+	}
 
 	mbedtls_des3_init(&ctx);
 
 	r = mbedtls_des3_set2key_enc(&ctx, key);
 	if (r) {
-		r = -1;
+		r = -3;
 		goto exit;
 	}
 
-	r = mbedtls_des3_crypt_ecb(&ctx, plaintext, ciphertext);
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, DES_BLOCK_SIZE);
+		r = mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
+	} else {
+		r = mbedtls_des3_crypt_ecb(&ctx, plaintext, ciphertext);
+	}
 	if (r) {
-		r = -2;
+		r = -4;
 		goto exit;
 	}
+
+	r = 0;
+	goto exit;
 
 exit:
 	// Cleanup
@@ -89,30 +131,59 @@ exit:
 	return r;
 }
 
-static int dukpt_tdes2_decrypt_ecb(const void* key, const void* ciphertext, void* plaintext)
+static inline int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
+{
+	return dukpt_tdes2_encrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
+}
+
+static int dukpt_tdes2_decrypt(const void* key, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
 {
 	int r;
 	mbedtls_des3_context ctx;
+	uint8_t iv_buf[DES_BLOCK_SIZE];
+
+	// Ensure that ciphertext length is a multiple of the DES block length
+	if ((clen & (DES_BLOCK_SIZE-1)) != 0) {
+		return -1;
+	}
+
+	// Only allow a single block for ECB block mode
+	if (!iv && clen != DES_BLOCK_SIZE) {
+		return -2;
+	}
 
 	mbedtls_des3_init(&ctx);
 
 	r = mbedtls_des3_set2key_dec(&ctx, key);
 	if (r) {
-		r = -1;
+		r = -3;
 		goto exit;
 	}
 
-	r = mbedtls_des3_crypt_ecb(&ctx, ciphertext, plaintext);
+	if (iv) { // IV implies CBC block mode
+		memcpy(iv_buf, iv, DES_BLOCK_SIZE);
+		r = mbedtls_des3_crypt_cbc(&ctx, MBEDTLS_DES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
+	} else {
+		r = mbedtls_des3_crypt_ecb(&ctx, ciphertext, plaintext);
+	}
 	if (r) {
-		r = -2;
+		r = -4;
 		goto exit;
 	}
+
+	r = 0;
+	goto exit;
 
 exit:
 	// Cleanup
 	mbedtls_des3_free(&ctx);
 
 	return r;
+}
+
+static inline int dukpt_tdes2_decrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
+{
+	return dukpt_tdes2_decrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
 }
 #endif
 
@@ -160,7 +231,7 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	bdk_variant[9] ^= 0xC0;
 	bdk_variant[10] ^= 0xC0;
 	bdk_variant[11] ^= 0xC0;
-	r = dukpt_tdes2_encrypt_ecb(bdk_variant, iksn_buf, ik + 8);
+	r = dukpt_tdes2_encrypt_ecb(bdk_variant, iksn_buf, ik + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
@@ -183,8 +254,8 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 	int r;
 
 	// See ANSI X9.24-1:2009 A.1 Key Management
-	uint8_t crypto_reg1[8];
-	uint8_t crypto_reg2[8];
+	uint8_t crypto_reg1[DES_BLOCK_SIZE];
+	uint8_t crypto_reg2[DES_BLOCK_SIZE];
 
 	// See ANSI X9.24-1:2009 A.2 Processing Algorithms "Non-reversible Key Generation Process"
 	// See ANSI X9.24-3:2017 C.3.6 "Derivation process"
