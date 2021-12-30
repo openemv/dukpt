@@ -35,6 +35,7 @@ __BEGIN_DECLS
 #define DUKPT_TDES_TC_BITS (21) ///< Number of Transaction Counter (TC) bits in Key Serial Number
 #define DUKPT_TDES_TC_MAX  (0x1FF800) ///< Maximum transaction counter value for TDES DUKPT
 #define DUKPT_TDES_PINBLOCK_LEN (8) ///< PIN block length for TDES DUKPT. See ISO 9564-1:2017 9.3 formats 0, 1, 3.
+#define DUKPT_TDES_MAC_LEN (4) ///< ANSI X9.19 Retail MAC length for TDES DUKPT
 
 /**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
@@ -112,6 +113,84 @@ int dukpt_tdes_decrypt_pinblock(
 	const void* txn_key,
 	const void* ciphertext,
 	void* pinblock
+);
+
+/**
+ * Generate ANSI X9.19 Retail MAC for transaction request using DUKPT
+ * transaction key
+ * @note This function should only be used by the transaction originating
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param buf Transaction request data
+ * @param buf_len Length of transaction request data in bytes
+ * @param mac MAC output of length @ref DUKPT_TDES_MAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_tdes_generate_request_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	void* mac
+);
+
+/**
+ * Verify ANSI X9.19 Retail MAC for transaction request using DUKPT
+ * transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param buf Transaction request data
+ * @param buf_len Length of transaction request data in bytes
+ * @param mac MAC of length @ref DUKPT_TDES_MAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid MAC.
+ */
+int dukpt_tdes_verify_request_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	const void* mac
+);
+
+/**
+ * Generate ANSI X9.19 Retail MAC for transaction response using DUKPT
+ * transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param buf Transaction response data
+ * @param buf_len Length of transaction response data in bytes
+ * @param mac MAC output of length @ref DUKPT_TDES_MAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_tdes_generate_response_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	void* mac
+);
+
+/**
+ * Verify ANSI X9.19 Retail MAC for transaction response using DUKPT
+ * transaction key
+ * @note This function should only be used by the transaction originating
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param buf Transaction response data
+ * @param buf_len Length of transaction response data in bytes
+ * @param mac MAC of length @ref DUKPT_TDES_MAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid MAC.
+ */
+int dukpt_tdes_verify_response_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	const void* mac
 );
 
 __END_DECLS

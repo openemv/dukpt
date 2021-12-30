@@ -29,6 +29,7 @@
 
 // Helper functions
 static void dukpt_memset_s(void* ptr, size_t len);
+static int dukpt_memcmp_s(const void* a, const void* b, size_t len);
 
 #ifdef MBEDTLS_FOUND
 
@@ -185,6 +186,63 @@ static inline int dukpt_tdes2_decrypt_ecb(const void* key, const void* plaintext
 {
 	return dukpt_tdes2_decrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
 }
+
+static int dukpt_tdes2_retail_mac(const void* key, const void* buf, size_t buf_len, void* mac)
+{
+	int r;
+	size_t initial_len;
+	size_t remaining_len;
+	uint8_t iv[DES_BLOCK_SIZE];
+	uint8_t last_block[DES_BLOCK_SIZE];
+	uint8_t result[DES_BLOCK_SIZE];
+
+	// See ISO 9797-1, MAC algorithm 3, Padding method 1
+	// - No key derivation
+	// - Zero padding
+	// - Final iteration 1
+	// - Output transformation 3
+
+	// Determine initial length and remaining length based on last block boundary
+	remaining_len = buf_len & (DES_BLOCK_SIZE-1);
+	if (buf_len && !remaining_len) {
+		remaining_len = DES_BLOCK_SIZE; // For last block
+	}
+	initial_len = buf_len - remaining_len;
+
+	// Compute DES CBC-MAC for all but the last block
+	memset(iv, 0, sizeof(iv)); // Start with zero IV
+	for (size_t i = 0; i < initial_len; i += DES_BLOCK_SIZE) {
+		r = dukpt_des_encrypt(key, iv, buf + i, DES_BLOCK_SIZE, iv);
+		if (r) {
+			goto exit;
+		}
+	}
+
+	// Padding method 1:
+	// Zero padding of last block, even if there was no input data
+	memset(last_block, 0, sizeof(last_block));
+	if (remaining_len) {
+		memcpy(last_block, buf + buf_len - remaining_len, remaining_len);
+	}
+
+	// Output transformation 3:
+	// TDES CBC-MAC of last block
+	r = dukpt_tdes2_encrypt(key, iv, last_block, sizeof(last_block), result);
+	if (r) {
+		goto exit;
+	}
+
+	// Truncate result
+	memcpy(mac, result, DUKPT_TDES_MAC_LEN);
+
+exit:
+	// Cleanup
+	dukpt_memset_s(iv, sizeof(iv));
+	dukpt_memset_s(last_block, sizeof(last_block));
+	dukpt_memset_s(result, sizeof(result));
+
+	return r;
+}
 #endif
 
 __attribute__((noinline))
@@ -198,6 +256,20 @@ static void dukpt_memset_s(void* ptr, size_t len)
 	// although the function call is live. To keep such calls from being
 	// optimized away, put...
 	__asm__ ("");
+}
+
+__attribute__((noinline))
+static int dukpt_memcmp_s(const void* a, const void* b, size_t len)
+{
+	int r = 0;
+	const volatile uint8_t* buf_a = a;
+	const volatile uint8_t* buf_b = b;
+
+	for (size_t i = 0; i < len; ++i) {
+		r |= buf_a[i] ^ buf_b[i];
+	}
+
+	return !!r;
 }
 
 int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
@@ -626,6 +698,138 @@ error:
 	dukpt_memset_s(pinblock, DUKPT_TDES_PINBLOCK_LEN);
 exit:
 	dukpt_memset_s(pin_key, sizeof(pin_key));
+
+	return r;
+}
+
+int dukpt_tdes_generate_request_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	void* mac
+)
+{
+	int r;
+	uint8_t mac_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive request MAC key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(mac_key, txn_key, DUKPT_TDES_KEY_LEN);
+	mac_key[6] ^= 0xFF;
+	mac_key[14] ^= 0xFF;
+
+	// Generate ANSI X9.19 Retail MAC
+	r = dukpt_tdes2_retail_mac(mac_key, buf, buf_len, mac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(mac, DUKPT_TDES_MAC_LEN);
+exit:
+	dukpt_memset_s(mac_key, sizeof(mac_key));
+
+	return r;
+}
+
+int dukpt_tdes_verify_request_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	const void* mac
+)
+{
+	int r;
+	uint8_t mac_verify[DUKPT_TDES_MAC_LEN];
+
+	r = dukpt_tdes_generate_request_mac(txn_key, buf, buf_len, mac_verify);
+	if (r) {
+		goto error;
+	}
+
+	if (dukpt_memcmp_s(mac_verify, mac, sizeof(mac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	dukpt_memset_s(mac_verify, sizeof(mac_verify));
+
+	return r;
+}
+
+int dukpt_tdes_generate_response_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	void* mac
+)
+{
+	int r;
+	uint8_t mac_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive response MAC key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(mac_key, txn_key, DUKPT_TDES_KEY_LEN);
+	mac_key[4] ^= 0xFF;
+	mac_key[12] ^= 0xFF;
+
+	// Generate ANSI X9.19 Retail MAC
+	r = dukpt_tdes2_retail_mac(mac_key, buf, buf_len, mac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(mac, DUKPT_TDES_MAC_LEN);
+exit:
+	dukpt_memset_s(mac_key, sizeof(mac_key));
+
+	return r;
+}
+
+int dukpt_tdes_verify_response_mac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	const void* mac
+)
+{
+	int r;
+	uint8_t mac_verify[DUKPT_TDES_MAC_LEN];
+
+	r = dukpt_tdes_generate_response_mac(txn_key, buf, buf_len, mac_verify);
+	if (r) {
+		goto error;
+	}
+
+	if (dukpt_memcmp_s(mac_verify, mac, sizeof(mac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	dukpt_memset_s(mac_verify, sizeof(mac_verify));
 
 	return r;
 }

@@ -29,6 +29,7 @@ static const uint8_t bdk[] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0
 static const uint8_t iksn[] = { 0xFF, 0xFF, 0x98, 0x76, 0x54, 0x32, 0x10, 0xE0, 0x00, 0x00 };
 static const uint8_t ik_verify[] = { 0x6A, 0xC2, 0x92, 0xFA, 0xA1, 0x31, 0x5B, 0x4D, 0x85, 0x8A, 0xB3, 0xA3, 0xD7, 0xD5, 0x93, 0x3A };
 static const uint8_t pinblock[] = { 0x04, 0x12, 0x74, 0xED, 0xCB, 0xA9, 0x87, 0x6F };
+static const char txn_data[] = "4012345678909D987";
 
 // ANSI X9.24-1:2009 A.4.2 initial sequence KSNs
 static const uint8_t ksn_verify[][DUKPT_TDES_KSN_LEN] = {
@@ -105,6 +106,56 @@ static const uint8_t encrypted_pinblock_verify[][DUKPT_TDES_PINBLOCK_LEN] = {
 	{ 0x72, 0x10, 0x5C, 0x22, 0xEB, 0xC7, 0x91, 0xE6 },
 };
 
+// ANSI X9.24-1:2009 A.4.2 initial sequence request MACs
+static const uint8_t mac_request_verify[][DUKPT_TDES_MAC_LEN] = {
+	{ 0x9C, 0xCC, 0x78, 0x17 },
+	{ 0xF6, 0x08, 0xA9, 0xBC },
+	{ 0x20, 0xB5, 0x9A, 0x4F },
+	{ 0xC7, 0xBF, 0xA6, 0xCC },
+	{ 0x02, 0x02, 0xB9, 0x63 },
+	{ 0xCF, 0x6C, 0x72, 0xE6 },
+	{ 0xB1, 0x1E, 0xB0, 0xD9 },
+	{ 0x36, 0x79, 0x05, 0x5B },
+	{ 0x26, 0xAA, 0x23, 0xDC },
+	{ 0x16, 0x32, 0x62, 0x1C },
+	{ 0x76, 0xD9, 0x5C, 0xB4 },
+	{ 0xBA, 0xD9, 0xD8, 0x4D },
+	{ 0xAA, 0xAF, 0xB5, 0x98 },
+	{ 0x4E, 0xC7, 0x95, 0x32 },
+	{ 0x82, 0x50, 0x0D, 0x05 },
+	{ 0xD3, 0x9D, 0x3A, 0x59 },
+	{ 0xF0, 0x94, 0xAF, 0x93 },
+	{ 0xA8, 0x19, 0xAF, 0x04 },
+	{ 0x79, 0x28, 0x5A, 0x17 },
+	{ 0xE2, 0xB2, 0x63, 0x7F },
+	{ 0xB2, 0x03, 0x3E, 0xBD },
+};
+
+// ANSI X9.24-1:2009 A.4.2 initial sequence request MACs
+static const uint8_t mac_response_verify[][DUKPT_TDES_MAC_LEN] = {
+	{ 0x20, 0x36, 0x42, 0x23 },
+	{ 0xD1, 0xFC, 0xA6, 0xBE },
+	{ 0xBA, 0xD4, 0xCC, 0x9C },
+	{ 0x1E, 0xB0, 0x8A, 0xEE },
+	{ 0x5C, 0xBE, 0x3E, 0x81 },
+	{ 0xC6, 0x0D, 0x38, 0xE8 },
+	{ 0x05, 0x3E, 0xFD, 0x39 },
+	{ 0x7F, 0xAC, 0xA9, 0x1D },
+	{ 0x37, 0xF1, 0x7B, 0x8F },
+	{ 0xCE, 0x03, 0x8C, 0xC9 },
+	{ 0x27, 0xC9, 0xFA, 0x5E },
+	{ 0x6D, 0x2E, 0xCC, 0x6A },
+	{ 0x7E, 0x40, 0xB4, 0x92 },
+	{ 0x55, 0x23, 0x39, 0x89 },
+	{ 0xAF, 0xE2, 0x3C, 0xBA },
+	{ 0x9E, 0x93, 0x3C, 0x88 },
+	{ 0x63, 0x1E, 0x7B, 0x39 },
+	{ 0xE9, 0x3F, 0x5E, 0x27 },
+	{ 0xFC, 0xE7, 0xA5, 0xA5 },
+	{ 0xA1, 0x0E, 0x94, 0xAA },
+	{ 0xBD, 0xA3, 0xAE, 0xE1 },
+};
+
 // ANSI X9.24-1:2009 A.4.3 rollover sequence KSNs
 static const uint8_t ksn_verify2[][DUKPT_TDES_KSN_LEN] = {
 	{ 0xFF, 0xFF, 0x98, 0x76, 0x54, 0x32, 0x10, 0xEF, 0xF8, 0x00 },
@@ -156,6 +207,40 @@ static const uint8_t encrypted_pinblock_verify2[][DUKPT_TDES_PINBLOCK_LEN] = {
 	{ 0x73, 0xEC, 0x88, 0xAD, 0x0A, 0xC5, 0x83, 0x0E },
 };
 
+// ANSI X9.24-1:2009 A.4.3 rollover sequence request MACs
+static const uint8_t mac_request_verify2[][DUKPT_TDES_MAC_LEN] = {
+	{ 0x23, 0xE3, 0xCB, 0x62 },
+	{ 0x97, 0x62, 0x36, 0x32 },
+	{ 0x72, 0x60, 0x85, 0x21 },
+	{ 0xD8, 0x66, 0x87, 0xB7 },
+	{ 0x5E, 0x00, 0x71, 0x3D },
+	{ 0x1B, 0xCC, 0xF9, 0x68 },
+	{ 0x2F, 0x6D, 0x21, 0x91 },
+	{ 0x4D, 0xA4, 0xCB, 0xAC },
+	{ 0x95, 0xC4, 0x3B, 0xC2 },
+	{ 0xD6, 0xBE, 0xAA, 0x71 },
+	{ 0x93, 0x93, 0x0C, 0x9F },
+	{ 0x29, 0x17, 0xC6, 0xEF },
+	{ 0x7D, 0xFA, 0x93, 0x15 },
+};
+
+// ANSI X9.24-1:2009 A.4.3 rollover sequence response MACs
+static const uint8_t mac_response_verify2[][DUKPT_TDES_MAC_LEN] = {
+	{ 0x57, 0x76, 0xC3, 0x76 },
+	{ 0x69, 0xD1, 0xEF, 0x47 },
+	{ 0xBF, 0x70, 0x36, 0xB7 },
+	{ 0x64, 0x5A, 0x0A, 0x18 },
+	{ 0xE8, 0xD8, 0x02, 0x6A },
+	{ 0x96, 0x23, 0xFF, 0x45 },
+	{ 0xFF, 0x86, 0x4D, 0x19 },
+	{ 0x3C, 0xE7, 0xAD, 0x50 },
+	{ 0x73, 0xD0, 0x3F, 0x0B },
+	{ 0x5D, 0x46, 0x1B, 0x71 },
+	{ 0x53, 0x1D, 0xA5, 0xF9 },
+	{ 0xAA, 0x8D, 0x2D, 0xA6 },
+	{ 0x14, 0x44, 0xBE, 0xC3 },
+};
+
 static void print_buf(const char* buf_name, const void* buf, size_t length)
 {
 	const uint8_t* ptr = buf;
@@ -174,6 +259,7 @@ int main(void)
 	uint8_t txn_key[DUKPT_TDES_KEY_LEN];
 	uint8_t encrypted_pinblock[DUKPT_TDES_PINBLOCK_LEN];
 	uint8_t decrypted_pinblock[DUKPT_TDES_PINBLOCK_LEN];
+	uint8_t mac[DUKPT_TDES_MAC_LEN];
 
 	// Test Initial Key (IK) derivation
 	r = dukpt_tdes_derive_ik(bdk, iksn, ik);
@@ -249,6 +335,44 @@ int main(void)
 			goto exit;
 		}
 
+		// Test request MAC
+		r = dukpt_tdes_generate_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_compute_request_mac() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (memcmp(mac, mac_request_verify[i], sizeof(mac_request_verify[i])) != 0) {
+			fprintf(stderr, "Request MAC %zu is incorrect\n", i);
+			print_buf("mac", mac, sizeof(mac));
+			print_buf("mac_request_verify", mac_request_verify[i], sizeof(mac_request_verify[i]));
+			r = 1;
+			goto exit;
+		}
+		r = dukpt_tdes_verify_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_verify_request_mac() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test response MAC
+		r = dukpt_tdes_generate_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_compute_response_mac() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (memcmp(mac, mac_response_verify[i], sizeof(mac_response_verify[i])) != 0) {
+			fprintf(stderr, "Response MAC %zu is incorrect\n", i);
+			print_buf("mac", mac, sizeof(mac));
+			print_buf("mac_response_verify", mac_response_verify[i], sizeof(mac_response_verify[i]));
+			r = 1;
+			goto exit;
+		}
+		r = dukpt_tdes_verify_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_verify_response_mac() failed; r=%d\n", r);
+			goto exit;
+		}
+
 		// Advance KSN
 		r = dukpt_tdes_ksn_advance(ksn);
 		if (r) {
@@ -295,6 +419,44 @@ int main(void)
 			print_buf("encrypted_pinblock", encrypted_pinblock, sizeof(encrypted_pinblock));
 			print_buf("encrypted_pinblock_verify", encrypted_pinblock_verify2[i], sizeof(encrypted_pinblock_verify2[i]));
 			r = 1;
+			goto exit;
+		}
+
+		// Test request MAC
+		r = dukpt_tdes_generate_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_compute_request_mac() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (memcmp(mac, mac_request_verify2[i], sizeof(mac_request_verify2[i])) != 0) {
+			fprintf(stderr, "Request MAC %zu is incorrect\n", i);
+			print_buf("mac", mac, sizeof(mac));
+			print_buf("mac_request_verify", mac_request_verify2[i], sizeof(mac_request_verify2[i]));
+			r = 1;
+			goto exit;
+		}
+		r = dukpt_tdes_verify_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_verify_request_mac() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test response MAC
+		r = dukpt_tdes_generate_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_compute_response_mac() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (memcmp(mac, mac_response_verify2[i], sizeof(mac_response_verify2[i])) != 0) {
+			fprintf(stderr, "Response MAC %zu is incorrect\n", i);
+			print_buf("mac", mac, sizeof(mac));
+			print_buf("mac_response_verify", mac_response_verify2[i], sizeof(mac_response_verify2[i]));
+			r = 1;
+			goto exit;
+		}
+		r = dukpt_tdes_verify_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_verify_response_mac() failed; r=%d\n", r);
 			goto exit;
 		}
 
