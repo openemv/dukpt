@@ -833,3 +833,207 @@ exit:
 
 	return r;
 }
+
+int dukpt_tdes_encrypt_request(
+	const void* txn_key,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+)
+{
+	int r;
+	uint8_t data_key[DUKPT_TDES_KEY_LEN];
+	uint8_t owf_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive data encryption (request) key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(data_key, txn_key, DUKPT_TDES_KEY_LEN);
+	data_key[5] ^= 0xFF;
+	data_key[13] ^= 0xFF;
+
+	// Apply one way function
+	// See ANSI X9.24-1:2009 A.4.1, figure A-2
+	// See ANSI X9.24-3:2017 C.5.2, figure 6
+	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	if (r) {
+		goto error;
+	}
+
+	// Encrypt transaction data
+	r = dukpt_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(ciphertext, buf_len);
+exit:
+	dukpt_memset_s(data_key, sizeof(data_key));
+	dukpt_memset_s(owf_key, sizeof(owf_key));
+
+	return r;
+}
+
+int dukpt_tdes_decrypt_request(
+	const void* txn_key,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
+)
+{
+	int r;
+	uint8_t data_key[DUKPT_TDES_KEY_LEN];
+	uint8_t owf_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive data encryption (request) key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(data_key, txn_key, DUKPT_TDES_KEY_LEN);
+	data_key[5] ^= 0xFF;
+	data_key[13] ^= 0xFF;
+
+	// Apply one way function
+	// See ANSI X9.24-1:2009 A.4.1, figure A-2
+	// See ANSI X9.24-3:2017 C.5.2, figure 6
+	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	if (r) {
+		goto error;
+	}
+
+	// Decrypt transaction data
+	r = dukpt_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(plaintext, buf_len);
+exit:
+	dukpt_memset_s(data_key, sizeof(data_key));
+	dukpt_memset_s(owf_key, sizeof(owf_key));
+
+	return r;
+}
+
+int dukpt_tdes_encrypt_response(
+	const void* txn_key,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+)
+{
+	int r;
+	uint8_t data_key[DUKPT_TDES_KEY_LEN];
+	uint8_t owf_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive data encryption (response) key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(data_key, txn_key, DUKPT_TDES_KEY_LEN);
+	data_key[3] ^= 0xFF;
+	data_key[11] ^= 0xFF;
+
+	// Apply one way function
+	// See ANSI X9.24-1:2009 A.4.1, figure A-2
+	// See ANSI X9.24-3:2017 C.5.2, figure 6
+	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	if (r) {
+		goto error;
+	}
+
+	// Encrypt transaction data
+	r = dukpt_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(ciphertext, buf_len);
+exit:
+	dukpt_memset_s(data_key, sizeof(data_key));
+	dukpt_memset_s(owf_key, sizeof(owf_key));
+
+	return r;
+}
+
+int dukpt_tdes_decrypt_response(
+	const void* txn_key,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
+)
+{
+	int r;
+	uint8_t data_key[DUKPT_TDES_KEY_LEN];
+	uint8_t owf_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive data encryption (response) key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(data_key, txn_key, DUKPT_TDES_KEY_LEN);
+	data_key[3] ^= 0xFF;
+	data_key[11] ^= 0xFF;
+
+	// Apply one way function
+	// See ANSI X9.24-1:2009 A.4.1, figure A-2
+	// See ANSI X9.24-3:2017 C.5.2, figure 6
+	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	if (r) {
+		goto error;
+	}
+
+	// Decrypt transaction data
+	r = dukpt_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_memset_s(plaintext, buf_len);
+exit:
+	dukpt_memset_s(data_key, sizeof(data_key));
+	dukpt_memset_s(owf_key, sizeof(owf_key));
+
+	return r;
+}
