@@ -23,7 +23,7 @@ configure_file(
 	dukpt_config.h
 )
 
-add_library(dukpt_tdes dukpt_tdes.c)
+add_library(dukpt_tdes dukpt_tdes.c dukpt_tdes_crypto.c)
 set_target_properties(dukpt_tdes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_tdes.h
