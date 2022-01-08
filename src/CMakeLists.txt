@@ -37,7 +37,7 @@ target_include_directories(dukpt_tdes INTERFACE
 )
 target_link_libraries(dukpt_tdes MbedTLS::mbedcrypto)
 
-add_library(dukpt_aes dukpt_aes.c)
+add_library(dukpt_aes dukpt_aes.c dukpt_aes_crypto.c)
 set_target_properties(dukpt_aes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_aes.h

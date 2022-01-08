@@ -19,7 +19,7 @@
  */
 
 #include "dukpt_aes.h"
-#include "dukpt_config.h"
+#include "dukpt_aes_crypto.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -133,65 +133,6 @@ static void print_buf(const char* buf_name, const void* buf, size_t length)
 	}
 	printf("\n");
 }
-
-#ifdef MBEDTLS_FOUND
-
-#include <mbedtls/aes.h>
-
-#define AES_BLOCK_SIZE (16) ///< AES block size in bytes
-
-static int dukpt_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-	uint8_t iv_buf[AES_BLOCK_SIZE];
-
-	// Ensure that ciphertext length is a multiple of the AES block length
-	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// Only allow a single block for ECB block mode
-	if (!iv && clen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	if (key_len != DUKPT_AES_KEY_LEN(AES128) &&
-		key_len != DUKPT_AES_KEY_LEN(AES192) &&
-		key_len != DUKPT_AES_KEY_LEN(AES256)
-	) {
-		return -3;
-	}
-
-	mbedtls_aes_init(&ctx);
-	r = mbedtls_aes_setkey_dec(&ctx, key, key_len * 8);
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
-	} else {
-		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, ciphertext, plaintext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	// Cleanup
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-
-#endif
 
 static int verify_pin_block4(
 	const void* pin_key,

@@ -25,7 +25,6 @@ if(BUILD_TESTING)
 	add_test(dukpt_aes128_update_key_test dukpt_aes128_update_key_test)
 
 	add_executable(dukpt_aes256_test dukpt_aes256_test.c)
-	target_include_directories(dukpt_aes256_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/../src/) # For generated config file
 	target_link_libraries(dukpt_aes256_test dukpt_aes)
 	add_test(dukpt_aes256_test dukpt_aes256_test)
 

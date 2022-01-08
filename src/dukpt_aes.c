@@ -20,6 +20,7 @@
  */
 
 #include "dukpt_aes.h"
+#include "dukpt_aes_crypto.h"
 #include "dukpt_config.h"
 
 #include <stddef.h>
@@ -68,115 +69,6 @@ struct dukpt_aes_derivation_data_t {
 	uint16_t length;
 	uint8_t ksn_data[8]; // Either IK ID, or rightmost half of IK ID together with transaction counter
 } __attribute__((packed));
-
-#ifdef MBEDTLS_FOUND
-
-#include <mbedtls/aes.h>
-
-#define AES_BLOCK_SIZE (16) ///< AES block size in bytes
-
-static int dukpt_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-	uint8_t iv_buf[AES_BLOCK_SIZE];
-
-	// Ensure that plaintext length is a multiple of the AES block length
-	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// Only allow a single block for ECB block mode
-	if (!iv && plen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	if (key_len != DUKPT_AES_KEY_LEN(AES128) &&
-		key_len != DUKPT_AES_KEY_LEN(AES192) &&
-		key_len != DUKPT_AES_KEY_LEN(AES256)
-	) {
-		return -3;
-	}
-
-	mbedtls_aes_init(&ctx);
-	r = mbedtls_aes_setkey_enc(&ctx, key, key_len * 8);
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
-	} else {
-		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	// Cleanup
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-
-static int dukpt_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-	uint8_t iv_buf[AES_BLOCK_SIZE];
-
-	// Ensure that ciphertext length is a multiple of the AES block length
-	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// Only allow a single block for ECB block mode
-	if (!iv && clen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	if (key_len != DUKPT_AES_KEY_LEN(AES128) &&
-		key_len != DUKPT_AES_KEY_LEN(AES192) &&
-		key_len != DUKPT_AES_KEY_LEN(AES256)
-	) {
-		return -3;
-	}
-
-	mbedtls_aes_init(&ctx);
-	r = mbedtls_aes_setkey_dec(&ctx, key, key_len * 8);
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
-	} else {
-		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, ciphertext, plaintext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	// Cleanup
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-#endif
 
 __attribute__((noinline))
 static void dukpt_memset_s(void* ptr, size_t len)
