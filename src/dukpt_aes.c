@@ -21,6 +21,7 @@
 
 #include "dukpt_aes.h"
 #include "dukpt_aes_crypto.h"
+#include "dukpt_mem.h"
 #include "dukpt_config.h"
 
 #include <stddef.h>
@@ -69,19 +70,6 @@ struct dukpt_aes_derivation_data_t {
 	uint16_t length;
 	uint8_t ksn_data[8]; // Either IK ID, or rightmost half of IK ID together with transaction counter
 } __attribute__((packed));
-
-__attribute__((noinline))
-static void dukpt_memset_s(void* ptr, size_t len)
-{
-	memset(ptr, 0, len);
-
-	// From GCC documentation:
-	// If the function does not have side effects, there are optimizations
-	// other than inlining that cause function calls to be optimized away,
-	// although the function call is live. To keep such calls from being
-	// optimized away, put...
-	__asm__ ("");
-}
 
 static int dukpt_aes_create_derivation_data(
 	enum dukpt_aes_key_usage_t key_usage,
@@ -200,9 +188,9 @@ static int dukpt_aes_derive_key(
 
 error:
 	// TODO: randomise instead
-	dukpt_memset_s(derived_key, derived_key_len);
+	dukpt_cleanse(derived_key, derived_key_len);
 exit:
-	dukpt_memset_s(derived_key_output, sizeof(derived_key_output));
+	dukpt_cleanse(derived_key_output, sizeof(derived_key_output));
 	return r;
 }
 
@@ -268,9 +256,9 @@ int dukpt_aes_derive_ik(
 
 error:
 	// TODO: randomise instead
-	dukpt_memset_s(ik, sizeof(ik));
+	dukpt_cleanse(ik, sizeof(ik));
 exit:
-	dukpt_memset_s(&derivation_data, sizeof(derivation_data));
+	dukpt_cleanse(&derivation_data, sizeof(derivation_data));
 
 	return r;
 }
@@ -383,9 +371,9 @@ int dukpt_aes_derive_txn_key(
 
 error:
 	// TODO: randomise instead
-	dukpt_memset_s(txn_key, txn_key_len);
+	dukpt_cleanse(txn_key, txn_key_len);
 exit:
-	dukpt_memset_s(&derivation_data, sizeof(derivation_data));
+	dukpt_cleanse(&derivation_data, sizeof(derivation_data));
 
 	return r;
 }
@@ -593,10 +581,10 @@ int dukpt_aes_derive_update_key(
 
 error:
 	// TODO: randomise instead
-	dukpt_memset_s(update_key, update_key_len);
+	dukpt_cleanse(update_key, update_key_len);
 
 exit:
-	dukpt_memset_s(txn_key, sizeof(txn_key));
+	dukpt_cleanse(txn_key, sizeof(txn_key));
 	return r;
 }
 
@@ -681,9 +669,9 @@ int dukpt_aes_encrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_memset_s(ciphertext, DUKPT_AES_PINBLOCK_LEN);
+	dukpt_cleanse(ciphertext, DUKPT_AES_PINBLOCK_LEN);
 exit:
-	dukpt_memset_s(pin_key, sizeof(pin_key));
+	dukpt_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }
@@ -768,9 +756,9 @@ int dukpt_aes_decrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_memset_s(pinblock, DUKPT_AES_PINBLOCK_LEN);
+	dukpt_cleanse(pinblock, DUKPT_AES_PINBLOCK_LEN);
 exit:
-	dukpt_memset_s(pin_key, sizeof(pin_key));
+	dukpt_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }

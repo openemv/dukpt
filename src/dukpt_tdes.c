@@ -22,6 +22,7 @@
 
 #include "dukpt_tdes.h"
 #include "dukpt_tdes_crypto.h"
+#include "dukpt_mem.h"
 #include "dukpt_config.h"
 
 #include <stddef.h>
@@ -44,33 +45,6 @@ static inline int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext
 static inline int dukpt_tdes2_decrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
 {
 	return dukpt_tdes2_decrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
-}
-
-__attribute__((noinline))
-static void dukpt_memset_s(void* ptr, size_t len)
-{
-	memset(ptr, 0, len);
-
-	// From GCC documentation:
-	// If the function does not have side effects, there are optimizations
-	// other than inlining that cause function calls to be optimized away,
-	// although the function call is live. To keep such calls from being
-	// optimized away, put...
-	__asm__ ("");
-}
-
-__attribute__((noinline))
-static int dukpt_memcmp_s(const void* a, const void* b, size_t len)
-{
-	int r = 0;
-	const volatile uint8_t* buf_a = a;
-	const volatile uint8_t* buf_b = b;
-
-	for (size_t i = 0; i < len; ++i) {
-		r |= buf_a[i] ^ buf_b[i];
-	}
-
-	return !!r;
 }
 
 int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
@@ -115,9 +89,9 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 
 error:
 	// TODO: randomise instead
-	dukpt_memset_s(ik, sizeof(ik));
+	dukpt_cleanse(ik, sizeof(ik));
 exit:
-	dukpt_memset_s(bdk_variant, sizeof(bdk_variant));
+	dukpt_cleanse(bdk_variant, sizeof(bdk_variant));
 
 	return r;
 }
@@ -198,10 +172,10 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 
 error:
 	// TODO: randomise instead
-	dukpt_memset_s(key_out, sizeof(key_out));
+	dukpt_cleanse(key_out, sizeof(key_out));
 exit:
-	dukpt_memset_s(crypto_reg1, sizeof(crypto_reg1));
-	dukpt_memset_s(crypto_reg2, sizeof(crypto_reg2));
+	dukpt_cleanse(crypto_reg1, sizeof(crypto_reg1));
+	dukpt_cleanse(crypto_reg2, sizeof(crypto_reg2));
 
 	return r;
 }
@@ -298,10 +272,10 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 
 error:
 	// TODO: randomise instead
-	dukpt_memset_s(txn_key, sizeof(txn_key));
+	dukpt_cleanse(txn_key, sizeof(txn_key));
 exit:
 	// Cleanup
-	dukpt_memset_s(key_reg, sizeof(key_reg));
+	dukpt_cleanse(key_reg, sizeof(key_reg));
 
 	return r;
 }
@@ -462,9 +436,9 @@ int dukpt_tdes_encrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_memset_s(ciphertext, DUKPT_TDES_PINBLOCK_LEN);
+	dukpt_cleanse(ciphertext, DUKPT_TDES_PINBLOCK_LEN);
 exit:
-	dukpt_memset_s(pin_key, sizeof(pin_key));
+	dukpt_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }
@@ -496,9 +470,9 @@ int dukpt_tdes_decrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_memset_s(pinblock, DUKPT_TDES_PINBLOCK_LEN);
+	dukpt_cleanse(pinblock, DUKPT_TDES_PINBLOCK_LEN);
 exit:
-	dukpt_memset_s(pin_key, sizeof(pin_key));
+	dukpt_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }
@@ -531,9 +505,9 @@ int dukpt_tdes_generate_request_mac(
 	goto exit;
 
 error:
-	dukpt_memset_s(mac, DUKPT_TDES_MAC_LEN);
+	dukpt_cleanse(mac, DUKPT_TDES_MAC_LEN);
 exit:
-	dukpt_memset_s(mac_key, sizeof(mac_key));
+	dukpt_cleanse(mac_key, sizeof(mac_key));
 
 	return r;
 }
@@ -564,7 +538,7 @@ int dukpt_tdes_verify_request_mac(
 
 error:
 exit:
-	dukpt_memset_s(mac_verify, sizeof(mac_verify));
+	dukpt_cleanse(mac_verify, sizeof(mac_verify));
 
 	return r;
 }
@@ -597,9 +571,9 @@ int dukpt_tdes_generate_response_mac(
 	goto exit;
 
 error:
-	dukpt_memset_s(mac, DUKPT_TDES_MAC_LEN);
+	dukpt_cleanse(mac, DUKPT_TDES_MAC_LEN);
 exit:
-	dukpt_memset_s(mac_key, sizeof(mac_key));
+	dukpt_cleanse(mac_key, sizeof(mac_key));
 
 	return r;
 }
@@ -630,7 +604,7 @@ int dukpt_tdes_verify_response_mac(
 
 error:
 exit:
-	dukpt_memset_s(mac_verify, sizeof(mac_verify));
+	dukpt_cleanse(mac_verify, sizeof(mac_verify));
 
 	return r;
 }
@@ -678,10 +652,10 @@ int dukpt_tdes_encrypt_request(
 	goto exit;
 
 error:
-	dukpt_memset_s(ciphertext, buf_len);
+	dukpt_cleanse(ciphertext, buf_len);
 exit:
-	dukpt_memset_s(data_key, sizeof(data_key));
-	dukpt_memset_s(owf_key, sizeof(owf_key));
+	dukpt_cleanse(data_key, sizeof(data_key));
+	dukpt_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }
@@ -729,10 +703,10 @@ int dukpt_tdes_decrypt_request(
 	goto exit;
 
 error:
-	dukpt_memset_s(plaintext, buf_len);
+	dukpt_cleanse(plaintext, buf_len);
 exit:
-	dukpt_memset_s(data_key, sizeof(data_key));
-	dukpt_memset_s(owf_key, sizeof(owf_key));
+	dukpt_cleanse(data_key, sizeof(data_key));
+	dukpt_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }
@@ -780,10 +754,10 @@ int dukpt_tdes_encrypt_response(
 	goto exit;
 
 error:
-	dukpt_memset_s(ciphertext, buf_len);
+	dukpt_cleanse(ciphertext, buf_len);
 exit:
-	dukpt_memset_s(data_key, sizeof(data_key));
-	dukpt_memset_s(owf_key, sizeof(owf_key));
+	dukpt_cleanse(data_key, sizeof(data_key));
+	dukpt_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }
@@ -831,10 +805,10 @@ int dukpt_tdes_decrypt_response(
 	goto exit;
 
 error:
-	dukpt_memset_s(plaintext, buf_len);
+	dukpt_cleanse(plaintext, buf_len);
 exit:
-	dukpt_memset_s(data_key, sizeof(data_key));
-	dukpt_memset_s(owf_key, sizeof(owf_key));
+	dukpt_cleanse(data_key, sizeof(data_key));
+	dukpt_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }

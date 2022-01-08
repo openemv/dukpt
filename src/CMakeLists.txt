@@ -23,7 +23,7 @@ configure_file(
 	dukpt_config.h
 )
 
-add_library(dukpt_tdes dukpt_tdes.c dukpt_tdes_crypto.c)
+add_library(dukpt_tdes dukpt_tdes.c dukpt_mem.c dukpt_tdes_crypto.c)
 set_target_properties(dukpt_tdes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_tdes.h
@@ -37,7 +37,7 @@ target_include_directories(dukpt_tdes INTERFACE
 )
 target_link_libraries(dukpt_tdes MbedTLS::mbedcrypto)
 
-add_library(dukpt_aes dukpt_aes.c dukpt_aes_crypto.c)
+add_library(dukpt_aes dukpt_aes.c dukpt_mem.c dukpt_aes_crypto.c)
 set_target_properties(dukpt_aes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_aes.h

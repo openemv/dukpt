@@ -20,6 +20,7 @@
  */
 
 #include "dukpt_tdes_crypto.h"
+#include "dukpt_mem.h"
 #include "dukpt_config.h"
 
 #include <stddef.h>
@@ -28,19 +29,6 @@
 
 #ifdef MBEDTLS_FOUND
 #include <mbedtls/des.h>
-
-__attribute__((noinline))
-static void dukpt_memset_s(void* ptr, size_t len)
-{
-	memset(ptr, 0, len);
-
-	// From GCC documentation:
-	// If the function does not have side effects, there are optimizations
-	// other than inlining that cause function calls to be optimized away,
-	// although the function call is live. To keep such calls from being
-	// optimized away, put...
-	__asm__ ("");
-}
 
 int dukpt_des_encrypt(const void* key, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
 {
@@ -227,9 +215,9 @@ int dukpt_tdes2_retail_mac(const void* key, const void* buf, size_t buf_len, voi
 
 exit:
 	// Cleanup
-	dukpt_memset_s(iv, sizeof(iv));
-	dukpt_memset_s(last_block, sizeof(last_block));
-	dukpt_memset_s(result, sizeof(result));
+	dukpt_cleanse(iv, sizeof(iv));
+	dukpt_cleanse(last_block, sizeof(last_block));
+	dukpt_cleanse(result, sizeof(result));
 
 	return r;
 }
