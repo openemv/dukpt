@@ -43,6 +43,19 @@ __BEGIN_DECLS
 int dukpt_des_encrypt(const void* key, const void* iv, const void* plaintext, size_t plen, void* ciphertext);
 
 /**
+ * Encrypt using single length DES-ECB
+ *
+ * @param key Key
+ * @param plaintext Plaintext to encrypt. Must be of length @ref DES_BLOCK_SIZE.
+ * @param ciphertext Encrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+static inline int dukpt_des_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
+{
+	return dukpt_des_encrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
+}
+
+/**
  * Encrypt using double length TDES
  *
  * @param key Key
@@ -55,6 +68,19 @@ int dukpt_des_encrypt(const void* key, const void* iv, const void* plaintext, si
 int dukpt_tdes2_encrypt(const void* key, const void* iv, const void* plaintext, size_t plen, void* ciphertext);
 
 /**
+ * Encrypt using double length TDES-ECB
+ *
+ * @param key Key
+ * @param plaintext Plaintext to encrypt. Must be of length @ref DES_BLOCK_SIZE.
+ * @param ciphertext Encrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+static inline int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
+{
+	return dukpt_tdes2_encrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
+}
+
+/**
  * Decrypt using double length TDES
  *
  * @param key Key
@@ -65,6 +91,19 @@ int dukpt_tdes2_encrypt(const void* key, const void* iv, const void* plaintext, 
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_tdes2_decrypt(const void* key, const void* iv, const void* ciphertext, size_t clen, void* plaintext);
+
+/**
+ * Decrypt using double length TDES-ECB
+ *
+ * @param key Key
+ * @param ciphertext Ciphertext to decrypt. Must be of length @ref DES_BLOCK_SIZE.
+ * @param plaintext Decrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+static inline int dukpt_tdes2_decrypt_ecb(const void* key, const void* ciphertext, void* plaintext)
+{
+	return dukpt_tdes2_decrypt(key, NULL, ciphertext, DES_BLOCK_SIZE, plaintext);
+}
 
 /**
  * Generate ANSI X9.19 Retail MAC using double length TDES

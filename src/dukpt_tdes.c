@@ -29,24 +29,6 @@
 #include <stdint.h>
 #include <string.h>
 
-// DES-ECB helper function
-static inline int dukpt_des_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
-{
-	return dukpt_des_encrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
-}
-
-// TDES-ECB helper function
-static inline int dukpt_tdes2_encrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
-{
-	return dukpt_tdes2_encrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
-}
-
-// TDES-ECB helper function
-static inline int dukpt_tdes2_decrypt_ecb(const void* key, const void* plaintext, void* ciphertext)
-{
-	return dukpt_tdes2_decrypt(key, NULL, plaintext, DES_BLOCK_SIZE, ciphertext);
-}
-
 int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 {
 	int r;

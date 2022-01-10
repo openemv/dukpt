@@ -46,6 +46,20 @@ __BEGIN_DECLS
 int dukpt_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext);
 
 /**
+ * Encrypt using AES-ECB
+ *
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param plaintext Plaintext to encrypt. Must be of length @ref AES_BLOCK_SIZE.
+ * @param ciphertext Encrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+static inline int dukpt_aes_encrypt_ecb(const void* key, size_t key_len, const void* plaintext, void* ciphertext)
+{
+	return dukpt_aes_encrypt(key, key_len, NULL, plaintext, AES_BLOCK_SIZE, ciphertext);
+}
+
+/**
  * Decrypt using AES
  *
  * @param key Key
@@ -57,5 +71,19 @@ int dukpt_aes_encrypt(const void* key, size_t key_len, const void* iv, const voi
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext);
+
+/**
+ * Decrypt using AES-ECB
+ *
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param ciphertext Ciphertext to decrypt. Must be of length @ref DES_BLOCK_SIZE.
+ * @param plaintext Decrypted output
+ * @return Zero for success. Less than zero for internal error.
+ */
+static inline int dukpt_aes_decrypt_ecb(const void* key, size_t key_len, const void* ciphertext, void* plaintext)
+{
+	return dukpt_aes_decrypt(key, key_len, NULL, ciphertext, AES_BLOCK_SIZE, plaintext);
+}
 
 #endif
