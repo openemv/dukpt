@@ -23,7 +23,20 @@ configure_file(
 	dukpt_config.h
 )
 
-add_library(dukpt_tdes dukpt_tdes.c dukpt_mem.c dukpt_tdes_crypto.c)
+# Internal TDES crypto library
+add_library(dukpt_tdes_crypto OBJECT dukpt_tdes_crypto.c dukpt_mem.c)
+set_target_properties(dukpt_tdes_crypto
+	PROPERTIES
+		C_VISIBILITY_PRESET hidden
+)
+target_include_directories(dukpt_tdes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
+target_include_directories(dukpt_tdes_crypto INTERFACE
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+target_link_libraries(dukpt_tdes_crypto PUBLIC MbedTLS::mbedcrypto)
+
+# TDES DUKPT library
+add_library(dukpt_tdes dukpt_tdes.c)
 set_target_properties(dukpt_tdes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_tdes.h
@@ -35,9 +48,22 @@ target_include_directories(dukpt_tdes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_tdes MbedTLS::mbedcrypto)
+target_link_libraries(dukpt_tdes PRIVATE dukpt_tdes_crypto)
 
-add_library(dukpt_aes dukpt_aes.c dukpt_mem.c dukpt_aes_crypto.c)
+# Internal AES crypto library
+add_library(dukpt_aes_crypto OBJECT dukpt_aes_crypto.c dukpt_mem.c)
+set_target_properties(dukpt_aes_crypto
+	PROPERTIES
+		C_VISIBILITY_PRESET hidden
+)
+target_include_directories(dukpt_aes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
+target_include_directories(dukpt_aes_crypto INTERFACE
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+target_link_libraries(dukpt_aes_crypto PUBLIC MbedTLS::mbedcrypto)
+
+# AES DUKPT library
+add_library(dukpt_aes dukpt_aes.c)
 set_target_properties(dukpt_aes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_aes.h
@@ -49,12 +75,19 @@ target_include_directories(dukpt_aes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_aes MbedTLS::mbedcrypto)
+target_link_libraries(dukpt_aes PRIVATE dukpt_aes_crypto)
 
+# DUKPT command line tool
 add_executable(dukpt-tool dukpt-tool.c)
 target_link_libraries(dukpt-tool dukpt_tdes dukpt_aes)
 
-install(TARGETS dukpt_tdes dukpt_aes dukpt-tool
+install(
+	TARGETS
+		dukpt_tdes
+		dukpt_tdes_crypto
+		dukpt_aes
+		dukpt_aes_crypto
+		dukpt-tool
 	PUBLIC_HEADER
 		DESTINATION "include/${PROJECT_NAME}"
 		COMPONENT dukpt_development

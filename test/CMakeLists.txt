@@ -25,7 +25,7 @@ if(BUILD_TESTING)
 	add_test(dukpt_aes128_update_key_test dukpt_aes128_update_key_test)
 
 	add_executable(dukpt_aes256_test dukpt_aes256_test.c)
-	target_link_libraries(dukpt_aes256_test dukpt_aes)
+	target_link_libraries(dukpt_aes256_test dukpt_aes dukpt_aes_crypto)
 	add_test(dukpt_aes256_test dukpt_aes256_test)
 
 	add_executable(dukpt_aes256_update_key_test dukpt_aes256_update_key_test.c)
