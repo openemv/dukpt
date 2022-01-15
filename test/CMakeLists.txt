@@ -35,4 +35,8 @@ if(BUILD_TESTING)
 	add_executable(dukpt_aes_ksn_test dukpt_aes_ksn_test.c)
 	target_link_libraries(dukpt_aes_ksn_test dukpt_aes)
 	add_test(dukpt_aes_ksn_test dukpt_aes_ksn_test)
+
+	add_executable(dukpt_aes_cmac_test dukpt_aes_cmac_test.c)
+	target_link_libraries(dukpt_aes_cmac_test dukpt_aes_crypto)
+	add_test(dukpt_aes_cmac_test dukpt_aes_cmac_test)
 endif()

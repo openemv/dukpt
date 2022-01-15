@@ -54,6 +54,24 @@ void dukpt_cleanse(void* buf, size_t len) __attribute__((noinline));
  */
 int dukpt_memcmp_s(const void* a, const void* b, size_t len) __attribute__((noinline));
 
+/**
+ * Left shift buffer
+ *
+ * @param buf Pointer to buffer
+ * @param len Length of buffer in bytes
+ * @return Carry bit after left shift
+ */
+int dukpt_lshift(void* buf, size_t len);
+
+/**
+ * XOR buffers. This function will perform the equivalent of <tt>x ^= y</tt>
+ *
+ * @param x Pointer to first buffer
+ * @param y Pointer to second buffer
+ * @param len Number of bytes to XOR
+ */
+void dukpt_xor(void* x, const void* y, size_t len);
+
 __END_DECLS
 
 #endif

@@ -51,3 +51,36 @@ int dukpt_memcmp_s(const void* a, const void* b, size_t len)
 
 	return !!r;
 }
+
+int dukpt_lshift(void* buf, size_t len)
+{
+	uint8_t* ptr = buf;
+	uint8_t lsb;
+
+	ptr += (len - 1);
+	lsb = 0x00;
+	while (len--) {
+		uint8_t msb;
+
+		msb = *ptr & 0x80;
+		*ptr <<= 1;
+		*ptr |= lsb;
+		--ptr;
+		lsb = msb >> 7;
+	}
+
+	// Return carry bit
+	return lsb;
+}
+
+void dukpt_xor(void* x, const void* y, size_t len)
+{
+	uint8_t* buf_x = x;
+	const  uint8_t* buf_y = y;
+
+	for (size_t i = 0; i < len; ++i) {
+		*buf_x ^= *buf_y;
+		++buf_x;
+		++buf_y;
+	}
+}
