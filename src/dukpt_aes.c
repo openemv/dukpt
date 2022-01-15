@@ -762,3 +762,241 @@ exit:
 
 	return r;
 }
+
+int dukpt_aes_generate_request_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t cmac_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t cmac_key_len;
+
+	// Determine length of CMAC key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			cmac_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			cmac_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			cmac_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES CMAC keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive AES CMAC key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_MAC_GENERATION,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		cmac_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Generate AES-CMAC
+	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(cmac, DUKPT_AES_CMAC_LEN);
+exit:
+	dukpt_cleanse(cmac_key, sizeof(cmac_key));
+
+	return r;
+}
+
+int dukpt_aes_verify_request_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
+)
+{
+	int r;
+	uint8_t cmac_verify[DUKPT_AES_CMAC_LEN];
+
+	r = dukpt_aes_generate_request_cmac(
+		txn_key,
+		txn_key_len,
+		ksn,
+		key_type,
+		buf,
+		buf_len,
+		cmac_verify
+	);
+	if (r) {
+		goto error;
+	}
+
+	if (dukpt_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	dukpt_cleanse(cmac_verify, sizeof(cmac_verify));
+
+	return r;
+}
+
+int dukpt_aes_generate_response_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t cmac_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t cmac_key_len;
+
+	// Determine length of CMAC key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			cmac_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			cmac_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			cmac_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES CMAC keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive AES CMAC key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_MAC_VERIFICATION,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		cmac_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Generate AES-CMAC
+	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(cmac, DUKPT_AES_CMAC_LEN);
+exit:
+	dukpt_cleanse(cmac_key, sizeof(cmac_key));
+
+	return r;
+}
+
+int dukpt_aes_verify_response_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
+)
+{
+	int r;
+	uint8_t cmac_verify[DUKPT_AES_CMAC_LEN];
+
+	r = dukpt_aes_generate_response_cmac(
+		txn_key,
+		txn_key_len,
+		ksn,
+		key_type,
+		buf,
+		buf_len,
+		cmac_verify
+	);
+	if (r) {
+		goto error;
+	}
+
+	if (dukpt_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	dukpt_cleanse(cmac_verify, sizeof(cmac_verify));
+
+	return r;
+}

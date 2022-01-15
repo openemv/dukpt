@@ -19,6 +19,7 @@
  */
 
 #include "dukpt_aes.h"
+#include "dukpt_aes_crypto.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -32,6 +33,9 @@ static const uint8_t ik_verify[] = { 0x12, 0x73, 0x67, 0x1E, 0xA2, 0x6A, 0xC2, 0
 // ANSI X9.24-3:2017 Supplement Test Vectors for AES-128 BDK (Calculation of AES PIN Block Format 4; top of page 31)
 static const uint8_t pinblock[] = { 0x44, 0x12, 0x34, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x2F, 0x69, 0xAD, 0xDE, 0x2E, 0x9E, 0x7A, 0xCE };
 static const uint8_t panblock[] = { 0x44, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+// Test data for MAC and encryption testing
+static const char txn_data[] = "4012345678909D987";
 
 // ANSI X9.24-3:2017 Supplement Test Vectors (first eight KSNs)
 static const uint8_t ksn_verify[][DUKPT_AES_KSN_LEN] = {
@@ -67,6 +71,18 @@ static const uint8_t encrypted_pinblock_verify[][DUKPT_AES_PINBLOCK_LEN] = {
 	{ 0xBD, 0xC1, 0xC3, 0x87, 0x1A, 0xFB, 0x0B, 0x34, 0x0A, 0xA5, 0xB5, 0xCE, 0xFD, 0x08, 0x69, 0x5E },
 	{ 0x4A, 0x8E, 0x6B, 0x8C, 0x7D, 0xBE, 0xE6, 0xCB, 0xA6, 0xDC, 0x77, 0x4F, 0x0C, 0xB8, 0x33, 0x96 },
 	{ 0x83, 0x08, 0xBB, 0x85, 0x7C, 0x17, 0xF3, 0x90, 0x36, 0x9F, 0x76, 0x1F, 0x8E, 0xB3, 0x58, 0xFA },
+};
+
+// ANSI X9.24-1:2009 Supplement Test Vectors for AES-128 BDK (first eight MAC generation keys; middle of page 2)
+static const uint8_t cmac_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
+	{ 0xA2, 0xDC, 0x23, 0xDE, 0x6F, 0xDE, 0x08, 0x24, 0xA2, 0xBC, 0x32, 0x1E, 0x08, 0xE4, 0xB8, 0xB7 },
+	{ 0x48, 0x4C, 0x3B, 0x06, 0xE8, 0x56, 0x27, 0x04, 0x52, 0x8C, 0xD5, 0xB4, 0x6F, 0xB1, 0x2F, 0xB6 },
+	{ 0xA5, 0xDF, 0x7D, 0x9D, 0x80, 0x0C, 0xA7, 0x69, 0x76, 0x6F, 0x0C, 0x77, 0xCA, 0x4E, 0x6E, 0x6C },
+	{ 0xE6, 0xE4, 0x67, 0x96, 0x47, 0xD8, 0xA9, 0x05, 0x7C, 0x1F, 0xC1, 0x55, 0x37, 0xCB, 0x4C, 0x4E },
+	{ 0x05, 0x88, 0x18, 0x5F, 0xE1, 0xFF, 0x8C, 0x7E, 0x22, 0xFA, 0xD7, 0x8C, 0x1C, 0x61, 0xF0, 0x65 },
+	{ 0x7B, 0x60, 0xF7, 0x2A, 0x56, 0x39, 0xC0, 0xEE, 0x7E, 0xB2, 0x10, 0x0F, 0xA8, 0x0B, 0xB7, 0x93 },
+	{ 0xBA, 0xA0, 0x8C, 0xA2, 0x63, 0xC6, 0x95, 0x25, 0xBC, 0x6B, 0x1B, 0xA8, 0xF4, 0x27, 0x5D, 0x69 },
+	{ 0x6F, 0xD5, 0x72, 0xE5, 0xD5, 0x9E, 0x61, 0x88, 0x75, 0xF1, 0x93, 0x48, 0x4F, 0x91, 0x78, 0xFB },
 };
 
 // ANSI X9.24-3:2017 Supplement Test Vectors (transaction counters 0x1fffe, 0x1ffff, 0x20000, 0x20001)
@@ -113,6 +129,33 @@ static void print_buf(const char* buf_name, const void* buf, size_t length)
 	printf("\n");
 }
 
+static int verify_cmac(
+	const void* cmac_key,
+	size_t cmac_key_len,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+)
+{
+	int r;
+	uint8_t cmac_verify[AES_CMAC_LEN];
+
+	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac_verify);
+	if (r) {
+		fprintf(stderr, "dukpt_aes_cmac() failed; r=%d\n", r);
+		return r;
+	}
+
+	if (memcmp(cmac, cmac_verify, sizeof(cmac_verify)) != 0) {
+		fprintf(stderr, "CMAC is incorrect\n");
+		print_buf("cmac", cmac, AES_CMAC_LEN);
+		print_buf("cmac_verify", cmac_verify, sizeof(cmac_verify));
+		return 1;
+	}
+
+	return 0;
+}
+
 int main(void)
 {
 	int r;
@@ -121,6 +164,7 @@ int main(void)
 	uint8_t txn_key[DUKPT_AES_KEY_LEN(AES128)];
 	uint8_t encrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 	uint8_t decrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
+	uint8_t cmac[DUKPT_AES_CMAC_LEN];
 
 	// Test Initial Key (IK) derivation using AES128
 	r = dukpt_aes_derive_ik(bdk, sizeof(bdk), ikid, ik);
@@ -212,6 +256,75 @@ int main(void)
 			print_buf("decrypted_pinblock", decrypted_pinblock, sizeof(decrypted_pinblock));
 			print_buf("pinblock", pinblock, sizeof(pinblock));
 			r = 1;
+			goto exit;
+		}
+
+		// Test CMAC-AES128 for request
+		r = dukpt_aes_generate_request_cmac(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			txn_data,
+			sizeof(txn_data),
+			cmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_generate_request_cmac() failed; r=%d\n", r);
+			goto exit;
+		}
+		r = verify_cmac(
+			cmac_aes128_key_verify[i],
+			sizeof(cmac_aes128_key_verify[i]),
+			txn_data,
+			sizeof(txn_data),
+			cmac
+		);
+		if (r) {
+			fprintf(stderr, "verify_cmac() failed; r=%d\n", r);
+			goto exit;
+		}
+		r = dukpt_aes_verify_request_cmac(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			txn_data,
+			sizeof(txn_data),
+			cmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_verify_request_cmac() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test CMAC-AES128 for response
+		// NOTE: Unfortunately X9.24-3:2017 does not provide test vectors for
+		// the response MAC key
+		r = dukpt_aes_generate_response_cmac(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			txn_data,
+			sizeof(txn_data),
+			cmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_generate_response_cmac() failed; r=%d\n", r);
+			goto exit;
+		}
+		r = dukpt_aes_verify_response_cmac(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			txn_data,
+			sizeof(txn_data),
+			cmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_verify_response_cmac() failed; r=%d\n", r);
 			goto exit;
 		}
 

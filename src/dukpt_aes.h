@@ -36,6 +36,7 @@ __BEGIN_DECLS
 #define DUKPT_AES_TC_MAX  (0xFFFF0000) ///< Maximum transaction counter value for AES DUKPT
 #define DUKPT_AES_KSN_LEN (DUKPT_AES_IK_ID_LEN + DUKPT_AES_TC_LEN) ///< Key Serial Number length for AES DUKPT
 #define DUKPT_AES_PINBLOCK_LEN (16) ///< PIN block length for AES DUKPT. See ISO 9564-1:2017 9.4.2, format 4.
+#define DUKPT_AES_CMAC_LEN (16) ///< AES-CMAC length
 
 /**
  * Key types for AES DUKPT
@@ -200,6 +201,106 @@ int dukpt_aes_decrypt_pinblock(
 	const void* ciphertext,
 	const uint8_t* panblock,
 	uint8_t* pinblock
+);
+
+/**
+ * Generate AES-CMAC for transaction request using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of CMAC key
+ * @param buf Transaction request data
+ * @param buf_len Length of transaction request data in bytes
+ * @param cmac CMAC output of length @ref DUKPT_AES_CMAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_generate_request_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+);
+
+/**
+ * Verify AES-CMAC for transaction request using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of CMAC key
+ * @param buf Transaction request data
+ * @param buf_len Length of transaction request data in bytes
+ * @param cmac CMAC of length @ref DUKPT_AES_CMAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_verify_request_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
+);
+
+/**
+ * Generate AES-CMAC for transaction response using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of CMAC key
+ * @param buf Transaction response data
+ * @param buf_len Length of transaction response data in bytes
+ * @param cmac CMAC output of length @ref DUKPT_AES_CMAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_generate_response_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+);
+
+/**
+ * Verify AES-CMAC for transaction response using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of CMAC key
+ * @param buf Transaction response data
+ * @param buf_len Length of transaction response data in bytes
+ * @param cmac CMAC of length @ref DUKPT_AES_CMAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_verify_response_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
 );
 
 __END_DECLS

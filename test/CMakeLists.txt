@@ -17,7 +17,7 @@ if(BUILD_TESTING)
 	add_test(dukpt_tdes_ksn_test dukpt_tdes_ksn_test)
 
 	add_executable(dukpt_aes128_test dukpt_aes128_test.c)
-	target_link_libraries(dukpt_aes128_test dukpt_aes)
+	target_link_libraries(dukpt_aes128_test dukpt_aes dukpt_aes_crypto)
 	add_test(dukpt_aes128_test dukpt_aes128_test)
 
 	add_executable(dukpt_aes128_update_key_test dukpt_aes128_update_key_test.c)
