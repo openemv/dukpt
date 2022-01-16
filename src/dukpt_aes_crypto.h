@@ -32,6 +32,7 @@ __BEGIN_DECLS
 #define AES192_KEY_SIZE (24) ///< AES-192 key size in bytes
 #define AES256_KEY_SIZE (32) ///< AES-256 key size in bytes
 #define AES_CMAC_LEN (16) ///< AES-CMAC length in bytes
+#define HMAC_SHA256_LEN (32) ///< HMAC-SHA256 digest length
 
 /**
  * Encrypt using AES
@@ -106,6 +107,27 @@ int dukpt_aes_cmac(
 	const void* buf,
 	size_t buf_len,
 	void* cmac
+);
+
+/**
+ * Generate HMAC-SHA256
+ * @remark See ISO 9797-2:2011 MAC algorithm 2
+ * @remark NIST FIPS 198-1
+ * @remark See IETF RFC 2104
+ *
+ * @param key Key
+ * @param key_len Length of key in bytes
+ * @param buf Input data
+ * @param buf_len Length of input data in bytes
+ * @param hmac HMAC output of length @ref HMAC_SHA256_LEN
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_hmac_sha256(
+	const void* key,
+	size_t key_len,
+	const void* buf,
+	size_t buf_len,
+	void* hmac
 );
 
 #endif
