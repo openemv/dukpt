@@ -115,6 +115,21 @@ static int dukpt_aes_create_derivation_data(
 			derivation_data->length = htons(DUKPT_AES_KEY_BITS_AES256);
 			break;
 
+		case DUKPT_AES_KEY_TYPE_HMAC128:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_HMAC);
+			derivation_data->length = htons(DUKPT_AES_KEY_BITS_HMAC128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC192:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_HMAC);
+			derivation_data->length = htons(DUKPT_AES_KEY_BITS_HMAC192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC256:
+			derivation_data->algorithm = htons(DUKPT_AES_ALGORITHM_HMAC);
+			derivation_data->length = htons(DUKPT_AES_KEY_BITS_HMAC256);
+			break;
+
 		default:
 			// Unsupported key type
 			return 1;
@@ -997,6 +1012,244 @@ int dukpt_aes_verify_response_cmac(
 error:
 exit:
 	dukpt_cleanse(cmac_verify, sizeof(cmac_verify));
+
+	return r;
+}
+
+int dukpt_aes_generate_request_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* hmac
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t hmac_key[DUKPT_AES_KEY_LEN(HMAC256)];
+	size_t hmac_key_len;
+
+	// Determine length of HMAC key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_HMAC128:
+			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC192:
+			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC256:
+			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC256);
+			break;
+
+		default:
+			// This function only support HMAC keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive HMAC key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_MAC_GENERATION,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		hmac_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Generate HMAC
+	r = dukpt_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(hmac, DUKPT_AES_HMAC_SHA256_LEN);
+exit:
+	dukpt_cleanse(hmac_key, sizeof(hmac_key));
+
+	return r;
+}
+
+int dukpt_aes_verify_request_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* hmac
+)
+{
+	int r;
+	uint8_t hmac_verify[DUKPT_AES_HMAC_SHA256_LEN];
+
+	r = dukpt_aes_generate_request_hmac_sha256(
+		txn_key,
+		txn_key_len,
+		ksn,
+		key_type,
+		buf,
+		buf_len,
+		hmac_verify
+	);
+	if (r) {
+		goto error;
+	}
+
+	if (dukpt_memcmp_s(hmac_verify, hmac, sizeof(hmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	dukpt_cleanse(hmac_verify, sizeof(hmac_verify));
+
+	return r;
+}
+
+int dukpt_aes_generate_response_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* hmac
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t hmac_key[DUKPT_AES_KEY_LEN(HMAC256)];
+	size_t hmac_key_len;
+
+	// Determine length of HMAC key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_HMAC128:
+			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC192:
+			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC256:
+			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC256);
+			break;
+
+		default:
+			// This function only support HMAC keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive HMAC key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_MAC_VERIFICATION,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		hmac_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Generate HMAC
+	r = dukpt_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(hmac, DUKPT_AES_HMAC_SHA256_LEN);
+exit:
+	dukpt_cleanse(hmac_key, sizeof(hmac_key));
+
+	return r;
+}
+
+int dukpt_aes_verify_response_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* hmac
+)
+{
+	int r;
+	uint8_t hmac_verify[DUKPT_AES_HMAC_SHA256_LEN];
+
+	r = dukpt_aes_generate_response_hmac_sha256(
+		txn_key,
+		txn_key_len,
+		ksn,
+		key_type,
+		buf,
+		buf_len,
+		hmac_verify
+	);
+	if (r) {
+		goto error;
+	}
+
+	if (dukpt_memcmp_s(hmac_verify, hmac, sizeof(hmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	dukpt_cleanse(hmac_verify, sizeof(hmac_verify));
 
 	return r;
 }

@@ -165,6 +165,7 @@ int main(void)
 	uint8_t encrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 	uint8_t decrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 	uint8_t cmac[DUKPT_AES_CMAC_LEN];
+	uint8_t hmac[DUKPT_AES_HMAC_SHA256_LEN];
 
 	// Test Initial Key (IK) derivation using AES128
 	r = dukpt_aes_derive_ik(bdk, sizeof(bdk), ikid, ik);
@@ -325,6 +326,66 @@ int main(void)
 		);
 		if (r) {
 			fprintf(stderr, "dukpt_aes_verify_response_cmac() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test HMAC-SHA256 for request
+		r = dukpt_aes_generate_request_hmac_sha256(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_HMAC128,
+			txn_data,
+			sizeof(txn_data),
+			hmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_generate_request_hmac_sha256() failed; r=%d\n", r);
+			goto exit;
+		}
+		// NOTE: Unfortunately X9.24-3:2017 does not provide test vectors for
+		// the HMAC key
+		r = dukpt_aes_verify_request_hmac_sha256(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_HMAC128,
+			txn_data,
+			sizeof(txn_data),
+			hmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_verify_request_hmac_sha256() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test HMAC-SHA256 for response
+		r = dukpt_aes_generate_response_hmac_sha256(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_HMAC128,
+			txn_data,
+			sizeof(txn_data),
+			hmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_generate_response_hmac_sha256() failed; r=%d\n", r);
+			goto exit;
+		}
+		// NOTE: Unfortunately X9.24-3:2017 does not provide test vectors for
+		// the HMAC key
+		r = dukpt_aes_verify_response_hmac_sha256(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_HMAC128,
+			txn_data,
+			sizeof(txn_data),
+			hmac
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_verify_response_hmac_sha256() failed; r=%d\n", r);
 			goto exit;
 		}
 

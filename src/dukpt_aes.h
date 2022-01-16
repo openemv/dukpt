@@ -37,17 +37,21 @@ __BEGIN_DECLS
 #define DUKPT_AES_KSN_LEN (DUKPT_AES_IK_ID_LEN + DUKPT_AES_TC_LEN) ///< Key Serial Number length for AES DUKPT
 #define DUKPT_AES_PINBLOCK_LEN (16) ///< PIN block length for AES DUKPT. See ISO 9564-1:2017 9.4.2, format 4.
 #define DUKPT_AES_CMAC_LEN (16) ///< AES-CMAC length
+#define DUKPT_AES_HMAC_SHA256_LEN (32) ///< HMAC-SHA256 digest length
 
 /**
  * Key types for AES DUKPT
  * @remark See ANSI X9.24-3:2017 6.2.1
  */
 enum dukpt_aes_key_type_t {
-	DUKPT_AES_KEY_TYPE_TDES2,  ///< Key type: Double-length TDES
-	DUKPT_AES_KEY_TYPE_TDES3,  ///< Key type: Triple-length TDES
-	DUKPT_AES_KEY_TYPE_AES128, ///< Key type: AES-128
-	DUKPT_AES_KEY_TYPE_AES192, ///< Key type: AES-192
-	DUKPT_AES_KEY_TYPE_AES256, ///< Key type: AES-256
+	DUKPT_AES_KEY_TYPE_TDES2,   ///< Key type: Double-length TDES
+	DUKPT_AES_KEY_TYPE_TDES3,   ///< Key type: Triple-length TDES
+	DUKPT_AES_KEY_TYPE_AES128,  ///< Key type: AES-128
+	DUKPT_AES_KEY_TYPE_AES192,  ///< Key type: AES-192
+	DUKPT_AES_KEY_TYPE_AES256,  ///< Key type: AES-256
+	DUKPT_AES_KEY_TYPE_HMAC128, ///< Key type: HMAC using 128-bit key
+	DUKPT_AES_KEY_TYPE_HMAC192, ///< Key type: HMAC using 192-bit key
+	DUKPT_AES_KEY_TYPE_HMAC256, ///< Key type: HMAC using 256-bit key
 };
 
 /**
@@ -55,11 +59,14 @@ enum dukpt_aes_key_type_t {
  * @remark See ANSI X9.24-3:2017 6.2.2
  */
 enum dukpt_aes_key_bits_t {
-	DUKPT_AES_KEY_BITS_TDES2 = 0x0080,  ///< TDES2 128-bit
-	DUKPT_AES_KEY_BITS_TDES3 = 0x00C0,  ///< TDES3 192-bit
-	DUKPT_AES_KEY_BITS_AES128 = 0x0080, ///< AES 128-bit
-	DUKPT_AES_KEY_BITS_AES192 = 0x00C0, ///< AES 192-bit
-	DUKPT_AES_KEY_BITS_AES256 = 0x0100, ///< AES 256-bit
+	DUKPT_AES_KEY_BITS_TDES2 = 0x0080,   ///< TDES2 128-bit
+	DUKPT_AES_KEY_BITS_TDES3 = 0x00C0,   ///< TDES3 192-bit
+	DUKPT_AES_KEY_BITS_AES128 = 0x0080,  ///< AES 128-bit
+	DUKPT_AES_KEY_BITS_AES192 = 0x00C0,  ///< AES 192-bit
+	DUKPT_AES_KEY_BITS_AES256 = 0x0100,  ///< AES 256-bit
+	DUKPT_AES_KEY_BITS_HMAC128 = 0x0080, ///< HMAC 128-bit
+	DUKPT_AES_KEY_BITS_HMAC192 = 0x00C0, ///< HMAC 192-bit
+	DUKPT_AES_KEY_BITS_HMAC256 = 0x0100, ///< HMAC 256-bit
 };
 
 /**
@@ -301,6 +308,106 @@ int dukpt_aes_verify_response_cmac(
 	const void* buf,
 	size_t buf_len,
 	const void* cmac
+);
+
+/**
+ * Generate HMAC-SHA256 for transaction request using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of HMAC key
+ * @param buf Transaction request data
+ * @param buf_len Length of transaction request data in bytes
+ * @param hmac HMAC output of length @ref DUKPT_AES_HMAC_SHA256_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_generate_request_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* hmac
+);
+
+/**
+ * Verify HMAC-SHA256 for transaction request using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of HMAC key
+ * @param buf Transaction request data
+ * @param buf_len Length of transaction request data in bytes
+ * @param hmac HMAC of length @ref DUKPT_AES_HMAC_SHA256_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_verify_request_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* hmac
+);
+
+/**
+ * Generate HMAC-SHA256 for transaction response using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of HMAC key
+ * @param buf Transaction response data
+ * @param buf_len Length of transaction response data in bytes
+ * @param hmac HMAC output of length @ref DUKPT_AES_HMAC_SHA256_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_generate_response_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* hmac
+);
+
+/**
+ * Verify HMAC-SHA256 for transaction response using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of HMAC key
+ * @param buf Transaction response data
+ * @param buf_len Length of transaction response data in bytes
+ * @param hmac HMAC of length @ref DUKPT_AES_HMAC_SHA256_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_verify_response_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* hmac
 );
 
 __END_DECLS
