@@ -85,6 +85,18 @@ static const uint8_t cmac_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0x6F, 0xD5, 0x72, 0xE5, 0xD5, 0x9E, 0x61, 0x88, 0x75, 0xF1, 0x93, 0x48, 0x4F, 0x91, 0x78, 0xFB },
 };
 
+// ANSI X9.24-1:2009 Supplement Test Vectors for AES-128 BDK (first eight data encryption keys; middle of page 2)
+static const uint8_t data_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
+	{ 0xA3, 0x5C, 0x41, 0x2E, 0xFD, 0x41, 0xFD, 0xB9, 0x8B, 0x69, 0x79, 0x7C, 0x02, 0xDC, 0xD0, 0x8F },
+	{ 0xD6, 0x39, 0x51, 0x4A, 0xA3, 0x3A, 0xC4, 0x3A, 0xD9, 0x22, 0x9E, 0x43, 0x3D, 0x6D, 0x4E, 0x5B },
+	{ 0xEF, 0x17, 0xF6, 0xAB, 0x45, 0xB4, 0x82, 0x0C, 0x93, 0xA3, 0xDC, 0xB2, 0x1B, 0xC4, 0x91, 0xAD },
+	{ 0xB3, 0xBD, 0x44, 0xC0, 0x8B, 0xB6, 0xBA, 0x27, 0xC3, 0xBB, 0x47, 0x11, 0xD7, 0xD7, 0x03, 0x87 },
+	{ 0xCA, 0x02, 0xDF, 0x6F, 0x30, 0xB3, 0x9E, 0x14, 0xBD, 0x0B, 0x4A, 0x30, 0xE4, 0x60, 0x92, 0x0F },
+	{ 0xC9, 0xB8, 0xA7, 0xC4, 0xE4, 0x86, 0x18, 0x0B, 0x22, 0x29, 0x11, 0x51, 0x64, 0xF0, 0xB2, 0x93 },
+	{ 0x0F, 0xA8, 0xF1, 0xF0, 0xA2, 0xDD, 0x7B, 0x10, 0x05, 0xA8, 0x62, 0xD7, 0x7C, 0xDE, 0xD6, 0x98 },
+	{ 0x65, 0x0F, 0x34, 0x20, 0x4A, 0xBD, 0x4E, 0x57, 0x76, 0x4D, 0x61, 0xAC, 0x3D, 0x26, 0x6F, 0xB1 },
+};
+
 // ANSI X9.24-3:2017 Supplement Test Vectors (transaction counters 0x1fffe, 0x1ffff, 0x20000, 0x20001)
 // NOTE: transaction counter 0x1ffff is commented out because it has more than the allowed 16 set bits
 static const uint8_t ksn_verify2[][DUKPT_AES_KSN_LEN] = {
@@ -166,6 +178,10 @@ int main(void)
 	uint8_t decrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 	uint8_t cmac[DUKPT_AES_CMAC_LEN];
 	uint8_t hmac[DUKPT_AES_HMAC_SHA256_LEN];
+	uint8_t iv[DUKPT_AES_BLOCK_LEN];
+	uint8_t txn_data_buf[DUKPT_AES_BLOCK_LEN * 2];
+	uint8_t encrypted_txn_data[DUKPT_AES_BLOCK_LEN * 2];
+	uint8_t decrypted_txn_data[DUKPT_AES_BLOCK_LEN * 2];
 
 	// Test Initial Key (IK) derivation using AES128
 	r = dukpt_aes_derive_ik(bdk, sizeof(bdk), ikid, ik);
@@ -386,6 +402,115 @@ int main(void)
 		);
 		if (r) {
 			fprintf(stderr, "dukpt_aes_verify_response_hmac_sha256() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test AES128 request encryption
+		memset(iv, 0, sizeof(iv));
+		memset(txn_data_buf, 0, sizeof(txn_data_buf));
+		memcpy(txn_data_buf, txn_data, sizeof(txn_data));
+		r = dukpt_aes_encrypt_request(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			iv,
+			txn_data_buf,
+			sizeof(txn_data_buf),
+			encrypted_txn_data
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_encrypt_request() failed; r=%d\n", r);
+			goto exit;
+		}
+		memset(decrypted_txn_data, 0, sizeof(decrypted_txn_data));
+		r = dukpt_aes_decrypt(
+			data_aes128_key_verify[i],
+			sizeof(data_aes128_key_verify[i]),
+			iv,
+			encrypted_txn_data,
+			sizeof(encrypted_txn_data),
+			decrypted_txn_data
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_decrypt() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (memcmp(decrypted_txn_data, txn_data_buf, sizeof(txn_data_buf)) != 0) {
+			fprintf(stderr, "Decrypted txn request %zu is incorrect\n", i);
+			print_buf("decrypted_txn_data", decrypted_pinblock, sizeof(decrypted_pinblock));
+			print_buf("txn_data_buf", txn_data_buf, sizeof(txn_data_buf));
+			r = 1;
+			goto exit;
+		}
+
+		// Test AES128 request decryption
+		memset(decrypted_txn_data, 0, sizeof(decrypted_txn_data));
+		r = dukpt_aes_decrypt_request(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			iv,
+			encrypted_txn_data,
+			sizeof(encrypted_txn_data),
+			decrypted_txn_data
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_decrypt_request() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (memcmp(decrypted_txn_data, txn_data_buf, sizeof(txn_data_buf)) != 0) {
+			fprintf(stderr, "Decrypted txn request %zu is incorrect\n", i);
+			print_buf("decrypted_txn_data", decrypted_pinblock, sizeof(decrypted_pinblock));
+			print_buf("txn_data_buf", txn_data_buf, sizeof(txn_data_buf));
+			r = 1;
+			goto exit;
+		}
+
+		// Test AES128 response encryption
+		// NOTE: Unfortunately X9.24-1:2017 does not provide test vectors for
+		// the transaction response data encryption key nor samples of the
+		// encrypted transaction response data
+		memset(iv, 0, sizeof(iv));
+		memset(txn_data_buf, 0, sizeof(txn_data_buf));
+		memcpy(txn_data_buf, txn_data, sizeof(txn_data));
+		r = dukpt_aes_encrypt_response(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			iv,
+			txn_data_buf,
+			sizeof(txn_data_buf),
+			encrypted_txn_data
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_encrypt_response() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test AES128 response decryption
+		memset(decrypted_txn_data, 0, sizeof(decrypted_txn_data));
+		r = dukpt_aes_decrypt_response(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			iv,
+			encrypted_txn_data,
+			sizeof(encrypted_txn_data),
+			decrypted_txn_data
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_decrypt_response() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (memcmp(decrypted_txn_data, txn_data_buf, sizeof(txn_data_buf)) != 0) {
+			fprintf(stderr, "Decrypted txn response %zu is incorrect\n", i);
+			print_buf("decrypted_txn_data", decrypted_pinblock, sizeof(decrypted_pinblock));
+			print_buf("txn_data_buf", txn_data_buf, sizeof(txn_data_buf));
+			r = 1;
 			goto exit;
 		}
 

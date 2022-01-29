@@ -38,6 +38,7 @@ __BEGIN_DECLS
 #define DUKPT_AES_PINBLOCK_LEN (16) ///< PIN block length for AES DUKPT. See ISO 9564-1:2017 9.4.2, format 4.
 #define DUKPT_AES_CMAC_LEN (16) ///< AES-CMAC length
 #define DUKPT_AES_HMAC_SHA256_LEN (32) ///< HMAC-SHA256 digest length
+#define DUKPT_AES_BLOCK_LEN (16) ///< Transaction data block length for AES DUKPT
 
 /**
  * Key types for AES DUKPT
@@ -408,6 +409,110 @@ int dukpt_aes_verify_response_hmac_sha256(
 	const void* buf,
 	size_t buf_len,
 	const void* hmac
+);
+
+/**
+ * Encrypt transaction request using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of AES key
+ * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
+ * @param buf Transaction request data
+ * @param buf_len Length of transaction request data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
+ * @param ciphertext Encrypted transaction request of length @c buf_len
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_aes_encrypt_request(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+);
+
+/**
+ * Decrypt transaction request using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of AES key
+ * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
+ * @param buf Encrypted transaction request data
+ * @param buf_len Length of encrypted transaction request data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
+ * @param plaintext Decrypted transaction request of length @c buf_len
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_aes_decrypt_request(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
+);
+
+/**
+ * Encrypt transaction response using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of AES key
+ * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
+ * @param buf Transaction response data
+ * @param buf_len Length of transaction response data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
+ * @param ciphertext Encrypted transaction response of length @c buf_len
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_aes_encrypt_response(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+);
+
+/**
+ * Decrypt transaction response using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of AES key
+ * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
+ * @param buf Encrypted transaction response data
+ * @param buf_len Length of encrypted transaction response data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
+ * @param plaintext Decrypted transaction response of length @c buf_len
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_aes_decrypt_response(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
 );
 
 __END_DECLS

@@ -1253,3 +1253,315 @@ exit:
 
 	return r;
 }
+
+int dukpt_aes_encrypt_request(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t data_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t data_key_len;
+
+	// Determine length of data encryption key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			data_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			data_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			data_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive data encryption key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_DATA_ENCRYPTION_ENCRYPT,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		data_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Encrypt transaction data
+	r = dukpt_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(ciphertext, buf_len);
+exit:
+	dukpt_cleanse(data_key, sizeof(data_key));
+
+	return r;
+}
+
+int dukpt_aes_decrypt_request(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t data_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t data_key_len;
+
+	// Determine length of data encryption key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			data_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			data_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			data_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive data encryption key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_DATA_ENCRYPTION_ENCRYPT,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		data_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Decrypt transaction data
+	r = dukpt_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(plaintext, buf_len);
+exit:
+	dukpt_cleanse(data_key, sizeof(data_key));
+
+	return r;
+}
+
+int dukpt_aes_encrypt_response(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t data_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t data_key_len;
+
+	// Determine length of data encryption key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			data_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			data_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			data_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive data encryption key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_DATA_ENCRYPTION_DECRYPT,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		data_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Encrypt transaction data
+	r = dukpt_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(ciphertext, buf_len);
+exit:
+	dukpt_cleanse(data_key, sizeof(data_key));
+
+	return r;
+}
+
+int dukpt_aes_decrypt_response(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t data_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t data_key_len;
+
+	// Determine length of data encryption key
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			data_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			data_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			data_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// This function only support AES keys
+			return 1;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive data encryption key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_DATA_ENCRYPTION_DECRYPT,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		data_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Decrypt transaction data
+	r = dukpt_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	dukpt_cleanse(plaintext, buf_len);
+exit:
+	dukpt_cleanse(data_key, sizeof(data_key));
+
+	return r;
+}
