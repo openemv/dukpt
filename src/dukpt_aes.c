@@ -358,7 +358,7 @@ int dukpt_aes_derive_ik(
 
 error:
 	// TODO: randomise instead
-	dukpt_cleanse(ik, sizeof(ik));
+	dukpt_cleanse(ik, bdk_len);
 exit:
 	dukpt_cleanse(&derivation_data, sizeof(derivation_data));
 
