@@ -71,6 +71,105 @@ struct dukpt_aes_derivation_data_t {
 	uint8_t ksn_data[8]; // Either IK ID, or rightmost half of IK ID together with transaction counter
 } __attribute__((packed));
 
+static int dukpt_aes_get_derivation_key_type(size_t key_len, enum dukpt_aes_key_type_t* key_type)
+{
+	switch (key_len) {
+		case DUKPT_AES_KEY_LEN(AES128):
+			*key_type = DUKPT_AES_KEY_TYPE_AES128;
+			return 0;
+
+		case DUKPT_AES_KEY_LEN(AES192):
+			*key_type = DUKPT_AES_KEY_TYPE_AES192;
+			return 0;
+
+		case DUKPT_AES_KEY_LEN(AES256):
+			*key_type = DUKPT_AES_KEY_TYPE_AES256;
+			return 0;
+
+		default:
+			// Invalid AES key length
+			return 1;
+	}
+}
+
+static int dukpt_aes_get_working_key_length_aes(size_t txn_key_len, enum dukpt_aes_key_type_t key_type, size_t* working_key_len)
+{
+	// Validate transaction/intermediate key length
+	if (txn_key_len != DUKPT_AES_KEY_LEN(AES128) &&
+		txn_key_len != DUKPT_AES_KEY_LEN(AES192) &&
+		txn_key_len != DUKPT_AES_KEY_LEN(AES256)
+	) {
+		return 1;
+	}
+
+	// Determine key length from key type
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128:
+			*working_key_len = DUKPT_AES_KEY_LEN(AES128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES192:
+			*working_key_len = DUKPT_AES_KEY_LEN(AES192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_AES256:
+			*working_key_len = DUKPT_AES_KEY_LEN(AES256);
+			break;
+
+		default:
+			// Unsupported key type
+			return 2;
+	}
+
+	if (*working_key_len > txn_key_len) {
+		// Working keys shall be the same strength or weaker than the key from
+		// which they are derived
+		// See ANSI X9.24-3:2017 6.1.3
+		return 3;
+	}
+
+	return 0;
+}
+
+static int dukpt_aes_get_working_key_length_hmac(size_t txn_key_len, enum dukpt_aes_key_type_t key_type, size_t* working_key_len)
+{
+	// Validate transaction/intermediate key length
+	if (txn_key_len != DUKPT_AES_KEY_LEN(AES128) &&
+		txn_key_len != DUKPT_AES_KEY_LEN(AES192) &&
+		txn_key_len != DUKPT_AES_KEY_LEN(AES256)
+	) {
+		return 1;
+	}
+
+	// Determine key length from key type
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_HMAC128:
+			*working_key_len = DUKPT_AES_KEY_LEN(HMAC128);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC192:
+			*working_key_len = DUKPT_AES_KEY_LEN(HMAC192);
+			break;
+
+		case DUKPT_AES_KEY_TYPE_HMAC256:
+			*working_key_len = DUKPT_AES_KEY_LEN(HMAC256);
+			break;
+
+		default:
+			// Unsupported key type
+			return 2;
+	}
+
+	if (*working_key_len > txn_key_len) {
+		// Working keys shall be the same strength or weaker than the key from
+		// which they are derived
+		// See ANSI X9.24-3:2017 6.1.3
+		return 3;
+	}
+
+	return 0;
+}
+
 static int dukpt_aes_create_derivation_data(
 	enum dukpt_aes_key_usage_t key_usage,
 	enum dukpt_aes_key_type_t key_type,
@@ -221,23 +320,11 @@ int dukpt_aes_derive_ik(
 	struct dukpt_aes_derivation_data_t derivation_data;
 
 	// Determine key type from key length
-	switch (bdk_len) {
-		case DUKPT_AES_KEY_LEN(AES128):
-			key_type = DUKPT_AES_KEY_TYPE_AES128;
-			break;
-
-		case DUKPT_AES_KEY_LEN(AES192):
-			key_type = DUKPT_AES_KEY_TYPE_AES192;
-			break;
-
-		case DUKPT_AES_KEY_LEN(AES256):
-			key_type = DUKPT_AES_KEY_TYPE_AES256;
-			break;
-
-		default:
-			// Only AES may be used for derivation
-			// See ANSI X9.24-3:2017 6.3.1
-			return 1;
+	// Only AES may be used for derivation
+	// See ANSI X9.24-3:2017 6.3.1
+	r = dukpt_aes_get_derivation_key_type(bdk_len, &key_type);
+	if (r) {
+		goto error;
 	}
 
 	// Create key derivation data
@@ -322,23 +409,11 @@ int dukpt_aes_derive_txn_key(
 	tc = dukpt_aes_ksn_get_tc(ksn);
 
 	// Determine key type from key length
-	switch (ik_len) {
-		case DUKPT_AES_KEY_LEN(AES128):
-			key_type = DUKPT_AES_KEY_TYPE_AES128;
-			break;
-
-		case DUKPT_AES_KEY_LEN(AES192):
-			key_type = DUKPT_AES_KEY_TYPE_AES192;
-			break;
-
-		case DUKPT_AES_KEY_LEN(AES256):
-			key_type = DUKPT_AES_KEY_TYPE_AES256;
-			break;
-
-		default:
-			// Only AES may be used for derivation
-			// See ANSI X9.24-3:2017 6.3.1
-			return 1;
+	// Only AES may be used for derivation
+	// See ANSI X9.24-3:2017 6.3.1
+	r = dukpt_aes_get_derivation_key_type(ik_len, &key_type);
+	if (r) {
+		goto error;
 	}
 
 	// For each mask bit, starting at the highest bit:
@@ -531,30 +606,14 @@ int dukpt_aes_derive_update_key(
 	struct dukpt_aes_derivation_data_t derivation_data;
 
 	// Determine length of update key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_TDES2:
-			update_key_len = DUKPT_AES_KEY_LEN(TDES2);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_TDES3:
-			update_key_len = DUKPT_AES_KEY_LEN(TDES3);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES128:
-			update_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			update_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			update_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// Unsupported key type
-			return 1;
+	// This function only supports AES update keys
+	r = dukpt_aes_get_working_key_length_aes(
+		ik_len,
+		key_type,
+		&update_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Prepare KSN with transaction counter 0xFFFFFFFF
@@ -621,22 +680,14 @@ int dukpt_aes_encrypt_pinblock(
 	uint8_t* ciphertext_buf = ciphertext;
 
 	// Determine length of PIN key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			pin_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			pin_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			pin_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES PIN keys
-			return 1;
+	// This function only supports AES PIN keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&pin_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -708,22 +759,14 @@ int dukpt_aes_decrypt_pinblock(
 	size_t pin_key_len;
 
 	// Determine length of PIN key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			pin_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			pin_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			pin_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES PIN keys
-			return 1;
+	// This function only supports AES PIN keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&pin_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -795,22 +838,14 @@ int dukpt_aes_generate_request_cmac(
 	size_t cmac_key_len;
 
 	// Determine length of CMAC key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			cmac_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			cmac_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			cmac_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES CMAC keys
-			return 1;
+	// This function only supports AES CMAC keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&cmac_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -914,22 +949,14 @@ int dukpt_aes_generate_response_cmac(
 	size_t cmac_key_len;
 
 	// Determine length of CMAC key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			cmac_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			cmac_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			cmac_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES CMAC keys
-			return 1;
+	// This function only supports AES CMAC keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&cmac_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -1033,22 +1060,13 @@ int dukpt_aes_generate_request_hmac_sha256(
 	size_t hmac_key_len;
 
 	// Determine length of HMAC key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_HMAC128:
-			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_HMAC192:
-			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_HMAC256:
-			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC256);
-			break;
-
-		default:
-			// This function only support HMAC keys
-			return 1;
+	r = dukpt_aes_get_working_key_length_hmac(
+		txn_key_len,
+		key_type,
+		&hmac_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -1152,22 +1170,13 @@ int dukpt_aes_generate_response_hmac_sha256(
 	size_t hmac_key_len;
 
 	// Determine length of HMAC key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_HMAC128:
-			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_HMAC192:
-			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_HMAC256:
-			hmac_key_len = DUKPT_AES_KEY_LEN(HMAC256);
-			break;
-
-		default:
-			// This function only support HMAC keys
-			return 1;
+	r = dukpt_aes_get_working_key_length_hmac(
+		txn_key_len,
+		key_type,
+		&hmac_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -1272,22 +1281,14 @@ int dukpt_aes_encrypt_request(
 	size_t data_key_len;
 
 	// Determine length of data encryption key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			data_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			data_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			data_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES keys
-			return 1;
+	// This function only supports AES keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&data_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -1350,22 +1351,14 @@ int dukpt_aes_decrypt_request(
 	size_t data_key_len;
 
 	// Determine length of data encryption key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			data_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			data_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			data_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES keys
-			return 1;
+	// This function only supports AES keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&data_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -1428,22 +1421,14 @@ int dukpt_aes_encrypt_response(
 	size_t data_key_len;
 
 	// Determine length of data encryption key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			data_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			data_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			data_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES keys
-			return 1;
+	// This function only supports AES keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&data_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
@@ -1506,22 +1491,14 @@ int dukpt_aes_decrypt_response(
 	size_t data_key_len;
 
 	// Determine length of data encryption key
-	switch (key_type) {
-		case DUKPT_AES_KEY_TYPE_AES128:
-			data_key_len = DUKPT_AES_KEY_LEN(AES128);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES192:
-			data_key_len = DUKPT_AES_KEY_LEN(AES192);
-			break;
-
-		case DUKPT_AES_KEY_TYPE_AES256:
-			data_key_len = DUKPT_AES_KEY_LEN(AES256);
-			break;
-
-		default:
-			// This function only support AES keys
-			return 1;
+	// This function only supports AES keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&data_key_len
+	);
+	if (r) {
+		return r;
 	}
 
 	// Extract transaction counter value from KSN
