@@ -3,7 +3,7 @@
  * @brief ANSI X9.24-1:2009 TDES DUKPT implementation
  *        (equivalent to ANSI X9.24-3:2017 Annex C)
  *
- * Copyright (c) 2021 Leon Lynch
+ * Copyright (c) 2021, 2022 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

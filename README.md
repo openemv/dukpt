@@ -13,6 +13,6 @@ licensing options.
 License
 =======
 
-Copyright (c) 2021 Leon Lynch.
+Copyright (c) 2021, 2022 Leon Lynch.
 
 This project is licensed under the terms of the LGPL v2.1 license. See LICENSE file.

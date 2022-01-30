@@ -2,7 +2,7 @@
  * @file dukpt_aes_crypto.h
  * @brief AES crypto helper functions
  *
- * Copyright (c) 2022 Leon Lynch
+ * Copyright (c) 2021, 2022 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
