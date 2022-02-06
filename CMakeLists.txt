@@ -24,3 +24,34 @@ include(CTest)
 
 add_subdirectory(src)
 add_subdirectory(test)
+
+# Build and install doxygen documentation
+option(BUILD_DOCS "Build documentation")
+find_package(Doxygen) # Optional for generating doxygen files
+if(Doxygen_FOUND)
+	# Use doxygen to generate HTML
+	set(DOXYGEN_GENERATE_HTML YES)
+
+	# Generate docs for public headers
+	if(BUILD_DOCS)
+		doxygen_add_docs(docs
+			dukpt_tdes.h
+			dukpt_aes.h
+			ALL # Build by default
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
+		)
+
+		# Install generated docs by default
+		install(
+			DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html
+			TYPE DOC
+			COMPONENT dukpt_docs
+		)
+	else()
+		doxygen_add_docs(docs
+			dukpt_tdes.h
+			dukpt_aes.h
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
+		)
+	endif()
+endif()
