@@ -62,7 +62,7 @@ static void print_hex(const void* buf, size_t length);
 
 // argp option keys
 enum dukpt_tool_option_t {
-	DUKPT_TOOL_OPTION_MODE,
+	DUKPT_TOOL_OPTION_MODE = 1,
 
 	DUKPT_TOOL_OPTION_BDK,
 	DUKPT_TOOL_OPTION_IK,
