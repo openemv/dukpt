@@ -39,6 +39,7 @@ static size_t ksn_len = 0;
 static uint8_t* txn_key = NULL;
 static size_t txn_key_len = 0;
 static enum dukpt_aes_key_type_t key_type;
+static bool key_type_valid = false;
 
 enum dukpt_tool_mode_t {
 	DUKPT_TOOL_MODE_TDES,
@@ -63,6 +64,7 @@ static void print_hex(const void* buf, size_t length);
 // argp option keys
 enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_MODE = 1,
+	DUKPT_TOOL_OPTION_KEY_TYPE,
 
 	DUKPT_TOOL_OPTION_BDK,
 	DUKPT_TOOL_OPTION_IK,
@@ -76,21 +78,24 @@ enum dukpt_tool_option_t {
 
 // argp option structure
 static struct argp_option argp_options[] = {
-	{ NULL, 0, NULL, 0, "Mode:", 1 },
+	{ NULL, 0, NULL, 0, "Derivation mode:", 1 },
 	{ "mode", DUKPT_TOOL_OPTION_MODE, "TDES|AES", 0, "Derivation mode. Default is TDES." },
 
-	{ NULL, 0, NULL, 0, "Inputs:", 2 },
+	{ NULL, 0, NULL, 0, "AES working key:", 2 },
+	{ "key-type", DUKPT_TOOL_OPTION_KEY_TYPE, "AES128|AES192|AES256", 0, "Working key type. Only applies to AES derivation mode. Defaults to length of BDK or IK." },
+
+	{ NULL, 0, NULL, 0, "Inputs:", 3 },
 	{ "bdk", DUKPT_TOOL_OPTION_BDK, "BDK", 0, "Base Derivation Key (BDK)" },
 	{ "ik", DUKPT_TOOL_OPTION_IK, "IK", 0, "Initial Key (IK)" },
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "KSN", 0, "Key Serial Number (KSN)" },
 
-	{ NULL, 0, NULL, 0, "Actions:", 3 },
+	{ NULL, 0, NULL, 0, "Actions:", 4 },
 	{ "derive-ik", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, 0, "Derive Initial Key (IK). Requires BDK and KSN." },
 	{ "derive-ipek", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, OPTION_ALIAS },
 	{ "derive-txn-key", DUKPT_TOOL_OPTION_DERIVE_TXN_KEY, NULL, 0, "Derive transaction key. Requires either BDK or IK, as well as KSN." },
 	{ "advance-ksn", DUKPT_TOOL_OPTION_ADVANCE_KSN, NULL, 0, "Advance to next valid KSN. Requires KSN. Non-zero exit status if current or next KSN is invalid." },
-	{ "derive-update-key", DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY, "KEYTYPE", 0, "Derive DUKPT update key. Requires either BDK or IK, as well as KSN." },
+	{ "derive-update-key", DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY, NULL, 0, "Derive DUKPT update key. Requires either BDK or IK, as well as KSN." },
 
 	{ 0 },
 };
@@ -105,7 +110,6 @@ static struct argp argp_config = {
 	"Use derivation mode AES for ANSI X9.24-3:2017 AES DUKPT.\n"
 	"\n"
 	"Key or KSN argument values are strings of hex digits representing binary data.\n"
-	"KEYTYPE argument values determine the working key type and should be one of AES128|AES192|AES256\n"
 };
 
 // argp parser helper function
@@ -147,9 +151,23 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			} else if (strcmp(arg, "AES") == 0) {
 				dukpt_tool_mode = DUKPT_TOOL_MODE_AES;
 			} else {
-				argp_error(state, "Invalid derivation mode");
+				argp_error(state, "Invalid derivation mode (--mode) \"%s\"", arg);
 			}
 
+			return 0;
+
+		case DUKPT_TOOL_OPTION_KEY_TYPE:
+			if (strcmp(arg, "AES128") == 0) {
+				key_type = DUKPT_AES_KEY_TYPE_AES128;
+			} else if (strcmp(arg, "AES192") == 0) {
+				key_type = DUKPT_AES_KEY_TYPE_AES192;
+			} else if (strcmp(arg, "AES256") == 0) {
+				key_type = DUKPT_AES_KEY_TYPE_AES256;
+			} else {
+				argp_error(state, "Invalid working key type (--key-type) \"%s\"", arg);
+			}
+
+			key_type_valid = true;
 			return 0;
 
 		case DUKPT_TOOL_OPTION_BDK:
@@ -180,16 +198,6 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			return 0;
 
 		case DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY:
-			if (strcmp(arg, "AES128") == 0) {
-				key_type = DUKPT_AES_KEY_TYPE_AES128;
-			} else if (strcmp(arg, "AES192") == 0) {
-				key_type = DUKPT_AES_KEY_TYPE_AES192;
-			} else if (strcmp(arg, "AES256") == 0) {
-				key_type = DUKPT_AES_KEY_TYPE_AES256;
-			} else {
-				argp_error(state, "Invalid update key type (KEYTYPE argument) \"%s\"", arg);
-			}
-
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY;
 			return 0;
 
@@ -371,6 +379,41 @@ static int do_tdes_mode(void)
 static int do_aes_mode(void)
 {
 	int r;
+
+	// If working key type not specified, default to length of BDK or IK
+	if (!key_type_valid) {
+		size_t key_len;
+
+		if (bdk) {
+			key_len = bdk_len;
+		} else if (ik) {
+			key_len = ik_len;
+		} else {
+			key_len = 0;
+		}
+
+		switch (key_len) {
+			case DUKPT_AES_KEY_LEN(AES128):
+				key_type = DUKPT_AES_KEY_TYPE_AES128;
+				break;
+
+			case DUKPT_AES_KEY_LEN(AES192):
+				key_type = DUKPT_AES_KEY_TYPE_AES192;
+				break;
+
+			case DUKPT_AES_KEY_LEN(AES256):
+				key_type = DUKPT_AES_KEY_TYPE_AES256;
+				break;
+
+			case 0:
+				// BDK or IK not available
+				break;
+
+			default:
+				fprintf(stderr, "Failed to determine working key type\n");
+				return 1;
+		}
+	}
 
 	switch (dukpt_tool_action) {
 		case DUKPT_TOOL_ACTION_NONE: {

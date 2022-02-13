@@ -326,7 +326,7 @@ if(BUILD_TESTING)
 	)
 
 	add_test(NAME dukpt_tool_aes128_update_key_test1
-		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --derive-update-key AES128
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --key-type AES128 --derive-update-key
 	)
 	set_tests_properties(dukpt_tool_aes128_update_key_test1
 		PROPERTIES
@@ -334,15 +334,31 @@ if(BUILD_TESTING)
 	)
 
 	add_test(NAME dukpt_tool_aes128_update_key_test2
-		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 1234567890123456FFFFFFFF --derive-update-key AES128
+		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 1234567890123456FFFFFFFF --key-type AES128 --derive-update-key
 	)
 	set_tests_properties(dukpt_tool_aes128_update_key_test2
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^9A9770AEE1ACD1B13473D0463A1883B9"
 	)
 
+	add_test(NAME dukpt_tool_aes128_update_key_test3
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --derive-update-key
+	)
+	set_tests_properties(dukpt_tool_aes128_update_key_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^9A9770AEE1ACD1B13473D0463A1883B9"
+	)
+
+	add_test(NAME dukpt_tool_aes128_update_key_test4
+		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 1234567890123456FFFFFFFF --derive-update-key
+	)
+	set_tests_properties(dukpt_tool_aes128_update_key_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^9A9770AEE1ACD1B13473D0463A1883B9"
+	)
+
 	add_test(NAME dukpt_tool_aes256_update_key_test1
-		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --derive-update-key AES128
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --key-type AES128 --derive-update-key
 	)
 	set_tests_properties(dukpt_tool_aes256_update_key_test1
 		PROPERTIES
@@ -350,7 +366,7 @@ if(BUILD_TESTING)
 	)
 
 	add_test(NAME dukpt_tool_aes256_update_key_test2
-		COMMAND dukpt-tool --mode AES --ik CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F --ksn 1234567890123456FFFFFFFF --derive-update-key AES128
+		COMMAND dukpt-tool --mode AES --ik CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F --ksn 1234567890123456FFFFFFFF --key-type AES128 --derive-update-key
 	)
 	set_tests_properties(dukpt_tool_aes256_update_key_test2
 		PROPERTIES
@@ -358,7 +374,7 @@ if(BUILD_TESTING)
 	)
 
 	add_test(NAME dukpt_tool_aes256_update_key_test3
-		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --derive-update-key AES256
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --key-type AES256 --derive-update-key
 	)
 	set_tests_properties(dukpt_tool_aes256_update_key_test3
 		PROPERTIES
@@ -366,9 +382,25 @@ if(BUILD_TESTING)
 	)
 
 	add_test(NAME dukpt_tool_aes256_update_key_test4
-		COMMAND dukpt-tool --mode AES --ik CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F --ksn 1234567890123456FFFFFFFF --derive-update-key AES256
+		COMMAND dukpt-tool --mode AES --ik CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F --ksn 1234567890123456FFFFFFFF --key-type AES256 --derive-update-key
 	)
 	set_tests_properties(dukpt_tool_aes256_update_key_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^AEFB210C136278A1279F7C8815F446DB8EBE2AA910B157AA4E6484D8DE9C4807"
+	)
+
+	add_test(NAME dukpt_tool_aes256_update_key_test5
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456FFFFFFFF --derive-update-key
+	)
+	set_tests_properties(dukpt_tool_aes256_update_key_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^AEFB210C136278A1279F7C8815F446DB8EBE2AA910B157AA4E6484D8DE9C4807"
+	)
+
+	add_test(NAME dukpt_tool_aes256_update_key_test6
+		COMMAND dukpt-tool --mode AES --ik CE9CE0C101D1138F97FB6CAD4DF045A7083D4EAE2D35A31789D01CCF0949550F --ksn 1234567890123456FFFFFFFF --derive-update-key
+	)
+	set_tests_properties(dukpt_tool_aes256_update_key_test6
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^AEFB210C136278A1279F7C8815F446DB8EBE2AA910B157AA4E6484D8DE9C4807"
 	)
