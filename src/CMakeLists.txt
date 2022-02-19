@@ -404,4 +404,100 @@ if(BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^AEFB210C136278A1279F7C8815F446DB8EBE2AA910B157AA4E6484D8DE9C4807"
 	)
+
+	add_test(NAME dukpt_tool_tdes_pinblock_test1
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00001 --encrypt-pinblock 041274EDCBA9876F
+	)
+	set_tests_properties(dukpt_tool_tdes_pinblock_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^1B9C1845EB993A7A"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pinblock_test2
+		COMMAND dukpt-tool --ik 6AC292FAA1315B4D858AB3A3D7D5933A --ksn FFFF9876543210E00001 --decrypt-pinblock 1B9C1845EB993A7A
+	)
+	set_tests_properties(dukpt_tool_tdes_pinblock_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^041274EDCBA9876F"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pinblock_test3
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00002 --encrypt-pinblock 041274EDCBA9876F
+	)
+	set_tests_properties(dukpt_tool_tdes_pinblock_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^10A01C8D02C69107"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pinblock_test4
+		COMMAND dukpt-tool --ik 6AC292FAA1315B4D858AB3A3D7D5933A --ksn FFFF9876543210E00002 --decrypt-pinblock 10A01C8D02C69107
+	)
+	set_tests_properties(dukpt_tool_tdes_pinblock_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^041274EDCBA9876F"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pinblock_test5
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210F00000 --encrypt-pinblock 041274EDCBA9876F
+	)
+	set_tests_properties(dukpt_tool_tdes_pinblock_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^73EC88AD0AC5830E"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pinblock_test6
+		COMMAND dukpt-tool --ik 6AC292FAA1315B4D858AB3A3D7D5933A --ksn FFFF9876543210F00000 --decrypt-pinblock 73EC88AD0AC5830E
+	)
+	set_tests_properties(dukpt_tool_tdes_pinblock_test6
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^041274EDCBA9876F"
+	)
+
+	add_test(NAME dukpt_tool_aes128_pinblock_test1
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --key-type AES128 --panblock 44111111111111111000000000000000 --encrypt-pinblock 441234AAAAAAAAAA2F69ADDE2E9E7ACE
+	)
+	set_tests_properties(dukpt_tool_aes128_pinblock_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^A912150391AB65A67E52883D81CE2D15"
+	)
+
+	add_test(NAME dukpt_tool_aes128_pinblock_test2
+		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 123456789012345600000001 --panblock 44111111111111111000000000000000 --decrypt-pinblock A912150391AB65A67E52883D81CE2D15
+	)
+	set_tests_properties(dukpt_tool_aes128_pinblock_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^441234AAAAAAAAAA2F69ADDE2E9E7ACE"
+	)
+
+	add_test(NAME dukpt_tool_aes128_pinblock_test3
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000002 --panblock 44111111111111111000000000000000 --encrypt-pinblock 441234AAAAAAAAAA2F69ADDE2E9E7ACE
+	)
+	set_tests_properties(dukpt_tool_aes128_pinblock_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^52A00503BD34BA1383F6A7EE9FE2547F"
+	)
+
+	add_test(NAME dukpt_tool_aes128_pinblock_test4
+		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 123456789012345600000002 --key-type AES128 --panblock 44111111111111111000000000000000 --decrypt-pinblock 52A00503BD34BA1383F6A7EE9FE2547F
+	)
+	set_tests_properties(dukpt_tool_aes128_pinblock_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^441234AAAAAAAAAA2F69ADDE2E9E7ACE"
+	)
+
+	add_test(NAME dukpt_tool_aes128_pinblock_test5
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600845FED --panblock 44111111111111111000000000000000 --encrypt-pinblock 441234AAAAAAAAAA2F69ADDE2E9E7ACE
+	)
+	set_tests_properties(dukpt_tool_aes128_pinblock_test5
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^3AB5FF370302F73089003AD36CB7E046"
+	)
+
+	add_test(NAME dukpt_tool_aes128_pinblock_test6
+		COMMAND dukpt-tool --mode AES --ik 1273671EA26AC29AFA4D1084127652A1 --ksn 123456789012345600845FED --panblock 44111111111111111000000000000000 --decrypt-pinblock 3AB5FF370302F73089003AD36CB7E046
+	)
+	set_tests_properties(dukpt_tool_aes128_pinblock_test6
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^441234AAAAAAAAAA2F69ADDE2E9E7ACE"
+	)
 endif()

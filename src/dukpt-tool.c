@@ -40,6 +40,10 @@ static uint8_t* txn_key = NULL;
 static size_t txn_key_len = 0;
 static enum dukpt_aes_key_type_t key_type;
 static bool key_type_valid = false;
+static void* pinblock = NULL;
+static size_t pinblock_len = 0;
+static void* panblock = NULL;
+static size_t panblock_len = 0;
 
 enum dukpt_tool_mode_t {
 	DUKPT_TOOL_MODE_TDES,
@@ -53,6 +57,8 @@ enum dukpt_tool_action_t {
 	DUKPT_TOOL_ACTION_DERIVE_TXN_KEY,
 	DUKPT_TOOL_ACTION_ADVANCE_KSN,
 	DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY,
+	DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK,
+	DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK,
 };
 static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
 
@@ -69,11 +75,15 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_BDK,
 	DUKPT_TOOL_OPTION_IK,
 	DUKPT_TOOL_OPTION_KSN,
+	DUKPT_TOOL_OPTION_PANBLOCK,
 
 	DUKPT_TOOL_OPTION_DERIVE_IK,
 	DUKPT_TOOL_OPTION_DERIVE_TXN_KEY,
 	DUKPT_TOOL_OPTION_ADVANCE_KSN,
 	DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY,
+
+	DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK,
+	DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK,
 };
 
 // argp option structure
@@ -89,6 +99,7 @@ static struct argp_option argp_options[] = {
 	{ "ik", DUKPT_TOOL_OPTION_IK, "IK", 0, "Initial Key (IK)" },
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "KSN", 0, "Key Serial Number (KSN)" },
+	{ "panblock", DUKPT_TOOL_OPTION_PANBLOCK, "PANBLOCK", 0, "Encoded PAN block used for AES PIN block encryption/decryption." },
 
 	{ NULL, 0, NULL, 0, "Actions:", 4 },
 	{ "derive-ik", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, 0, "Derive Initial Key (IK). Requires BDK and KSN." },
@@ -96,6 +107,8 @@ static struct argp_option argp_options[] = {
 	{ "derive-txn-key", DUKPT_TOOL_OPTION_DERIVE_TXN_KEY, NULL, 0, "Derive transaction key. Requires either BDK or IK, as well as KSN." },
 	{ "advance-ksn", DUKPT_TOOL_OPTION_ADVANCE_KSN, NULL, 0, "Advance to next valid KSN. Requires KSN. Non-zero exit status if current or next KSN is invalid." },
 	{ "derive-update-key", DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY, NULL, 0, "Derive DUKPT update key. Requires either BDK or IK, as well as KSN." },
+	{ "encrypt-pinblock", DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK, "PINBLOCK", 0, "Encrypt PIN block. Requires either BDK or IK, as well as KSN." },
+	{ "decrypt-pinblock", DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK, "PINBLOCK", 0, "Decrypt PIN block. Requires either BDK or IK, as well as KSN." },
 
 	{ 0 },
 };
@@ -109,7 +122,7 @@ static struct argp argp_config = {
 	"Use derivation mode TDES for ANSI X9.24-1:2009 TDES DUKPT.\n"
 	"Use derivation mode AES for ANSI X9.24-3:2017 AES DUKPT.\n"
 	"\n"
-	"Key or KSN argument values are strings of hex digits representing binary data.\n"
+	"Key, KSN, PINBLOCK or PANBLOCK argument values are strings of hex digits representing binary data.\n"
 };
 
 // argp parser helper function
@@ -124,7 +137,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			// Parse key and KSN arguments as hex data
 			case DUKPT_TOOL_OPTION_BDK:
 			case DUKPT_TOOL_OPTION_IK:
-			case DUKPT_TOOL_OPTION_KSN: {
+			case DUKPT_TOOL_OPTION_KSN:
+			case DUKPT_TOOL_OPTION_PANBLOCK:
+			case DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK:
+			case DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK: {
 				size_t arg_len = strlen(arg);
 
 				if (arg_len % 2 != 0) {
@@ -185,6 +201,11 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			ksn_len = buf_len;
 			return 0;
 
+		case DUKPT_TOOL_OPTION_PANBLOCK:
+			panblock = buf;
+			panblock_len = buf_len;
+			return 0;
+
 		case DUKPT_TOOL_OPTION_DERIVE_IK:
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DERIVE_IK;
 			return 0;
@@ -199,6 +220,18 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 		case DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY:
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK:
+			pinblock = buf;
+			pinblock_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK:
+			pinblock = buf;
+			pinblock_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK;
 			return 0;
 
 		case ARGP_KEY_END:
@@ -225,6 +258,15 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				}
 				if ((!bdk && !ik) || (bdk && ik)) {
 					argp_error(state, "Update key derivation (--derive-update-key) requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+				}
+			}
+
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK || dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK) {
+				if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES && panblock_len != 0) {
+					argp_error(state, "PIN block encrypt/decrypt using derivation mode (--mode) TDES assume PAN block is already encoded in PIN block and should not be specified separately");
+				}
+				if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES && panblock_len == 0) {
+					argp_error(state, "PIN block encrypt/decrypt using derivation mode (--mode) AES requires encoded PAN block (--panblock)");
 				}
 			}
 
@@ -370,6 +412,114 @@ static int do_tdes_mode(void)
 		case DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY:
 			fprintf(stderr, "Update key derivation (--derive-update-key) is only allowed for derivation mode (--mode) AES\n");
 			return 1;
+
+		case DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK: {
+			uint8_t encrypted_pinblock[DUKPT_TDES_PINBLOCK_LEN];
+
+			// Validate KSN length
+			if (ksn_len != DUKPT_TDES_KSN_LEN) {
+				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// Validate PIN block length
+			if (pinblock_len != DUKPT_TDES_PINBLOCK_LEN) {
+				fprintf(stderr, "TDES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_PINBLOCK_LEN, DUKPT_TDES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// If IK is not available, derive it
+			if (!ik) {
+				// Validate BDK length
+				if (bdk_len != DUKPT_TDES_KEY_LEN) {
+					fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
+					return 1;
+				}
+
+				ik_len = DUKPT_TDES_KEY_LEN;
+				ik = malloc(ik_len);
+
+				r = dukpt_tdes_derive_ik(bdk, ksn, ik);
+				if (r) {
+					fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			txn_key_len = DUKPT_TDES_KEY_LEN;
+			txn_key = malloc(txn_key_len);
+
+			// Derive current transaction key
+			r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
+				return 1;
+			}
+
+			// Do it
+			r = dukpt_tdes_encrypt_pinblock(txn_key, pinblock, encrypted_pinblock);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_encrypt_pinblock() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(encrypted_pinblock, sizeof(encrypted_pinblock));
+			return 0;
+		}
+
+		case DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK: {
+			uint8_t decrypted_pinblock[DUKPT_TDES_PINBLOCK_LEN];
+
+			// Validate KSN length
+			if (ksn_len != DUKPT_TDES_KSN_LEN) {
+				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// Validate PIN block length
+			if (pinblock_len != DUKPT_TDES_PINBLOCK_LEN) {
+				fprintf(stderr, "TDES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_PINBLOCK_LEN, DUKPT_TDES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// If IK is not available, derive it
+			if (!ik) {
+				// Validate BDK length
+				if (bdk_len != DUKPT_TDES_KEY_LEN) {
+					fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
+					return 1;
+				}
+
+				ik_len = DUKPT_TDES_KEY_LEN;
+				ik = malloc(ik_len);
+
+				r = dukpt_tdes_derive_ik(bdk, ksn, ik);
+				if (r) {
+					fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			txn_key_len = DUKPT_TDES_KEY_LEN;
+			txn_key = malloc(txn_key_len);
+
+			// Derive current transaction key
+			r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
+				return 1;
+			}
+
+			// Do it
+			r = dukpt_tdes_decrypt_pinblock(txn_key, pinblock, decrypted_pinblock);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_decrypt_pinblock() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(decrypted_pinblock, sizeof(decrypted_pinblock));
+			return 0;
+		}
 	}
 
 	// This should never happen
@@ -586,6 +736,154 @@ static int do_aes_mode(void)
 			print_hex(update_key, update_key_len);
 			return 0;
 		}
+
+		case DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK: {
+			uint8_t encrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
+
+			// Validate KSN length
+			if (ksn_len != DUKPT_AES_KSN_LEN) {
+				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// Validate PIN block length
+			if (pinblock_len != DUKPT_AES_PINBLOCK_LEN) {
+				fprintf(stderr, "AES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// Validate PAN block length
+			if (panblock_len != DUKPT_AES_PINBLOCK_LEN) {
+				fprintf(stderr, "AES: PAN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// If IK is not available, derive it
+			if (!ik) {
+				// Validate BDK length
+				if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
+					bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
+					bdk_len != DUKPT_AES_KEY_LEN(AES256)
+				) {
+					fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+						DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+						DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
+					);
+					return 1;
+				}
+
+				ik_len = bdk_len;
+				ik = malloc(ik_len);
+
+				r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
+				if (r) {
+					fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			txn_key_len = ik_len;
+			txn_key = malloc(txn_key_len);
+
+			// Derive current transaction key
+			r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
+				return 1;
+			}
+
+			// Do it
+			r = dukpt_aes_encrypt_pinblock(
+				txn_key,
+				txn_key_len,
+				ksn,
+				key_type,
+				pinblock,
+				panblock,
+				encrypted_pinblock
+			);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_encrypt_pinblock() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(encrypted_pinblock, sizeof(encrypted_pinblock));
+			return 0;
+		}
+
+		case DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK: {
+			uint8_t decrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
+
+			// Validate KSN length
+			if (ksn_len != DUKPT_AES_KSN_LEN) {
+				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
+				return 1;
+			}
+
+			// Validate PIN block length
+			if (pinblock_len != DUKPT_AES_PINBLOCK_LEN) {
+				fprintf(stderr, "AES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// Validate PAN block length
+			if (panblock_len != DUKPT_AES_PINBLOCK_LEN) {
+				fprintf(stderr, "AES: PAN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// If IK is not available, derive it
+			if (!ik) {
+				// Validate BDK length
+				if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
+					bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
+					bdk_len != DUKPT_AES_KEY_LEN(AES256)
+				) {
+					fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+						DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+						DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
+					);
+					return 1;
+				}
+
+				ik_len = bdk_len;
+				ik = malloc(ik_len);
+
+				r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
+				if (r) {
+					fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			txn_key_len = ik_len;
+			txn_key = malloc(txn_key_len);
+
+			// Derive current transaction key
+			r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
+				return 1;
+			}
+
+			// Do it
+			r = dukpt_aes_decrypt_pinblock(
+				txn_key,
+				txn_key_len,
+				ksn,
+				key_type,
+				pinblock,
+				panblock,
+				decrypted_pinblock
+			);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_decrypt_pinblock() failed; r=%d\n", r);
+				return 1;
+			}
+
+			print_hex(decrypted_pinblock, sizeof(decrypted_pinblock));
+			return 0;
+		}
 	}
 
 	// This should never happen
@@ -638,6 +936,16 @@ int main(int argc, char** argv)
 		free(txn_key);
 		txn_key = NULL;
 		txn_key_len = 0;
+	}
+	if (pinblock) {
+		free(pinblock);
+		pinblock = NULL;
+		pinblock_len = 0;
+	}
+	if (panblock) {
+		free(panblock);
+		panblock = NULL;
+		panblock_len = 0;
 	}
 
 	return r;
