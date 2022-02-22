@@ -39,7 +39,7 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	// See ANSI X9.24-3:2017 C.7
 
 	// Sanitise Initial Key Serial Number (IKSN)
-	memcpy(iksn_buf, iksn, DUKPT_TDES_KSN_LEN);
+	memcpy(iksn_buf, iksn, DUKPT_TDES_KSN_LEN - 2);
 	iksn_buf[7] &= 0xE0;
 	iksn_buf[8] = 0;
 	iksn_buf[9] = 0;

@@ -314,6 +314,73 @@ static void print_hex(const void* buf, size_t length)
 	printf("\n");
 }
 
+static int prepare_tdes_ik(bool full_ksn)
+{
+	int r;
+
+	if (full_ksn) {
+		// Validate KSN length
+		if (ksn_len != DUKPT_TDES_KSN_LEN) {
+			fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
+			return 1;
+		}
+	} else {
+		// Validate KSN length
+		if (ksn_len != DUKPT_TDES_KSN_LEN - 2 &&
+			ksn_len != DUKPT_TDES_KSN_LEN
+		) {
+			fprintf(stderr, "TDES: KSN must be either %u (for IKSN) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
+				DUKPT_TDES_KSN_LEN - 2, DUKPT_TDES_KSN_LEN,
+				(DUKPT_TDES_KSN_LEN - 2) * 2, DUKPT_TDES_KSN_LEN * 2
+			);
+			return 1;
+		}
+	}
+
+	// If IK is not available, derive it
+	if (!ik) {
+		// Validate BDK length
+		if (bdk_len != DUKPT_TDES_KEY_LEN) {
+			fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
+			return 1;
+		}
+
+		ik_len = DUKPT_TDES_KEY_LEN;
+		ik = malloc(ik_len);
+
+		// Derive initial key
+		r = dukpt_tdes_derive_ik(bdk, ksn, ik);
+		if (r) {
+			fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int prepare_tdes_txn_key(void)
+{
+	int r;
+
+	r = prepare_tdes_ik(true);
+	if (r) {
+		return 1;
+	}
+
+	txn_key_len = DUKPT_TDES_KEY_LEN;
+	txn_key = malloc(txn_key_len);
+
+	// Derive current transaction key
+	r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
+	if (r) {
+		fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
+		return 1;
+	}
+
+	return 0;
+}
+
 static int do_tdes_mode(void)
 {
 	int r;
@@ -325,25 +392,8 @@ static int do_tdes_mode(void)
 		}
 
 		case DUKPT_TOOL_ACTION_DERIVE_IK:
-			// Validate BDK length
-			if (bdk_len != DUKPT_TDES_KEY_LEN) {
-				fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
-				return 1;
-			}
-
-			// Validate KSN length
-			if (ksn_len != DUKPT_TDES_KSN_LEN) {
-				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
-				return 1;
-			}
-
-			ik_len = DUKPT_TDES_KEY_LEN;
-			ik = malloc(ik_len);
-
-			// Do it
-			r = dukpt_tdes_derive_ik(bdk, ksn, ik);
+			r = prepare_tdes_ik(false);
 			if (r) {
-				fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
 				return 1;
 			}
 
@@ -351,37 +401,8 @@ static int do_tdes_mode(void)
 			return 0;
 
 		case DUKPT_TOOL_ACTION_DERIVE_TXN_KEY:
-			// Validate KSN length
-			if (ksn_len != DUKPT_TDES_KSN_LEN) {
-				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
-				return 1;
-			}
-
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_TDES_KEY_LEN) {
-					fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
-					return 1;
-				}
-
-				ik_len = DUKPT_TDES_KEY_LEN;
-				ik = malloc(ik_len);
-
-				r = dukpt_tdes_derive_ik(bdk, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
-					return 1;
-				}
-			}
-
-			txn_key_len = DUKPT_TDES_KEY_LEN;
-			txn_key = malloc(txn_key_len);
-
-			// Do it
-			r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
+			r = prepare_tdes_txn_key();
 			if (r) {
-				fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
 				return 1;
 			}
 
@@ -416,43 +437,15 @@ static int do_tdes_mode(void)
 		case DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK: {
 			uint8_t encrypted_pinblock[DUKPT_TDES_PINBLOCK_LEN];
 
-			// Validate KSN length
-			if (ksn_len != DUKPT_TDES_KSN_LEN) {
-				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
-				return 1;
-			}
-
 			// Validate PIN block length
 			if (pinblock_len != DUKPT_TDES_PINBLOCK_LEN) {
 				fprintf(stderr, "TDES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_PINBLOCK_LEN, DUKPT_TDES_PINBLOCK_LEN * 2);
 				return 1;
 			}
 
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_TDES_KEY_LEN) {
-					fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
-					return 1;
-				}
-
-				ik_len = DUKPT_TDES_KEY_LEN;
-				ik = malloc(ik_len);
-
-				r = dukpt_tdes_derive_ik(bdk, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
-					return 1;
-				}
-			}
-
-			txn_key_len = DUKPT_TDES_KEY_LEN;
-			txn_key = malloc(txn_key_len);
-
-			// Derive current transaction key
-			r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
+			// Ensure that DUKPT transaction key is available
+			r = prepare_tdes_txn_key();
 			if (r) {
-				fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
 				return 1;
 			}
 
@@ -470,43 +463,15 @@ static int do_tdes_mode(void)
 		case DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK: {
 			uint8_t decrypted_pinblock[DUKPT_TDES_PINBLOCK_LEN];
 
-			// Validate KSN length
-			if (ksn_len != DUKPT_TDES_KSN_LEN) {
-				fprintf(stderr, "TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2);
-				return 1;
-			}
-
 			// Validate PIN block length
 			if (pinblock_len != DUKPT_TDES_PINBLOCK_LEN) {
 				fprintf(stderr, "TDES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_PINBLOCK_LEN, DUKPT_TDES_PINBLOCK_LEN * 2);
 				return 1;
 			}
 
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_TDES_KEY_LEN) {
-					fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
-					return 1;
-				}
-
-				ik_len = DUKPT_TDES_KEY_LEN;
-				ik = malloc(ik_len);
-
-				r = dukpt_tdes_derive_ik(bdk, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_tdes_derive_ik() failed; r=%d\n", r);
-					return 1;
-				}
-			}
-
-			txn_key_len = DUKPT_TDES_KEY_LEN;
-			txn_key = malloc(txn_key_len);
-
-			// Derive current transaction key
-			r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
+			// Ensure that DUKPT transaction key is available
+			r = prepare_tdes_txn_key();
 			if (r) {
-				fprintf(stderr, "dukpt_tdes_derive_txn_key() failed; r=%d\n", r);
 				return 1;
 			}
 
@@ -524,6 +489,79 @@ static int do_tdes_mode(void)
 
 	// This should never happen
 	return -1;
+}
+
+static int prepare_aes_ik(bool full_ksn)
+{
+	int r;
+
+	if (full_ksn) {
+		// Validate KSN length
+		if (ksn_len != DUKPT_AES_KSN_LEN) {
+			fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
+			return 1;
+		}
+	} else {
+		// Validate KSN length
+		if (ksn_len != DUKPT_AES_IK_ID_LEN &&
+			ksn_len != DUKPT_AES_KSN_LEN
+		) {
+			fprintf(stderr, "AES: KSN must be either %u (for IK ID) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
+				DUKPT_AES_IK_ID_LEN, DUKPT_AES_KSN_LEN,
+				DUKPT_AES_IK_ID_LEN * 2, DUKPT_AES_KSN_LEN * 2
+			);
+			return 1;
+		}
+	}
+
+	// If IK is not available, derive it
+	if (!ik) {
+		// Validate BDK length
+		if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
+			bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
+			bdk_len != DUKPT_AES_KEY_LEN(AES256)
+		) {
+			fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+				DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+				DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
+			);
+			return 1;
+		}
+
+		ik_len = bdk_len;
+		ik = malloc(ik_len);
+
+		// Derive initial key
+		r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int prepare_aes_txn_key(void)
+{
+	int r;
+
+	r = prepare_aes_ik(true);
+	if (r) {
+		return 1;
+	}
+
+	txn_key_len = ik_len;
+	txn_key = malloc(txn_key_len);
+
+	// Derive current transaction key
+	r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+	if (r) {
+		fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
+		return 1;
+	}
+
+	return 0;
 }
 
 static int do_aes_mode(void)
@@ -572,36 +610,8 @@ static int do_aes_mode(void)
 		}
 
 		case DUKPT_TOOL_ACTION_DERIVE_IK:
-			// Validate BDK length
-			if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
-				bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
-				bdk_len != DUKPT_AES_KEY_LEN(AES256)
-			) {
-				fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
-					DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
-					DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256)  * 2
-				);
-				return 1;
-			}
-
-			// Validate KSN length
-			if (ksn_len != DUKPT_AES_IK_ID_LEN &&
-				ksn_len != DUKPT_AES_KSN_LEN
-			) {
-				fprintf(stderr, "AES: KSN must be either %u (for IK ID) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
-					DUKPT_AES_IK_ID_LEN, DUKPT_AES_KSN_LEN,
-					DUKPT_AES_IK_ID_LEN * 2, DUKPT_AES_KSN_LEN * 2
-				);
-				return 1;
-			}
-
-			ik_len = bdk_len;
-			ik = malloc(ik_len);
-
-			// Do it
-			r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
+			r = prepare_aes_ik(false);
 			if (r) {
-				fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
 				return 1;
 			}
 
@@ -609,43 +619,8 @@ static int do_aes_mode(void)
 			return 0;
 
 		case DUKPT_TOOL_ACTION_DERIVE_TXN_KEY:
-			// Validate KSN length
-			if (ksn_len != DUKPT_AES_KSN_LEN) {
-				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
-				return 1;
-			}
-
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES256)
-				) {
-					fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
-						DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
-						DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256)  * 2
-					);
-					return 1;
-				}
-
-				ik_len = bdk_len;
-				ik = malloc(ik_len);
-
-				r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
-					return 1;
-				}
-			}
-
-			txn_key_len = ik_len;
-			txn_key = malloc(txn_key_len);
-
-			// Do it
-			r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+			r = prepare_aes_txn_key();
 			if (r) {
-				fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
 				return 1;
 			}
 
@@ -677,36 +652,6 @@ static int do_aes_mode(void)
 			uint8_t update_key[DUKPT_AES_KEY_LEN(AES256)];
 			size_t update_key_len;
 
-			// Validate KSN length
-			if (ksn_len != DUKPT_AES_KSN_LEN) {
-				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
-				return 1;
-			}
-
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES256)
-				) {
-					fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
-						DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
-						DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
-					);
-					return 1;
-				}
-
-				ik_len = bdk_len;
-				ik = malloc(ik_len);
-
-				r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
-					return 1;
-				}
-			}
-
 			// Determine update key length
 			switch (key_type) {
 				case DUKPT_AES_KEY_TYPE_AES128:
@@ -726,6 +671,12 @@ static int do_aes_mode(void)
 					return 1;
 			}
 
+			// Ensure that DUKPT transaction key is available
+			r = prepare_aes_txn_key();
+			if (r) {
+				return 1;
+			}
+
 			// Do it
 			r = dukpt_aes_derive_update_key(ik, ik_len, ksn, key_type, update_key);
 			if (r) {
@@ -740,12 +691,6 @@ static int do_aes_mode(void)
 		case DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK: {
 			uint8_t encrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 
-			// Validate KSN length
-			if (ksn_len != DUKPT_AES_KSN_LEN) {
-				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
-				return 1;
-			}
-
 			// Validate PIN block length
 			if (pinblock_len != DUKPT_AES_PINBLOCK_LEN) {
 				fprintf(stderr, "AES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
@@ -758,37 +703,9 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES256)
-				) {
-					fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
-						DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
-						DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
-					);
-					return 1;
-				}
-
-				ik_len = bdk_len;
-				ik = malloc(ik_len);
-
-				r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
-					return 1;
-				}
-			}
-
-			txn_key_len = ik_len;
-			txn_key = malloc(txn_key_len);
-
-			// Derive current transaction key
-			r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+			// Ensure that DUKPT transaction key is available
+			r = prepare_aes_txn_key();
 			if (r) {
-				fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
 				return 1;
 			}
 
@@ -814,12 +731,6 @@ static int do_aes_mode(void)
 		case DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK: {
 			uint8_t decrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 
-			// Validate KSN length
-			if (ksn_len != DUKPT_AES_KSN_LEN) {
-				fprintf(stderr, "AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2);
-				return 1;
-			}
-
 			// Validate PIN block length
 			if (pinblock_len != DUKPT_AES_PINBLOCK_LEN) {
 				fprintf(stderr, "AES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
@@ -832,37 +743,9 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			// If IK is not available, derive it
-			if (!ik) {
-				// Validate BDK length
-				if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
-					bdk_len != DUKPT_AES_KEY_LEN(AES256)
-				) {
-					fprintf(stderr, "AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
-						DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
-						DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
-					);
-					return 1;
-				}
-
-				ik_len = bdk_len;
-				ik = malloc(ik_len);
-
-				r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
-				if (r) {
-					fprintf(stderr, "dukpt_aes_derive_ik() failed; r=%d\n", r);
-					return 1;
-				}
-			}
-
-			txn_key_len = ik_len;
-			txn_key = malloc(txn_key_len);
-
-			// Derive current transaction key
-			r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
+			// Ensure that DUKPT transaction key is available
+			r = prepare_aes_txn_key();
 			if (r) {
-				fprintf(stderr, "dukpt_aes_derive_txn_key() failed; r=%d\n", r);
 				return 1;
 			}
 
