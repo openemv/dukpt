@@ -44,6 +44,10 @@ static void* pinblock = NULL;
 static size_t pinblock_len = 0;
 static void* panblock = NULL;
 static size_t panblock_len = 0;
+static void* txn_data = NULL;
+static size_t txn_data_len = 0;
+static void* iv = NULL;
+static size_t iv_len = 0;
 
 enum dukpt_tool_mode_t {
 	DUKPT_TOOL_MODE_TDES,
@@ -59,6 +63,10 @@ enum dukpt_tool_action_t {
 	DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY,
 	DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK,
 	DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK,
+	DUKPT_TOOL_ACTION_ENCRYPT_REQUEST,
+	DUKPT_TOOL_ACTION_DECRYPT_REQUEST,
+	DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE,
+	DUKPT_TOOL_ACTION_DECRYPT_RESPONSE,
 };
 static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
 
@@ -76,6 +84,7 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_IK,
 	DUKPT_TOOL_OPTION_KSN,
 	DUKPT_TOOL_OPTION_PANBLOCK,
+	DUKPT_TOOL_OPTION_IV,
 
 	DUKPT_TOOL_OPTION_DERIVE_IK,
 	DUKPT_TOOL_OPTION_DERIVE_TXN_KEY,
@@ -84,6 +93,11 @@ enum dukpt_tool_option_t {
 
 	DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK,
 	DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK,
+
+	DUKPT_TOOL_OPTION_ENCRYPT_REQUEST,
+	DUKPT_TOOL_OPTION_DECRYPT_REQUEST,
+	DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE,
+	DUKPT_TOOL_OPTION_DECRYPT_RESPONSE,
 };
 
 // argp option structure
@@ -100,6 +114,7 @@ static struct argp_option argp_options[] = {
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "KSN", 0, "Key Serial Number (KSN)" },
 	{ "panblock", DUKPT_TOOL_OPTION_PANBLOCK, "PANBLOCK", 0, "Encoded PAN block used for AES PIN block encryption/decryption." },
+	{ "iv", DUKPT_TOOL_OPTION_IV, "IV", 0, "Initial vector used for encryption/decryption. Default is a zero buffer." },
 
 	{ NULL, 0, NULL, 0, "Actions:", 4 },
 	{ "derive-ik", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, 0, "Derive Initial Key (IK). Requires BDK and KSN." },
@@ -109,6 +124,10 @@ static struct argp_option argp_options[] = {
 	{ "derive-update-key", DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY, NULL, 0, "Derive DUKPT update key. Requires either BDK or IK, as well as KSN." },
 	{ "encrypt-pinblock", DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK, "PINBLOCK", 0, "Encrypt PIN block. Requires either BDK or IK, as well as KSN." },
 	{ "decrypt-pinblock", DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK, "PINBLOCK", 0, "Decrypt PIN block. Requires either BDK or IK, as well as KSN." },
+	{ "encrypt-request", DUKPT_TOOL_OPTION_ENCRYPT_REQUEST, "DATA", 0, "Encrypt transaction request data. Requires either BDK or IK, as well as KSN." },
+	{ "decrypt-request", DUKPT_TOOL_OPTION_DECRYPT_REQUEST, "DATA", 0, "Decrypt transaction request data. Requires either BDK or IK, as well as KSN." },
+	{ "encrypt-response", DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE, "DATA", 0, "Encrypt transaction response data. Requires either BDK or IK, as well as KSN." },
+	{ "decrypt-response", DUKPT_TOOL_OPTION_DECRYPT_RESPONSE, "DATA", 0, "Decrypt transaction response data. Requires either BDK or IK, as well as KSN." },
 
 	{ 0 },
 };
@@ -122,7 +141,7 @@ static struct argp argp_config = {
 	"Use derivation mode TDES for ANSI X9.24-1:2009 TDES DUKPT.\n"
 	"Use derivation mode AES for ANSI X9.24-3:2017 AES DUKPT.\n"
 	"\n"
-	"Key, KSN, PINBLOCK or PANBLOCK argument values are strings of hex digits representing binary data.\n"
+	"Key, KSN, PINBLOCK, PANBLOCK, IV or DATA argument values are strings of hex digits representing binary data.\n"
 };
 
 // argp parser helper function
@@ -139,8 +158,13 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			case DUKPT_TOOL_OPTION_IK:
 			case DUKPT_TOOL_OPTION_KSN:
 			case DUKPT_TOOL_OPTION_PANBLOCK:
+			case DUKPT_TOOL_OPTION_IV:
 			case DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK:
-			case DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK: {
+			case DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK:
+			case DUKPT_TOOL_OPTION_ENCRYPT_REQUEST:
+			case DUKPT_TOOL_OPTION_DECRYPT_REQUEST:
+			case DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE:
+			case DUKPT_TOOL_OPTION_DECRYPT_RESPONSE: {
 				size_t arg_len = strlen(arg);
 
 				if (arg_len % 2 != 0) {
@@ -206,6 +230,11 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			panblock_len = buf_len;
 			return 0;
 
+		case DUKPT_TOOL_OPTION_IV:
+			iv = buf;
+			iv_len = buf_len;
+			return 0;
+
 		case DUKPT_TOOL_OPTION_DERIVE_IK:
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DERIVE_IK;
 			return 0;
@@ -232,6 +261,30 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			pinblock = buf;
 			pinblock_len = buf_len;
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_ENCRYPT_REQUEST:
+			txn_data = buf;
+			txn_data_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_ENCRYPT_REQUEST;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_DECRYPT_REQUEST:
+			txn_data = buf;
+			txn_data_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_REQUEST;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE:
+			txn_data = buf;
+			txn_data_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_DECRYPT_RESPONSE:
+			txn_data = buf;
+			txn_data_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_RESPONSE;
 			return 0;
 
 		case ARGP_KEY_END:
@@ -267,6 +320,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				}
 				if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES && panblock_len == 0) {
 					argp_error(state, "PIN block encrypt/decrypt using derivation mode (--mode) AES requires encoded PAN block (--panblock)");
+				}
+				if (iv) {
+					argp_error(state, "Initial vector (--iv) is not allowed for PIN block encrypt/decrypt");
 				}
 			}
 
@@ -483,6 +539,80 @@ static int do_tdes_mode(void)
 			}
 
 			print_hex(decrypted_pinblock, sizeof(decrypted_pinblock));
+			return 0;
+		}
+
+		case DUKPT_TOOL_ACTION_ENCRYPT_REQUEST:
+		case DUKPT_TOOL_ACTION_DECRYPT_REQUEST:
+		case DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE:
+		case DUKPT_TOOL_ACTION_DECRYPT_RESPONSE: {
+			uint8_t iv_buf[DUKPT_TDES_BLOCK_LEN];
+
+			// Validate IV length
+			if (iv_len && iv_len != DUKPT_TDES_BLOCK_LEN) {
+				fprintf(stderr, "TDES: IV length must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_BLOCK_LEN, DUKPT_TDES_BLOCK_LEN * 2);
+				return 1;
+			}
+
+			// Validate transaction data length
+			if ((txn_data_len & (DUKPT_TDES_BLOCK_LEN-1)) != 0) {
+				fprintf(stderr, "TDES: Transaction data length must be a multiple of %u bytes\n", DUKPT_TDES_BLOCK_LEN);
+				return 1;
+			}
+
+			// Ensure that DUKPT transaction key is available
+			r = prepare_tdes_txn_key();
+			if (r) {
+				return 1;
+			}
+
+			// Prepare IV
+			if (iv) {
+				memcpy(iv_buf, iv, sizeof(iv_buf));
+			} else {
+				memset(iv_buf, 0, sizeof(iv_buf));
+			}
+
+			// Do it
+			switch (dukpt_tool_action) {
+				case DUKPT_TOOL_ACTION_ENCRYPT_REQUEST:
+					r = dukpt_tdes_encrypt_request(txn_key, iv_buf, txn_data, txn_data_len, txn_data);
+					if (r) {
+						fprintf(stderr, "dukpt_tdes_encrypt_request() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_DECRYPT_REQUEST:
+					r = dukpt_tdes_decrypt_request(txn_key, iv_buf, txn_data, txn_data_len, txn_data);
+					if (r) {
+						fprintf(stderr, "dukpt_tdes_decrypt_request() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE:
+					r = dukpt_tdes_encrypt_response(txn_key, iv_buf, txn_data, txn_data_len, txn_data);
+					if (r) {
+						fprintf(stderr, "dukpt_tdes_encrypt_response() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_DECRYPT_RESPONSE:
+					r = dukpt_tdes_decrypt_response(txn_key, iv_buf, txn_data, txn_data_len, txn_data);
+					if (r) {
+						fprintf(stderr, "dukpt_tdes_decrypt_response() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				default:
+					// This should never happen
+					return -1;
+			}
+
+			print_hex(txn_data, txn_data_len);
 			return 0;
 		}
 	}
@@ -767,6 +897,116 @@ static int do_aes_mode(void)
 			print_hex(decrypted_pinblock, sizeof(decrypted_pinblock));
 			return 0;
 		}
+
+		case DUKPT_TOOL_ACTION_ENCRYPT_REQUEST:
+		case DUKPT_TOOL_ACTION_DECRYPT_REQUEST:
+		case DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE:
+		case DUKPT_TOOL_ACTION_DECRYPT_RESPONSE: {
+			uint8_t iv_buf[DUKPT_AES_BLOCK_LEN];
+
+			// Validate IV length
+			if (iv_len && iv_len != DUKPT_AES_BLOCK_LEN) {
+				fprintf(stderr, "AES: IV length must be %u bytes (thus %u hex digits)\n", DUKPT_AES_BLOCK_LEN, DUKPT_AES_BLOCK_LEN * 2);
+				return 1;
+			}
+
+			// Validate transaction data length
+			if ((txn_data_len & (DUKPT_AES_BLOCK_LEN-1)) != 0) {
+				fprintf(stderr, "AES: Transaction data length must be a multiple of %u bytes\n", DUKPT_AES_BLOCK_LEN);
+				return 1;
+			}
+
+			// Ensure that DUKPT transaction key is available
+			r = prepare_aes_txn_key();
+			if (r) {
+				return 1;
+			}
+
+			// Prepare IV
+			if (iv) {
+				memcpy(iv_buf, iv, sizeof(iv_buf));
+			} else {
+				memset(iv_buf, 0, sizeof(iv_buf));
+			}
+
+			// Do it
+			switch (dukpt_tool_action) {
+				case DUKPT_TOOL_ACTION_ENCRYPT_REQUEST:
+					r = dukpt_aes_encrypt_request(
+						txn_key,
+						txn_key_len,
+						ksn,
+						key_type,
+						iv_buf,
+						txn_data,
+						txn_data_len,
+						txn_data
+					);
+					if (r) {
+						fprintf(stderr, "dukpt_aes_encrypt_request() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_DECRYPT_REQUEST:
+					r = dukpt_aes_decrypt_request(
+						txn_key,
+						txn_key_len,
+						ksn,
+						key_type,
+						iv_buf,
+						txn_data,
+						txn_data_len,
+						txn_data
+					);
+					if (r) {
+						fprintf(stderr, "dukpt_aes_decrypt_request() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE:
+					r = dukpt_aes_encrypt_response(
+						txn_key,
+						txn_key_len,
+						ksn,
+						key_type,
+						iv_buf,
+						txn_data,
+						txn_data_len,
+						txn_data
+					);
+					if (r) {
+						fprintf(stderr, "dukpt_aes_encrypt_response() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_DECRYPT_RESPONSE:
+					r = dukpt_aes_decrypt_response(
+						txn_key,
+						txn_key_len,
+						ksn,
+						key_type,
+						iv_buf,
+						txn_data,
+						txn_data_len,
+						txn_data
+					);
+					if (r) {
+						fprintf(stderr, "dukpt_aes_decrypt_response() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				default:
+					// This should never happen
+					return -1;
+			}
+
+			print_hex(txn_data, txn_data_len);
+			return 0;
+		}
 	}
 
 	// This should never happen
@@ -829,6 +1069,17 @@ int main(int argc, char** argv)
 		free(panblock);
 		panblock = NULL;
 		panblock_len = 0;
+	}
+
+	if (txn_data) {
+		free(txn_data);
+		txn_data = NULL;
+		txn_data_len = 0;
+	}
+	if (iv) {
+		free(iv);
+		iv = NULL;
+		iv_len = 0;
 	}
 
 	return r;
