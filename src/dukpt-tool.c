@@ -72,7 +72,7 @@ static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
 
 // Helper functions
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
-static int parse_hex(const char* hex, void* buf, size_t buf_len);
+static int parse_hex(const char* hex, void* buf, size_t* buf_len);
 static void print_hex(const void* buf, size_t length);
 
 // argp option keys
@@ -167,14 +167,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			case DUKPT_TOOL_OPTION_DECRYPT_RESPONSE: {
 				size_t arg_len = strlen(arg);
 
-				if (arg_len % 2 != 0) {
-					argp_error(state, "Argument value must have even number of digits");
+				if (arg_len < 2) {
+					argp_error(state, "Argument value must consist of at least 1 bytes (thus 2 hex digits)");
 				}
 
 				buf_len = arg_len / 2;
 				buf = malloc(buf_len);
 
-				r = parse_hex(arg, buf, buf_len);
+				r = parse_hex(arg, buf, &buf_len);
 				if (r) {
 					argp_error(state, "Argument value must consist of hex digits");
 				}
@@ -334,27 +334,41 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 }
 
 // Hex parser helper function
-static int parse_hex(const char* hex, void* buf, size_t buf_len)
+static int parse_hex(const char* hex, void* buf, size_t* buf_len)
 {
-	size_t hex_len = buf_len * 2;
+	size_t max_buf_len;
 
-	for (size_t i = 0; i < hex_len; ++i) {
-		if (!isxdigit(hex[i])) {
-			return -1;
-		}
+	if (!buf_len) {
+		return -1;
 	}
+	max_buf_len = *buf_len;
+	*buf_len = 0;
 
-	while (*hex && buf_len--) {
+	while (*hex && max_buf_len--) {
 		uint8_t* ptr = buf;
-
 		char str[3];
-		strncpy(str, hex, 2);
+		unsigned int str_idx = 0;
+
+		// Find next two valid hex digits
+		while (*hex && str_idx < 2) {
+			// Skip spaces
+			if (isspace(*hex)) {
+				++hex;
+				continue;
+			}
+			// Only allow hex digits
+			if (!isxdigit(*hex)) {
+				return -2;
+			}
+
+			str[str_idx++] = *hex;
+			++hex;
+		}
 		str[2] = 0;
 
 		*ptr = strtoul(str, NULL, 16);
-
-		hex += 2;
 		++buf;
+		++*buf_len;
 	}
 
 	return 0;
