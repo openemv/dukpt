@@ -70,10 +70,16 @@ enum dukpt_tool_action_t {
 };
 static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
 
+enum dukpt_tool_output_format_t {
+	DUKPT_TOOL_OUTPUT_FORMAT_HEX,
+	DUKPT_TOOL_OUTPUT_FORMAT_RAW,
+};
+static enum dukpt_tool_output_format_t output_format = DUKPT_TOOL_OUTPUT_FORMAT_HEX;
+
 // Helper functions
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static int parse_hex(const char* hex, void* buf, size_t* buf_len);
-static void print_hex(const void* buf, size_t length);
+static void output_buf(const void* buf, size_t length);
 
 // argp option keys
 enum dukpt_tool_option_t {
@@ -98,6 +104,8 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_DECRYPT_REQUEST,
 	DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE,
 	DUKPT_TOOL_OPTION_DECRYPT_RESPONSE,
+
+	DUKPT_TOOL_OPTION_OUTPUT_RAW,
 };
 
 // argp option structure
@@ -129,6 +137,9 @@ static struct argp_option argp_options[] = {
 	{ "encrypt-response", DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE, "DATA", 0, "Encrypt transaction response data. Requires either BDK or IK, as well as KSN." },
 	{ "decrypt-response", DUKPT_TOOL_OPTION_DECRYPT_RESPONSE, "DATA", 0, "Decrypt transaction response data. Requires either BDK or IK, as well as KSN." },
 
+	{ NULL, 0, NULL, 0, "Outputs:", 5 },
+	{ "output-raw", DUKPT_TOOL_OPTION_OUTPUT_RAW, NULL, 0, "Output raw bytes instead of hex digits to stdout." },
+
 	{ 0 },
 };
 
@@ -153,7 +164,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 	if (arg) {
 		switch (key) {
-			// Parse key and KSN arguments as hex data
+			// Parse arguments as hex data
 			case DUKPT_TOOL_OPTION_BDK:
 			case DUKPT_TOOL_OPTION_IK:
 			case DUKPT_TOOL_OPTION_KSN:
@@ -287,6 +298,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_RESPONSE;
 			return 0;
 
+		case DUKPT_TOOL_OPTION_OUTPUT_RAW:
+			output_format = DUKPT_TOOL_OUTPUT_FORMAT_RAW;
+			return 0;
+
 		case ARGP_KEY_END:
 			// Validate options
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_NONE) {
@@ -374,9 +389,16 @@ static int parse_hex(const char* hex, void* buf, size_t* buf_len)
 	return 0;
 }
 
-// Hex output helper function
-static void print_hex(const void* buf, size_t length)
+// Buffer output helper function
+static void output_buf(const void* buf, size_t length)
 {
+	if (output_format == DUKPT_TOOL_OUTPUT_FORMAT_RAW) {
+		// Output buffer as raw bytes
+		fwrite(buf, length, 1, stdout);
+		return;
+	}
+
+	// Default to output of buffer as hex digits
 	const uint8_t* ptr = buf;
 	for (size_t i = 0; i < length; i++) {
 		printf("%02X", ptr[i]);
@@ -467,7 +489,7 @@ static int do_tdes_mode(void)
 				return 1;
 			}
 
-			print_hex(ik, ik_len);
+			output_buf(ik, ik_len);
 			return 0;
 
 		case DUKPT_TOOL_ACTION_DERIVE_TXN_KEY:
@@ -476,7 +498,7 @@ static int do_tdes_mode(void)
 				return 1;
 			}
 
-			print_hex(txn_key, txn_key_len);
+			output_buf(txn_key, txn_key_len);
 			return 0;
 
 		case DUKPT_TOOL_ACTION_ADVANCE_KSN:
@@ -497,7 +519,7 @@ static int do_tdes_mode(void)
 				return 1;
 			}
 
-			print_hex(ksn, ksn_len);
+			output_buf(ksn, ksn_len);
 			return 0;
 
 		case DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY:
@@ -526,7 +548,7 @@ static int do_tdes_mode(void)
 				return 1;
 			}
 
-			print_hex(encrypted_pinblock, sizeof(encrypted_pinblock));
+			output_buf(encrypted_pinblock, sizeof(encrypted_pinblock));
 			return 0;
 		}
 
@@ -552,7 +574,7 @@ static int do_tdes_mode(void)
 				return 1;
 			}
 
-			print_hex(decrypted_pinblock, sizeof(decrypted_pinblock));
+			output_buf(decrypted_pinblock, sizeof(decrypted_pinblock));
 			return 0;
 		}
 
@@ -626,7 +648,7 @@ static int do_tdes_mode(void)
 					return -1;
 			}
 
-			print_hex(txn_data, txn_data_len);
+			output_buf(txn_data, txn_data_len);
 			return 0;
 		}
 	}
@@ -759,7 +781,7 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			print_hex(ik, ik_len);
+			output_buf(ik, ik_len);
 			return 0;
 
 		case DUKPT_TOOL_ACTION_DERIVE_TXN_KEY:
@@ -768,7 +790,7 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			print_hex(txn_key, txn_key_len);
+			output_buf(txn_key, txn_key_len);
 			return 0;
 
 		case DUKPT_TOOL_ACTION_ADVANCE_KSN:
@@ -789,7 +811,7 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			print_hex(ksn, ksn_len);
+			output_buf(ksn, ksn_len);
 			return 0;
 
 		case DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY: {
@@ -828,7 +850,7 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			print_hex(update_key, update_key_len);
+			output_buf(update_key, update_key_len);
 			return 0;
 		}
 
@@ -868,7 +890,7 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			print_hex(encrypted_pinblock, sizeof(encrypted_pinblock));
+			output_buf(encrypted_pinblock, sizeof(encrypted_pinblock));
 			return 0;
 		}
 
@@ -908,7 +930,7 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			print_hex(decrypted_pinblock, sizeof(decrypted_pinblock));
+			output_buf(decrypted_pinblock, sizeof(decrypted_pinblock));
 			return 0;
 		}
 
@@ -1018,7 +1040,7 @@ static int do_aes_mode(void)
 					return -1;
 			}
 
-			print_hex(txn_data, txn_data_len);
+			output_buf(txn_data, txn_data_len);
 			return 0;
 		}
 	}
