@@ -120,12 +120,12 @@ static struct argp_option argp_options[] = {
 	{ "key-type", DUKPT_TOOL_OPTION_KEY_TYPE, "AES128|AES192|AES256", 0, "Working key type. Only applies to AES derivation mode. Defaults to length of BDK or IK." },
 
 	{ NULL, 0, NULL, 0, "Inputs:", 3 },
-	{ "bdk", DUKPT_TOOL_OPTION_BDK, "BDK", 0, "Base Derivation Key (BDK)" },
-	{ "ik", DUKPT_TOOL_OPTION_IK, "IK", 0, "Initial Key (IK)" },
+	{ "bdk", DUKPT_TOOL_OPTION_BDK, "KEY", 0, "Base Derivation Key (BDK)" },
+	{ "ik", DUKPT_TOOL_OPTION_IK, "KEY", 0, "Initial Key (IK)" },
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
-	{ "ksn", DUKPT_TOOL_OPTION_KSN, "KSN", 0, "Key Serial Number (KSN)" },
-	{ "panblock", DUKPT_TOOL_OPTION_PANBLOCK, "PANBLOCK", 0, "Encoded PAN block used for AES PIN block encryption/decryption." },
-	{ "iv", DUKPT_TOOL_OPTION_IV, "IV", 0, "Initial vector used for encryption/decryption. Default is a zero buffer." },
+	{ "ksn", DUKPT_TOOL_OPTION_KSN, "HEX", 0, "Key Serial Number (KSN)" },
+	{ "panblock", DUKPT_TOOL_OPTION_PANBLOCK, "HEX", 0, "Encoded PAN block used for AES PIN block encryption/decryption." },
+	{ "iv", DUKPT_TOOL_OPTION_IV, "HEX", 0, "Initial vector used for encryption/decryption. Default is a zero buffer." },
 
 	{ NULL, 0, NULL, 0, "Actions:", 4 },
 	{ "derive-ik", DUKPT_TOOL_OPTION_DERIVE_IK, NULL, 0, "Derive Initial Key (IK). Requires BDK and KSN." },
@@ -155,7 +155,7 @@ static struct argp argp_config = {
 	"Use derivation mode TDES for ANSI X9.24-1:2009 TDES DUKPT.\n"
 	"Use derivation mode AES for ANSI X9.24-3:2017 AES DUKPT.\n"
 	"\n"
-	"Key, KSN, PANBLOCK, or IV argument values are strings of hex digits representing binary data.\n"
+	"KEY and HEX argument values are strings of hex digits representing binary data.\n"
 	"DATA argument values are strings of hex digits representing binary data, or - to read raw bytes from stdin.\n"
 };
 
