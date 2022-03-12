@@ -92,6 +92,37 @@ displayed using:
 dukpt-tool --help
 ```
 
+To derive an initial key, specify the base derivation key using the `--bdk`
+option, specify the initial key serial number using the `--ksn` option, and
+use the `--derive-ik` option. For example (using test data examples from
+ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
+```
+dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00000 --derive-ik
+```
+
+To advance a key serial number, specify it using the `--ksn` option and use
+the `--advance-ksn` option. For example (using test data examples from
+ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
+```
+dukpt-tool --ksn=FFFF9876543210EFFC00 --advance-ksn
+```
+
+To decrypt a TDES transaction request, specify the relevant key using either
+the `--bdk` or `--ik` options, specify the key serial number using the `--ksn`
+option, and specify the provide the encrypted transaction request using the
+`--decrypt-request` option. For example (using test data examples from
+ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
+```
+dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00002 --decrypt-request A2B4E70F846E63D68775B7215EB4563DFD3037244C61CC13
+```
+
+To output raw bytes instead of hex digits to stdout, add the `--output-raw`
+option. This can then be piped to another tool. For example (using test data
+examples from ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
+```
+dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00002 --decrypt-request A2B4E70F846E63D68775B7215EB4563DFD3037244C61CC13 --output-raw | strings
+```
+
 Roadmap
 =======
 
