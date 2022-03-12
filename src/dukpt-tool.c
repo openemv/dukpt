@@ -49,6 +49,8 @@ static size_t txn_data_len = 0;
 static void* iv = NULL;
 static size_t iv_len = 0;
 
+static bool found_stdin_arg = false;
+
 enum dukpt_tool_mode_t {
 	DUKPT_TOOL_MODE_TDES,
 	DUKPT_TOOL_MODE_AES,
@@ -79,6 +81,7 @@ static enum dukpt_tool_output_format_t output_format = DUKPT_TOOL_OUTPUT_FORMAT_
 // Helper functions
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static int parse_hex(const char* hex, void* buf, size_t* buf_len);
+static void* read_file(FILE* file, size_t* len);
 static void output_buf(const void* buf, size_t length);
 
 // argp option keys
@@ -130,12 +133,12 @@ static struct argp_option argp_options[] = {
 	{ "derive-txn-key", DUKPT_TOOL_OPTION_DERIVE_TXN_KEY, NULL, 0, "Derive transaction key. Requires either BDK or IK, as well as KSN." },
 	{ "advance-ksn", DUKPT_TOOL_OPTION_ADVANCE_KSN, NULL, 0, "Advance to next valid KSN. Requires KSN. Non-zero exit status if current or next KSN is invalid." },
 	{ "derive-update-key", DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY, NULL, 0, "Derive DUKPT update key. Requires either BDK or IK, as well as KSN." },
-	{ "encrypt-pinblock", DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK, "PINBLOCK", 0, "Encrypt PIN block. Requires either BDK or IK, as well as KSN." },
-	{ "decrypt-pinblock", DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK, "PINBLOCK", 0, "Decrypt PIN block. Requires either BDK or IK, as well as KSN." },
-	{ "encrypt-request", DUKPT_TOOL_OPTION_ENCRYPT_REQUEST, "DATA", 0, "Encrypt transaction request data. Requires either BDK or IK, as well as KSN." },
-	{ "decrypt-request", DUKPT_TOOL_OPTION_DECRYPT_REQUEST, "DATA", 0, "Decrypt transaction request data. Requires either BDK or IK, as well as KSN." },
-	{ "encrypt-response", DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE, "DATA", 0, "Encrypt transaction response data. Requires either BDK or IK, as well as KSN." },
-	{ "decrypt-response", DUKPT_TOOL_OPTION_DECRYPT_RESPONSE, "DATA", 0, "Decrypt transaction response data. Requires either BDK or IK, as well as KSN." },
+	{ "encrypt-pinblock", DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK, "DATA", 0, "Encrypt PIN block. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "decrypt-pinblock", DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK, "DATA", 0, "Decrypt PIN block. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "encrypt-request", DUKPT_TOOL_OPTION_ENCRYPT_REQUEST, "DATA", 0, "Encrypt transaction request data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "decrypt-request", DUKPT_TOOL_OPTION_DECRYPT_REQUEST, "DATA", 0, "Decrypt transaction request data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "encrypt-response", DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE, "DATA", 0, "Encrypt transaction response data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "decrypt-response", DUKPT_TOOL_OPTION_DECRYPT_RESPONSE, "DATA", 0, "Decrypt transaction response data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 
 	{ NULL, 0, NULL, 0, "Outputs:", 5 },
 	{ "output-raw", DUKPT_TOOL_OPTION_OUTPUT_RAW, NULL, 0, "Output raw bytes instead of hex digits to stdout." },
@@ -152,7 +155,8 @@ static struct argp argp_config = {
 	"Use derivation mode TDES for ANSI X9.24-1:2009 TDES DUKPT.\n"
 	"Use derivation mode AES for ANSI X9.24-3:2017 AES DUKPT.\n"
 	"\n"
-	"Key, KSN, PINBLOCK, PANBLOCK, IV or DATA argument values are strings of hex digits representing binary data.\n"
+	"Key, KSN, PANBLOCK, or IV argument values are strings of hex digits representing binary data.\n"
+	"DATA argument values are strings of hex digits representing binary data, or - to read raw bytes from stdin.\n"
 };
 
 // argp parser helper function
@@ -163,19 +167,38 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 	size_t buf_len = 0;
 
 	if (arg) {
+		// Process option argument
 		switch (key) {
-			// Parse arguments as hex data
-			case DUKPT_TOOL_OPTION_BDK:
-			case DUKPT_TOOL_OPTION_IK:
-			case DUKPT_TOOL_OPTION_KSN:
-			case DUKPT_TOOL_OPTION_PANBLOCK:
-			case DUKPT_TOOL_OPTION_IV:
 			case DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK:
 			case DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK:
 			case DUKPT_TOOL_OPTION_ENCRYPT_REQUEST:
 			case DUKPT_TOOL_OPTION_DECRYPT_REQUEST:
 			case DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE:
 			case DUKPT_TOOL_OPTION_DECRYPT_RESPONSE: {
+				// If argument is "-", read from stdin
+				if (strcmp(arg, "-") == 0) {
+					if (found_stdin_arg) {
+						argp_error(state, "Only one option may be read from stdin");
+					}
+					found_stdin_arg = true;
+
+					buf = read_file(stdin, &buf_len);
+					if (!buf) {
+						argp_error(state, "Failed to read data from stdin");
+					}
+
+					break;
+				}
+
+				// Intentional fallthrough
+			}
+
+			case DUKPT_TOOL_OPTION_BDK:
+			case DUKPT_TOOL_OPTION_IK:
+			case DUKPT_TOOL_OPTION_KSN:
+			case DUKPT_TOOL_OPTION_PANBLOCK:
+			case DUKPT_TOOL_OPTION_IV: {
+				// Parse arguments as hex data
 				size_t arg_len = strlen(arg);
 
 				if (arg_len < 2) {
@@ -387,6 +410,37 @@ static int parse_hex(const char* hex, void* buf, size_t* buf_len)
 	}
 
 	return 0;
+}
+
+// File/stdin read helper function
+static void* read_file(FILE* file, size_t* len)
+{
+	const size_t block_size = 4; // Use common page size
+	void* buf = NULL;
+	size_t buf_len = 0;
+	size_t total_len = 0;
+
+	if (!file) {
+		*len = 0;
+		return NULL;
+	}
+
+	do {
+		// Grow buffer
+		buf_len += block_size;
+		buf = realloc(buf, buf_len);
+
+		// Read next block
+		total_len += fread(buf + total_len, 1, block_size, file);
+		if (ferror(file)) {
+			free(buf);
+			*len = 0;
+			return NULL;
+		}
+	} while (!feof(file));
+
+	*len = total_len;
+	return buf;
 }
 
 // Buffer output helper function
