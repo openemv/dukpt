@@ -547,6 +547,10 @@ bool dukpt_aes_ksn_is_valid(const uint8_t* ksn)
 
 	// Extract transaction counter value from KSN
 	tc = dukpt_aes_ksn_get_tc(ksn);
+	if (tc == 0) {
+		// Transaction counter is absent
+		return false;
+	}
 
 	// Count number of bits in transaction counter
 #ifdef HAS_BUILTIN_POPCOUNT
