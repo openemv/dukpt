@@ -60,6 +60,27 @@ export(EXPORT dukptTargets
 	NAMESPACE dukpt::
 )
 
+# Generate and install pkgconfig files
+set(DUKPT_INSTALL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for dukpt pkgconfig files")
+message(STATUS "Using pkgconfig install location \"${DUKPT_INSTALL_PKGCONFIG_DIR}\"")
+# NOTE: Subdirectories will provide DUKPT_PKGCONFIG_REQ_PRIV and DUKPT_PKGCONFIG_LIBS_PRIV
+set(DUKPT_PKGCONFIG_LIB_NAME dukpt_tdes)
+configure_file(pkgconfig/libdukpt_tdes.pc.in
+	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_tdes.pc"
+	@ONLY
+)
+set(DUKPT_PKGCONFIG_LIB_NAME dukpt_aes)
+configure_file(pkgconfig/libdukpt_aes.pc.in
+	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_aes.pc"
+	@ONLY
+)
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_tdes.pc"
+	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_aes.pc"
+	DESTINATION "${DUKPT_INSTALL_PKGCONFIG_DIR}"
+	COMPONENT dukpt_development
+)
+
 # Build and install doxygen documentation
 option(BUILD_DOCS "Build documentation")
 find_package(Doxygen) # Optional for generating doxygen files

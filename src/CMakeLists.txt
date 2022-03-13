@@ -11,6 +11,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(MbedTLS 2.16 REQUIRED) # Latest version available on Ubuntu 20.04 and Fedora 34
 list(APPEND DUKPT_PACKAGE_DEPENDENCIES "MbedTLS 2.16")
 set(DUKPT_PACKAGE_DEPENDENCIES ${DUKPT_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
+# NOTE: MbedTLS has no pkgconfig file so DUKPT_PKGCONFIG_REQ_PRIV cannot be set
+set(DUKPT_PKGCONFIG_LIBS_PRIV "-lmbedcrypto" PARENT_SCOPE)
 
 # Check whether compiler supports __builtin_popcount()
 include(CheckCSourceCompiles)
