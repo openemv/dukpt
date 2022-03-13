@@ -81,6 +81,20 @@ install(FILES
 	COMPONENT dukpt_development
 )
 
+# Install bash-completion file
+find_package(bash-completion) # Optional for providing bash-completion files
+if(BASH_COMPLETION_FOUND)
+	set(DUKPT_INSTALL_BASH_COMPLETION_DIR ${CMAKE_INSTALL_DATADIR}/bash-completion/completions CACHE STRING "Installation location for dukpt bash-completion files")
+	message(STATUS "Using bash-completion install location \"${DUKPT_INSTALL_BASH_COMPLETION_DIR}\"")
+
+	# Install bash completion file
+	install(FILES
+		"${CMAKE_CURRENT_SOURCE_DIR}/bash-completion/dukpt-tool"
+		DESTINATION "${DUKPT_INSTALL_BASH_COMPLETION_DIR}"
+		COMPONENT dukpt_runtime
+	)
+endif()
+
 # Build and install doxygen documentation
 option(BUILD_DOCS "Build documentation")
 find_package(Doxygen) # Optional for generating doxygen files
