@@ -25,6 +25,41 @@ include(CTest)
 add_subdirectory(src)
 add_subdirectory(test)
 
+include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
+
+# Generate and install basic CMake config files
+include(CMakePackageConfigHelpers) # Provides CMake config generator macros
+foreach(pkg IN LISTS DUKPT_PACKAGE_DEPENDENCIES)
+	# Build dependency string for use in CMake config file
+	string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(${pkg})\n")
+endforeach()
+set(DUKPT_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME} CACHE STRING "Installation location for dukpt CMake config files")
+message(STATUS "Using CMake config install location \"${DUKPT_INSTALL_CMAKEDIR}\"")
+configure_package_config_file(cmake/dukptConfig.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/cmake/dukptConfig.cmake"
+	INSTALL_DESTINATION "${DUKPT_INSTALL_CMAKEDIR}"
+)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/cmake/dukptConfigVersion.cmake"
+	COMPATIBILITY AnyNewerVersion
+)
+install(FILES
+	"${CMAKE_CURRENT_BINARY_DIR}/cmake/dukptConfig.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/cmake/dukptConfigVersion.cmake"
+	DESTINATION "${DUKPT_INSTALL_CMAKEDIR}"
+	COMPONENT dukpt_development
+)
+install(EXPORT dukptTargets
+	FILE dukptTargets.cmake
+	DESTINATION "${DUKPT_INSTALL_CMAKEDIR}"
+	NAMESPACE dukpt::
+	COMPONENT dukpt_development
+)
+export(EXPORT dukptTargets
+	FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/dukptTargets.cmake"
+	NAMESPACE dukpt::
+)
+
 # Build and install doxygen documentation
 option(BUILD_DOCS "Build documentation")
 find_package(Doxygen) # Optional for generating doxygen files

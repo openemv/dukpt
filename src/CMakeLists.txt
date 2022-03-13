@@ -9,6 +9,8 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(MbedTLS 2.16 REQUIRED) # Latest version available on Ubuntu 20.04 and Fedora 34
+list(APPEND DUKPT_PACKAGE_DEPENDENCIES "MbedTLS 2.16")
+set(DUKPT_PACKAGE_DEPENDENCIES ${DUKPT_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
 
 # Check whether compiler supports __builtin_popcount()
 include(CheckCSourceCompiles)
@@ -88,6 +90,7 @@ install(
 		dukpt_aes
 		dukpt_aes_crypto
 		dukpt-tool
+	EXPORT dukptTargets # For use by install(EXPORT) command
 	PUBLIC_HEADER
 		DESTINATION "include/${PROJECT_NAME}"
 		COMPONENT dukpt_development

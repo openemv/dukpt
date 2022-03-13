@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+@DUKPT_CONFIG_PACKAGE_DEPENDENCIES@
+
+check_required_components(dukpt)
+
+include("${CMAKE_CURRENT_LIST_DIR}/dukptTargets.cmake")
