@@ -7,7 +7,6 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(MbedTLS 2.16 REQUIRED) # Latest version available on Ubuntu 20.04 and Fedora 34
 list(APPEND DUKPT_PACKAGE_DEPENDENCIES "MbedTLS 2.16")
 set(DUKPT_PACKAGE_DEPENDENCIES ${DUKPT_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
@@ -45,7 +44,7 @@ set_target_properties(dukpt_tdes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_tdes.h
 		VERSION ${CMAKE_PROJECT_VERSION}
-		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
+		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}
 )
 target_include_directories(dukpt_tdes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated config file
 target_include_directories(dukpt_tdes INTERFACE
@@ -72,7 +71,7 @@ set_target_properties(dukpt_aes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_aes.h
 		VERSION ${CMAKE_PROJECT_VERSION}
-		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
+		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}
 )
 target_include_directories(dukpt_aes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated config file
 target_include_directories(dukpt_aes INTERFACE

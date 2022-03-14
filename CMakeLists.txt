@@ -8,8 +8,10 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt
-	VERSION 0.0.1
-	DESCRIPTION "DUKPT library and tools"
+	VERSION 0.1.0
+	DESCRIPTION "DUKPT libraries and tools"
+	HOMEPAGE_URL "https://github.com/openemv/dukpt"
+	LANGUAGES C
 )
 
 set(CMAKE_C_STANDARD 11)
@@ -19,6 +21,8 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
 endif()
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 include(CTest)
 
