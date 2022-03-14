@@ -27,6 +27,14 @@ add_subdirectory(test)
 
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
+# Install README and LICENSE files to runtime component
+install(FILES
+	"${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+	"${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+	TYPE DOC
+	COMPONENT dukpt_runtime
+)
+
 # Generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # Provides CMake config generator macros
 foreach(pkg IN LISTS DUKPT_PACKAGE_DEPENDENCIES)
