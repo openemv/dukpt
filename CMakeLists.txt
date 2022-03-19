@@ -137,3 +137,70 @@ if(Doxygen_FOUND)
 		)
 	endif()
 endif()
+
+# Configure CPack to generate .tgz package
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_VENDOR "OpenEMV")
+set(CPACK_PACKAGE_CONTACT "lynch.leon@gmail.com")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+# Configure generic component packaging attributes
+set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DESCRIPTION "Development files for DUKPT libraries")
+set(CPACK_COMPONENT_DUKPT_DOCS_DESCRIPTION "Documentation for DUKPT libraries")
+set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DEPENDS dukpt_runtime)
+
+# NOTE: for monolithic packages, uncomment the line below or specify it when
+# invoking CMake
+#set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
+
+find_package(dpkg) # Optional for building Debian/Ubuntu packages
+if(dpkg_FOUND)
+	# Configure CPack to generate .deb package
+	list(APPEND CPACK_GENERATOR "DEB")
+	# Generate component packages
+	# NOTE: This is overridden by CPACK_COMPONENTS_GROUPING above
+	set(CPACK_DEB_COMPONENT_INSTALL ON)
+	set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
+	# Use default debian package naming
+	set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+	# Assign package names to components
+	set(CPACK_DEBIAN_DUKPT_RUNTIME_PACKAGE_NAME "dukpt-runtime")
+	set(CPACK_DEBIAN_DUKPT_DEVELOPMENT_PACKAGE_NAME "dukpt-dev")
+	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_NAME "dukpt-doc")
+	# Assign package architecture to documentation component
+	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_ARCHITECTURE "all")
+	# Assign package sections to components
+	set(CPACK_DEBIAN_DUKPT_RUNTIME_PACKAGE_SECTION "utils")
+	set(CPACK_DEBIAN_DUKPT_DEVELOPMENT_PACKAGE_SECTION "devel")
+	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_SECTION "doc")
+	# Assign package suggestions
+	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_SUGGESTS "dukpt-dev")
+	# Generate package dependency list
+	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+endif()
+
+find_package(rpmbuild) # Optional for building RedHat/Fedora packages
+if(rpmbuild_FOUND)
+	list(APPEND CPACK_GENERATOR "RPM")
+	# Generate component packages
+	# NOTE: This is overridden by CPACK_COMPONENTS_GROUPING above
+	set(CPACK_RPM_COMPONENT_INSTALL ON)
+	# Use default rpm package naming
+	set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
+	# Configure license and changelog
+	set(CPACK_RPM_PACKAGE_LICENSE "LGPLv2+")
+	set(CPACK_RPM_CHANGELOG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/rpm_changelog.txt")
+	# Assign package names to components
+	set(CPACK_RPM_DUKPT_RUNTIME_PACKAGE_NAME "dukpt-runtime")
+	set(CPACK_RPM_DUKPT_DEVELOPMENT_PACKAGE_NAME "dukpt-devel")
+	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_NAME "dukpt-doc")
+	# Assign package architecture to documentation component
+	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_ARCHITECTURE "noarch")
+	# Assign package suggestions
+	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_SUGGESTS "dukpt-devel")
+	# NOTE: RPM generator automatically detects dependencies
+endif()
+
+include(CPack)
