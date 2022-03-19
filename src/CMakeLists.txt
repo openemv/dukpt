@@ -32,6 +32,12 @@ set_target_properties(dukpt_tdes_crypto
 	PROPERTIES
 		C_VISIBILITY_PRESET hidden
 )
+if(BUILD_SHARED_LIBS)
+	set_target_properties(dukpt_tdes_crypto
+		PROPERTIES
+			POSITION_INDEPENDENT_CODE True
+	)
+endif()
 target_include_directories(dukpt_tdes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
 target_include_directories(dukpt_tdes_crypto INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -59,6 +65,12 @@ set_target_properties(dukpt_aes_crypto
 	PROPERTIES
 		C_VISIBILITY_PRESET hidden
 )
+if(BUILD_SHARED_LIBS)
+	set_target_properties(dukpt_aes_crypto
+		PROPERTIES
+			POSITION_INDEPENDENT_CODE True
+	)
+endif()
 target_include_directories(dukpt_aes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
 target_include_directories(dukpt_aes_crypto INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
