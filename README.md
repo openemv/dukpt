@@ -1,26 +1,26 @@
-DUKPT library and tools
-=======================
+DUKPT libraries and tools
+=========================
 
-This library is an implementation of the ANSI X9.24-3:2017 standard for both
+This project is an implementation of the ANSI X9.24-3:2017 standard for both
 TDES and AES Derived Unique Key Per Transaction (DUKPT) key management. Given
 that most uses of this standard involve dedicated security hardware, this
 implementation is mostly for validation and debugging purposes.
 
-If you wish to use this library for a project that is not compatible with the
-terms of the LGPL v2.1 license, please contact the author for alternative
+If you wish to use these libraries for a project that is not compatible with
+the terms of the LGPL v2.1 license, please contact the author for alternative
 licensing options.
 
 Features
-========
+--------
 
-Currently this library only implements the host (direct) key derivations for
-TDES and AES DUKPT. In addition to key derivation, this library also
-implements the usage of the various working keys to ensure that the derivation
+Currently these libraries only implement the host (direct) key derivations for
+TDES and AES DUKPT. In addition to key derivation, these libraries also
+implement the usage of the various working keys to ensure that the derivation
 data used for the working key derivation match the usage of the derived
 working key.
 
 Dependencies
-============
+------------
 
 * C11 compiler such as GCC or Clang
 * CMake
@@ -28,7 +28,7 @@ Dependencies
 * DUKPT tool requires argp (either via Glibc or a standalone implementation)
 
 Build
-=====
+-----
 
 This project uses CMake and can be built using the usual CMake steps.
 
@@ -46,7 +46,7 @@ Consult the CMake documentation regarding additional options that can be
 specified in the above steps.
 
 Testing
-=======
+-------
 
 The tests can be run using the `test` target of the generated build system.
 
@@ -63,7 +63,7 @@ make test
 ```
 
 Documentation
-=============
+-------------
 
 If Doxygen was found by CMake, then HTML documentation can be generated using
 the `docs` target of the generated build system.
@@ -84,7 +84,7 @@ Alternatively, the `BUILD_DOCS` option can be specified when generating the
 build system by adding `-DBUILD_DOCS=ON`.
 
 Packaging
-=========
+---------
 
 If the required packaging tools were found (`dpkg` and/or `rpmbuild` on Linux)
 by CMake, packages can be created using the `package` target of the generated
@@ -111,8 +111,8 @@ cmake --build build &&
 cmake --build build --target package
 ```
 
-Usage:
-======
+Usage
+-----
 
 The available command line options of the `dukpt-tool` application can be
 displayed using:
@@ -152,14 +152,14 @@ dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00002 --d
 ```
 
 Roadmap
-=======
+-------
 
 * Implement transaction-originating algorithms (ANSI X9.24-3:2017, 6.5)
 * Add CPack packaging for Windows and MacOS
 * Test on various ARM architectures
 
 License
-=======
+-------
 
 Copyright (c) 2021, 2022 Leon Lynch.
 
