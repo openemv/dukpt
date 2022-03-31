@@ -42,7 +42,7 @@ target_include_directories(dukpt_tdes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
 target_include_directories(dukpt_tdes_crypto INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
-target_link_libraries(dukpt_tdes_crypto PRIVATE MbedTLS::mbedcrypto)
+target_link_libraries(dukpt_tdes_crypto PRIVATE crypto_tdes)
 
 # TDES DUKPT library
 add_library(dukpt_tdes dukpt_tdes.c)
@@ -57,7 +57,7 @@ target_include_directories(dukpt_tdes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_tdes PRIVATE dukpt_tdes_crypto)
+target_link_libraries(dukpt_tdes PRIVATE dukpt_tdes_crypto crypto_tdes)
 
 # Internal AES crypto library
 add_library(dukpt_aes_crypto OBJECT dukpt_aes_crypto.c dukpt_mem.c)
@@ -98,6 +98,7 @@ target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
 
 install(
 	TARGETS
+		crypto_tdes
 		dukpt_tdes
 		dukpt_tdes_crypto
 		dukpt_aes

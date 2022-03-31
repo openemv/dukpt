@@ -25,6 +25,8 @@
 #include "dukpt_mem.h"
 #include "dukpt_config.h"
 
+#include "crypto_tdes.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -45,7 +47,7 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	iksn_buf[9] = 0;
 
 	// Derive left half of Initial Key (IK)
-	r = dukpt_tdes2_encrypt_ecb(bdk, iksn_buf, ik);
+	r = crypto_tdes2_encrypt_ecb(bdk, iksn_buf, ik);
 	if (r) {
 		goto error;
 	}
@@ -60,7 +62,7 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	bdk_variant[9] ^= 0xC0;
 	bdk_variant[10] ^= 0xC0;
 	bdk_variant[11] ^= 0xC0;
-	r = dukpt_tdes2_encrypt_ecb(bdk_variant, iksn_buf, ik + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(bdk_variant, iksn_buf, ik + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
@@ -104,7 +106,7 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 
 	// Crypto Register-2 DEA-encrypted using, as the key, the left half of
 	// the Key Register goes to Crypto Register-2
-	r = dukpt_des_encrypt_ecb(key_reg, crypto_reg2, crypto_reg2);
+	r = crypto_des_encrypt_ecb(key_reg, crypto_reg2, crypto_reg2);
 	if (r) {
 		goto error;
 	}
@@ -133,7 +135,7 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 
 	// Crypto Register-1 DEA-encrypted using, as the key, the left half of
 	// the Key Register goes to Crypto Register-1
-	r = dukpt_des_encrypt_ecb(key_reg, crypto_reg1, crypto_reg1);
+	r = crypto_des_encrypt_ecb(key_reg, crypto_reg1, crypto_reg1);
 	if (r) {
 		goto error;
 	}
@@ -412,7 +414,7 @@ int dukpt_tdes_encrypt_pinblock(
 	pin_key[15] ^= 0xFF;
 
 	// Encrypt PIN block
-	r = dukpt_tdes2_encrypt_ecb(pin_key, pinblock, ciphertext);
+	r = crypto_tdes2_encrypt_ecb(pin_key, pinblock, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -446,7 +448,7 @@ int dukpt_tdes_decrypt_pinblock(
 	pin_key[15] ^= 0xFF;
 
 	// Decrypt PIN block
-	r = dukpt_tdes2_decrypt_ecb(pin_key, ciphertext, pinblock);
+	r = crypto_tdes2_decrypt_ecb(pin_key, ciphertext, pinblock);
 	if (r) {
 		goto error;
 	}
@@ -618,17 +620,17 @@ int dukpt_tdes_encrypt_request(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Encrypt transaction data
-	r = dukpt_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
+	r = crypto_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -669,17 +671,17 @@ int dukpt_tdes_decrypt_request(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Decrypt transaction data
-	r = dukpt_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
+	r = crypto_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
@@ -720,17 +722,17 @@ int dukpt_tdes_encrypt_response(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Encrypt transaction data
-	r = dukpt_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
+	r = crypto_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -771,17 +773,17 @@ int dukpt_tdes_decrypt_response(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Decrypt transaction data
-	r = dukpt_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
+	r = crypto_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
