@@ -28,33 +28,6 @@
 __BEGIN_DECLS
 
 /**
- * Cleanse (zero) buffer
- *
- * @note This function is intended to be used instead of memset() for clearing
- *       sensitive buffers, typically at the end of functions, when the
- *       compiler may choose to optimise memset() away.
- *
- * @param buf Pointer to buffer
- * @param len Length of buffer in bytes
- */
-void dukpt_cleanse(void* buf, size_t len) __attribute__((noinline));
-
-/**
- * Securely compare buffers
- *
- * @note This function is intended to be used instead of memcmp() for
- *       comparing sensitive buffers such the performance of the comparison
- *       is always relative to the provided length, and not the byte(s) that
- *       differ. This avoids timing attacks.
- *
- * @param a Pointer to first buffer
- * @param b Pointer to second buffer
- * @param len Number of bytes to compare
- * @return Zero if bytes match. Non-zero if bytes differ.
- */
-int dukpt_memcmp_s(const void* a, const void* b, size_t len) __attribute__((noinline));
-
-/**
  * Left shift buffer
  *
  * @param buf Pointer to buffer

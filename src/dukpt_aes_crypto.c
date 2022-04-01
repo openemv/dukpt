@@ -24,6 +24,7 @@
 #include "dukpt_config.h"
 
 #include "crypto_aes.h"
+#include "crypto_mem.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -70,7 +71,7 @@ static int dukpt_aes_cmac_derive_subkeys(const void* key, size_t key_len, void* 
 
 exit:
 	// Cleanup
-	dukpt_cleanse(l_buf, sizeof(l_buf));
+	crypto_cleanse(l_buf, sizeof(l_buf));
 
 	return r;
 }
@@ -178,10 +179,10 @@ int dukpt_aes_cmac(
 
 exit:
 	// Cleanup
-	dukpt_cleanse(k1, sizeof(k1));
-	dukpt_cleanse(k2, sizeof(k2));
-	dukpt_cleanse(iv, sizeof(iv));
-	dukpt_cleanse(last_block, sizeof(last_block));
+	crypto_cleanse(k1, sizeof(k1));
+	crypto_cleanse(k2, sizeof(k2));
+	crypto_cleanse(iv, sizeof(iv));
+	crypto_cleanse(last_block, sizeof(last_block));
 
 	return r;
 }

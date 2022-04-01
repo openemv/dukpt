@@ -24,6 +24,7 @@
 #include "dukpt_config.h"
 
 #include "crypto_tdes.h"
+#include "crypto_mem.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -82,9 +83,9 @@ int dukpt_tdes2_retail_mac(const void* key, const void* buf, size_t buf_len, voi
 
 exit:
 	// Cleanup
-	dukpt_cleanse(iv, sizeof(iv));
-	dukpt_cleanse(last_block, sizeof(last_block));
-	dukpt_cleanse(result, sizeof(result));
+	crypto_cleanse(iv, sizeof(iv));
+	crypto_cleanse(last_block, sizeof(last_block));
+	crypto_cleanse(result, sizeof(result));
 
 	return r;
 }
