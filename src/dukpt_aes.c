@@ -26,6 +26,7 @@
 
 #include "crypto_aes.h"
 #include "crypto_mem.h"
+#include "crypto_rand.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -304,7 +305,6 @@ static int dukpt_aes_derive_key(
 	goto exit;
 
 error:
-	// TODO: randomise instead
 	crypto_cleanse(derived_key, derived_key_len);
 exit:
 	crypto_cleanse(derived_key_output, sizeof(derived_key_output));
@@ -360,8 +360,8 @@ int dukpt_aes_derive_ik(
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	crypto_cleanse(ik, bdk_len);
+	// Ensure that output key is unusable on error
+	crypto_rand(ik, bdk_len);
 exit:
 	crypto_cleanse(&derivation_data, sizeof(derivation_data));
 
@@ -463,8 +463,8 @@ int dukpt_aes_derive_txn_key(
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	crypto_cleanse(txn_key, txn_key_len);
+	// Ensure that output key is unusable on error
+	crypto_rand(txn_key, txn_key_len);
 exit:
 	crypto_cleanse(&derivation_data, sizeof(derivation_data));
 
@@ -661,9 +661,8 @@ int dukpt_aes_derive_update_key(
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	crypto_cleanse(update_key, update_key_len);
-
+	// Ensure that output key is unusable on error
+	crypto_rand(update_key, update_key_len);
 exit:
 	crypto_cleanse(txn_key, sizeof(txn_key));
 	return r;

@@ -27,6 +27,7 @@
 
 #include "crypto_tdes.h"
 #include "crypto_mem.h"
+#include "crypto_rand.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -73,8 +74,8 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	crypto_cleanse(ik, sizeof(ik));
+	// Ensure that output key is unusable on error
+	crypto_rand(ik, DUKPT_TDES_KEY_LEN);
 exit:
 	crypto_cleanse(bdk_variant, sizeof(bdk_variant));
 
@@ -156,8 +157,7 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	crypto_cleanse(key_out, sizeof(key_out));
+	crypto_cleanse(key_out, DUKPT_TDES_KEY_LEN);
 exit:
 	crypto_cleanse(crypto_reg1, sizeof(crypto_reg1));
 	crypto_cleanse(crypto_reg2, sizeof(crypto_reg2));
@@ -256,8 +256,8 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	crypto_cleanse(txn_key, sizeof(txn_key));
+	// Ensure that output key is unusable on error
+	crypto_rand(txn_key, DUKPT_TDES_KEY_LEN);
 exit:
 	// Cleanup
 	crypto_cleanse(key_reg, sizeof(key_reg));
