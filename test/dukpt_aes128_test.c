@@ -21,6 +21,8 @@
 #include "dukpt_aes.h"
 #include "dukpt_aes_crypto.h"
 
+#include "crypto_aes.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -424,7 +426,7 @@ int main(void)
 			goto exit;
 		}
 		memset(decrypted_txn_data, 0, sizeof(decrypted_txn_data));
-		r = dukpt_aes_decrypt(
+		r = crypto_aes_decrypt(
 			data_aes128_key_verify[i],
 			sizeof(data_aes128_key_verify[i]),
 			iv,

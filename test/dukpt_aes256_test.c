@@ -21,6 +21,8 @@
 #include "dukpt_aes.h"
 #include "dukpt_aes_crypto.h"
 
+#include "crypto_aes.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -200,7 +202,7 @@ static int verify_pin_block4(
 	int r;
 	uint8_t decrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 
-	r = dukpt_aes_decrypt(
+	r = crypto_aes_decrypt(
 		pin_key,
 		pin_key_len,
 		NULL,
@@ -209,7 +211,7 @@ static int verify_pin_block4(
 		decrypted_pinblock
 	);
 	if (r) {
-		fprintf(stderr, "dukpt_aes_decrypt() failed; r=%d\n", r);
+		fprintf(stderr, "crypto_aes_decrypt() failed; r=%d\n", r);
 		return r;
 	}
 
@@ -217,7 +219,7 @@ static int verify_pin_block4(
 		decrypted_pinblock[i] ^= panblock[i];
 	}
 
-	r = dukpt_aes_decrypt(
+	r = crypto_aes_decrypt(
 		pin_key,
 		pin_key_len,
 		NULL,
@@ -226,7 +228,7 @@ static int verify_pin_block4(
 		decrypted_pinblock
 	);
 	if (r) {
-		fprintf(stderr, "dukpt_aes_decrypt() failed; r=%d\n", r);
+		fprintf(stderr, "crypto_aes_decrypt() failed; r=%d\n", r);
 		return r;
 	}
 
@@ -644,7 +646,7 @@ int main(void)
 			goto exit;
 		}
 		memset(decrypted_txn_data, 0, sizeof(decrypted_txn_data));
-		r = dukpt_aes_decrypt(
+		r = crypto_aes_decrypt(
 			data_aes128_key_verify[i],
 			sizeof(data_aes128_key_verify[i]),
 			iv,
@@ -653,7 +655,7 @@ int main(void)
 			decrypted_txn_data
 		);
 		if (r) {
-			fprintf(stderr, "dukpt_aes_decrypt() failed; r=%d\n", r);
+			fprintf(stderr, "crypto_aes_decrypt() failed; r=%d\n", r);
 			goto exit;
 		}
 		if (memcmp(decrypted_txn_data, txn_data_buf, sizeof(txn_data_buf)) != 0) {
@@ -753,7 +755,7 @@ int main(void)
 			goto exit;
 		}
 		memset(decrypted_txn_data, 0, sizeof(decrypted_txn_data));
-		r = dukpt_aes_decrypt(
+		r = crypto_aes_decrypt(
 			data_aes256_key_verify[i],
 			sizeof(data_aes256_key_verify[i]),
 			iv,
@@ -762,7 +764,7 @@ int main(void)
 			decrypted_txn_data
 		);
 		if (r) {
-			fprintf(stderr, "dukpt_aes_decrypt() failed; r=%d\n", r);
+			fprintf(stderr, "crypto_aes_decrypt() failed; r=%d\n", r);
 			goto exit;
 		}
 		if (memcmp(decrypted_txn_data, txn_data_buf, sizeof(txn_data_buf)) != 0) {

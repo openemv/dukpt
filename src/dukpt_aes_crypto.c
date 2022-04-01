@@ -23,116 +23,11 @@
 #include "dukpt_mem.h"
 #include "dukpt_config.h"
 
+#include "crypto_aes.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-
-#ifdef MBEDTLS_FOUND
-#include <mbedtls/aes.h>
-
-int dukpt_aes_encrypt(const void* key, size_t key_len, const void* iv, const void* plaintext, size_t plen, void* ciphertext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-	uint8_t iv_buf[AES_BLOCK_SIZE];
-
-	// Ensure that plaintext length is a multiple of the AES block length
-	if ((plen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// Only allow a single block for ECB block mode
-	if (!iv && plen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	if (key_len != AES128_KEY_SIZE &&
-		key_len != AES192_KEY_SIZE &&
-		key_len != AES256_KEY_SIZE
-	) {
-		return -3;
-	}
-
-	mbedtls_aes_init(&ctx);
-	r = mbedtls_aes_setkey_enc(&ctx, key, key_len * 8);
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_ENCRYPT, plen, iv_buf, plaintext, ciphertext);
-	} else {
-		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, plaintext, ciphertext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	// Cleanup
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-
-int dukpt_aes_decrypt(const void* key, size_t key_len, const void* iv, const void* ciphertext, size_t clen, void* plaintext)
-{
-	int r;
-	mbedtls_aes_context ctx;
-	uint8_t iv_buf[AES_BLOCK_SIZE];
-
-	// Ensure that ciphertext length is a multiple of the AES block length
-	if ((clen & (AES_BLOCK_SIZE-1)) != 0) {
-		return -1;
-	}
-
-	// Only allow a single block for ECB block mode
-	if (!iv && clen != AES_BLOCK_SIZE) {
-		return -2;
-	}
-
-	if (key_len != AES128_KEY_SIZE &&
-		key_len != AES192_KEY_SIZE &&
-		key_len != AES256_KEY_SIZE
-	) {
-		return -3;
-	}
-
-	mbedtls_aes_init(&ctx);
-	r = mbedtls_aes_setkey_dec(&ctx, key, key_len * 8);
-	if (r) {
-		r = -4;
-		goto exit;
-	}
-
-	if (iv) { // IV implies CBC block mode
-		memcpy(iv_buf, iv, AES_BLOCK_SIZE);
-		r = mbedtls_aes_crypt_cbc(&ctx, MBEDTLS_AES_DECRYPT, clen, iv_buf, ciphertext, plaintext);
-	} else {
-		r = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, ciphertext, plaintext);
-	}
-	if (r) {
-		r = -5;
-		goto exit;
-	}
-
-	r = 0;
-	goto exit;
-
-exit:
-	// Cleanup
-	mbedtls_aes_free(&ctx);
-
-	return r;
-}
-
-#endif
 
 // See NIST SP 800-38B, section 5.3
 static const uint8_t dukpt_aes_cmac_subkey_r128[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x87 };
@@ -147,7 +42,7 @@ static int dukpt_aes_cmac_derive_subkeys(const void* key, size_t key_len, void* 
 
 	// Encrypt zero block with input key
 	memset(zero, 0, sizeof(zero));
-	r = dukpt_aes_encrypt_ecb(key, key_len, zero, l_buf);
+	r = crypto_aes_encrypt_ecb(key, key_len, zero, l_buf);
 	if (r) {
 		// Internal error
 		goto exit;
@@ -233,7 +128,7 @@ int dukpt_aes_cmac(
 	if (buf_len > AES_BLOCK_SIZE) {
 		// For all blocks except the last block, compute CBC-MAC
 		for (size_t i = 0; i < buf_len - AES_BLOCK_SIZE; i += AES_BLOCK_SIZE) {
-			r = dukpt_aes_encrypt(key, key_len, iv, ptr, AES_BLOCK_SIZE, iv);
+			r = crypto_aes_encrypt(key, key_len, iv, ptr, AES_BLOCK_SIZE, iv);
 			if (r) {
 				// Internal error
 				goto exit;
@@ -271,7 +166,7 @@ int dukpt_aes_cmac(
 	}
 
 	// Process last block
-	r = dukpt_aes_encrypt(key, key_len, iv, ptr, AES_BLOCK_SIZE, cmac);
+	r = crypto_aes_encrypt(key, key_len, iv, ptr, AES_BLOCK_SIZE, cmac);
 	if (r) {
 		// Internal error
 		goto exit;

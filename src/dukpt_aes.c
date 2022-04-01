@@ -24,6 +24,8 @@
 #include "dukpt_mem.h"
 #include "dukpt_config.h"
 
+#include "crypto_aes.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -285,7 +287,7 @@ static int dukpt_aes_derive_key(
 	// See ANSI X9.24-3:2017 6.3.1
 	for (size_t offset = 0; offset < derived_key_len; offset += AES_BLOCK_SIZE) {
 		// Each AES ECB computation provides key material of length AES_BLOCK_SIZE
-		r = dukpt_aes_encrypt(key, key_len, NULL, derivation_data, AES_BLOCK_SIZE, derived_key_output + offset);
+		r = crypto_aes_encrypt(key, key_len, NULL, derivation_data, AES_BLOCK_SIZE, derived_key_output + offset);
 		if (r) {
 			goto error;
 		}
@@ -720,7 +722,7 @@ int dukpt_aes_encrypt_pinblock(
 
 	// Encrypt PIN block
 	// See ISO 9564-1:2017 9.4.2.3
-	r = dukpt_aes_encrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
 	if (r) {
 		goto error;
 	}
@@ -729,7 +731,7 @@ int dukpt_aes_encrypt_pinblock(
 		ciphertext_buf[i] ^= panblock[i];
 	}
 
-	r = dukpt_aes_encrypt(pin_key, pin_key_len, NULL, ciphertext_buf, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, ciphertext_buf, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
 	if (r) {
 		goto error;
 	}
@@ -799,7 +801,7 @@ int dukpt_aes_decrypt_pinblock(
 
 	// Decrypt PIN block
 	// See ISO 9564-1:2017 9.4.2.4
-	r = dukpt_aes_decrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, pinblock);
 	if (r) {
 		goto error;
 	}
@@ -808,7 +810,7 @@ int dukpt_aes_decrypt_pinblock(
 		pinblock[i] ^= panblock[i];
 	}
 
-	r = dukpt_aes_decrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, pinblock);
 	if (r) {
 		goto error;
 	}
@@ -1320,7 +1322,7 @@ int dukpt_aes_encrypt_request(
 	}
 
 	// Encrypt transaction data
-	r = dukpt_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
+	r = crypto_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -1390,7 +1392,7 @@ int dukpt_aes_decrypt_request(
 	}
 
 	// Decrypt transaction data
-	r = dukpt_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
+	r = crypto_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
@@ -1460,7 +1462,7 @@ int dukpt_aes_encrypt_response(
 	}
 
 	// Encrypt transaction data
-	r = dukpt_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
+	r = crypto_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -1530,7 +1532,7 @@ int dukpt_aes_decrypt_response(
 	}
 
 	// Decrypt transaction data
-	r = dukpt_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
+	r = crypto_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
