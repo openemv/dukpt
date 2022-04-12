@@ -127,6 +127,7 @@ int dukpt_tdes_decrypt_pinblock(
  * @param buf_len Length of transaction request data in bytes
  * @param mac MAC output of length @ref DUKPT_TDES_MAC_LEN
  * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid parameters.
  */
 int dukpt_tdes_generate_request_mac(
 	const void* txn_key,
@@ -146,7 +147,7 @@ int dukpt_tdes_generate_request_mac(
  * @param buf_len Length of transaction request data in bytes
  * @param mac MAC of length @ref DUKPT_TDES_MAC_LEN
  * @return Zero for success. Less than zero for internal error.
- *         Greater than zero for invalid MAC.
+ *         Greater than zero for invalid parameters or invalid MAC.
  */
 int dukpt_tdes_verify_request_mac(
 	const void* txn_key,
@@ -166,6 +167,7 @@ int dukpt_tdes_verify_request_mac(
  * @param buf_len Length of transaction response data in bytes
  * @param mac MAC output of length @ref DUKPT_TDES_MAC_LEN
  * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid parameters.
  */
 int dukpt_tdes_generate_response_mac(
 	const void* txn_key,
@@ -185,7 +187,7 @@ int dukpt_tdes_generate_response_mac(
  * @param buf_len Length of transaction response data in bytes
  * @param mac MAC of length @ref DUKPT_TDES_MAC_LEN
  * @return Zero for success. Less than zero for internal error.
- *         Greater than zero for invalid MAC.
+ *         Greater than zero for invalid parameters or invalid MAC.
  */
 int dukpt_tdes_verify_response_mac(
 	const void* txn_key,

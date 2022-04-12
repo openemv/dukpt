@@ -21,7 +21,6 @@
  */
 
 #include "dukpt_tdes.h"
-#include "dukpt_tdes_crypto.h"
 #include "dukpt_mem.h"
 #include "dukpt_config.h"
 
@@ -484,7 +483,7 @@ int dukpt_tdes_generate_request_mac(
 	mac_key[14] ^= 0xFF;
 
 	// Generate ANSI X9.19 Retail MAC
-	r = dukpt_tdes2_retail_mac(mac_key, buf, buf_len, mac);
+	r = crypto_tdes2_retail_mac(mac_key, buf, buf_len, mac);
 	if (r) {
 		goto error;
 	}
@@ -550,7 +549,7 @@ int dukpt_tdes_generate_response_mac(
 	mac_key[12] ^= 0xFF;
 
 	// Generate ANSI X9.19 Retail MAC
-	r = dukpt_tdes2_retail_mac(mac_key, buf, buf_len, mac);
+	r = crypto_tdes2_retail_mac(mac_key, buf, buf_len, mac);
 	if (r) {
 		goto error;
 	}

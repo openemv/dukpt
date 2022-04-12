@@ -26,24 +26,6 @@ configure_file(
 	dukpt_config.h
 )
 
-# Internal TDES crypto library
-add_library(dukpt_tdes_crypto OBJECT dukpt_tdes_crypto.c dukpt_mem.c)
-set_target_properties(dukpt_tdes_crypto
-	PROPERTIES
-		C_VISIBILITY_PRESET hidden
-)
-if(BUILD_SHARED_LIBS)
-	set_target_properties(dukpt_tdes_crypto
-		PROPERTIES
-			POSITION_INDEPENDENT_CODE True
-	)
-endif()
-target_include_directories(dukpt_tdes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
-target_include_directories(dukpt_tdes_crypto INTERFACE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-)
-target_link_libraries(dukpt_tdes_crypto PRIVATE crypto_tdes crypto_mem crypto_rand)
-
 # TDES DUKPT library
 add_library(dukpt_tdes dukpt_tdes.c)
 set_target_properties(dukpt_tdes
@@ -57,7 +39,7 @@ target_include_directories(dukpt_tdes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_tdes PRIVATE dukpt_tdes_crypto crypto_tdes crypto_mem crypto_rand)
+target_link_libraries(dukpt_tdes PRIVATE crypto_tdes crypto_mem crypto_rand)
 
 # Internal AES crypto library
 add_library(dukpt_aes_crypto OBJECT dukpt_aes_crypto.c dukpt_mem.c)
@@ -103,7 +85,6 @@ install(
 		crypto_mem
 		crypto_rand
 		dukpt_tdes
-		dukpt_tdes_crypto
 		dukpt_aes
 		dukpt_aes_crypto
 		dukpt-tool
