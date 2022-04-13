@@ -351,7 +351,8 @@ int dukpt_aes_generate_request_hmac_sha256(
  * @param buf_len Length of transaction request data in bytes
  * @param hmac HMAC of length @ref DUKPT_AES_HMAC_SHA256_LEN
  * @return Zero for success. Less than zero for internal error.
- *         Greater than zero for invalid/unsupported parameters.
+ *         Greater than zero for invalid/unsupported parameters
+ *         or invalid HMAC.
  */
 int dukpt_aes_verify_request_hmac_sha256(
 	const void* txn_key,
@@ -401,7 +402,8 @@ int dukpt_aes_generate_response_hmac_sha256(
  * @param buf_len Length of transaction response data in bytes
  * @param hmac HMAC of length @ref DUKPT_AES_HMAC_SHA256_LEN
  * @return Zero for success. Less than zero for internal error.
- *         Greater than zero for invalid/unsupported parameters.
+ *         Greater than zero for invalid/unsupported parameters
+ *         or invalid HMAC.
  */
 int dukpt_aes_verify_response_hmac_sha256(
 	const void* txn_key,

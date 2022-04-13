@@ -19,7 +19,6 @@
  */
 
 #include "dukpt_aes.h"
-#include "dukpt_aes_crypto.h"
 
 #include "crypto_aes.h"
 

@@ -41,24 +41,6 @@ target_include_directories(dukpt_tdes INTERFACE
 )
 target_link_libraries(dukpt_tdes PRIVATE crypto_tdes crypto_mem crypto_rand)
 
-# Internal AES crypto library
-add_library(dukpt_aes_crypto OBJECT dukpt_aes_crypto.c)
-set_target_properties(dukpt_aes_crypto
-	PROPERTIES
-		C_VISIBILITY_PRESET hidden
-)
-if(BUILD_SHARED_LIBS)
-	set_target_properties(dukpt_aes_crypto
-		PROPERTIES
-			POSITION_INDEPENDENT_CODE True
-	)
-endif()
-target_include_directories(dukpt_aes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
-target_include_directories(dukpt_aes_crypto INTERFACE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-)
-target_link_libraries(dukpt_aes_crypto PRIVATE crypto_aes crypto_mem crypto_rand)
-
 # AES DUKPT library
 add_library(dukpt_aes dukpt_aes.c)
 set_target_properties(dukpt_aes
@@ -72,7 +54,7 @@ target_include_directories(dukpt_aes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_aes PRIVATE dukpt_aes_crypto crypto_aes crypto_mem crypto_rand)
+target_link_libraries(dukpt_aes PRIVATE crypto_aes crypto_hmac crypto_mem crypto_rand)
 
 # DUKPT command line tool
 add_executable(dukpt-tool dukpt-tool.c)
@@ -82,11 +64,11 @@ install(
 	TARGETS
 		crypto_tdes
 		crypto_aes
+		crypto_hmac
 		crypto_mem
 		crypto_rand
 		dukpt_tdes
 		dukpt_aes
-		dukpt_aes_crypto
 		dukpt-tool
 	EXPORT dukptTargets # For use by install(EXPORT) command
 	PUBLIC_HEADER

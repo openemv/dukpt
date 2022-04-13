@@ -20,10 +20,10 @@
  */
 
 #include "dukpt_aes.h"
-#include "dukpt_aes_crypto.h"
 #include "dukpt_config.h"
 
 #include "crypto_aes.h"
+#include "crypto_hmac.h"
 #include "crypto_mem.h"
 #include "crypto_rand.h"
 
@@ -1099,7 +1099,7 @@ int dukpt_aes_generate_request_hmac_sha256(
 	}
 
 	// Generate HMAC
-	r = dukpt_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
+	r = crypto_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
 	if (r) {
 		goto error;
 	}
@@ -1209,7 +1209,7 @@ int dukpt_aes_generate_response_hmac_sha256(
 	}
 
 	// Generate HMAC
-	r = dukpt_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
+	r = crypto_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
 	if (r) {
 		goto error;
 	}
