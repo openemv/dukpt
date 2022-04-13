@@ -249,7 +249,8 @@ int dukpt_aes_generate_request_cmac(
  * @param buf_len Length of transaction request data in bytes
  * @param cmac CMAC of length @ref DUKPT_AES_CMAC_LEN
  * @return Zero for success. Less than zero for internal error.
- *         Greater than zero for invalid/unsupported parameters.
+ *         Greater than zero for invalid/unsupported parameters
+ *         or invalid CMAC.
  */
 int dukpt_aes_verify_request_cmac(
 	const void* txn_key,
@@ -299,7 +300,8 @@ int dukpt_aes_generate_response_cmac(
  * @param buf_len Length of transaction response data in bytes
  * @param cmac CMAC of length @ref DUKPT_AES_CMAC_LEN
  * @return Zero for success. Less than zero for internal error.
- *         Greater than zero for invalid/unsupported parameters.
+ *         Greater than zero for invalid/unsupported parameters
+ *         or invalid CMAC.
  */
 int dukpt_aes_verify_response_cmac(
 	const void* txn_key,

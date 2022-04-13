@@ -152,17 +152,17 @@ static int verify_cmac(
 )
 {
 	int r;
-	uint8_t cmac_verify[AES_CMAC_LEN];
+	uint8_t cmac_verify[DUKPT_AES_CMAC_LEN];
 
-	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac_verify);
+	r = crypto_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac_verify);
 	if (r) {
-		fprintf(stderr, "dukpt_aes_cmac() failed; r=%d\n", r);
+		fprintf(stderr, "crypto_aes_cmac() failed; r=%d\n", r);
 		return r;
 	}
 
 	if (memcmp(cmac, cmac_verify, sizeof(cmac_verify)) != 0) {
 		fprintf(stderr, "CMAC is incorrect\n");
-		print_buf("cmac", cmac, AES_CMAC_LEN);
+		print_buf("cmac", cmac, DUKPT_AES_CMAC_LEN);
 		print_buf("cmac_verify", cmac_verify, sizeof(cmac_verify));
 		return 1;
 	}

@@ -21,7 +21,6 @@
 
 #include "dukpt_aes.h"
 #include "dukpt_aes_crypto.h"
-#include "dukpt_mem.h"
 #include "dukpt_config.h"
 
 #include "crypto_aes.h"
@@ -879,7 +878,7 @@ int dukpt_aes_generate_request_cmac(
 	}
 
 	// Generate AES-CMAC
-	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
+	r = crypto_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
 	if (r) {
 		goto error;
 	}
@@ -990,7 +989,7 @@ int dukpt_aes_generate_response_cmac(
 	}
 
 	// Generate AES-CMAC
-	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
+	r = crypto_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
 	if (r) {
 		goto error;
 	}

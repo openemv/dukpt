@@ -21,7 +21,6 @@
  */
 
 #include "dukpt_tdes.h"
-#include "dukpt_mem.h"
 #include "dukpt_config.h"
 
 #include "crypto_tdes.h"

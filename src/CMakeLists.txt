@@ -42,7 +42,7 @@ target_include_directories(dukpt_tdes INTERFACE
 target_link_libraries(dukpt_tdes PRIVATE crypto_tdes crypto_mem crypto_rand)
 
 # Internal AES crypto library
-add_library(dukpt_aes_crypto OBJECT dukpt_aes_crypto.c dukpt_mem.c)
+add_library(dukpt_aes_crypto OBJECT dukpt_aes_crypto.c)
 set_target_properties(dukpt_aes_crypto
 	PROPERTIES
 		C_VISIBILITY_PRESET hidden
