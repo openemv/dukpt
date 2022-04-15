@@ -14,6 +14,17 @@ project(dukpt
 	LANGUAGES C
 )
 
+# Determine whether this project is the top-level project
+if(${CMAKE_VERSION} VERSION_LESS "3.21")
+	get_directory_property(DUKPT_HAS_PARENT PARENT_DIRECTORY)
+	if(NOT DUKPT_HAS_PARENT)
+		set(DUKPT_IS_TOP_LEVEL True)
+	endif()
+else()
+	# CMake >=3.21 provides <PROJECT-NAME>_IS_TOP_LEVEL
+	set(DUKPT_IS_TOP_LEVEL ${dukpt_IS_TOP_LEVEL})
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -26,7 +37,18 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 include(CTest)
 
-add_subdirectory(crypto)
+# Allow parent scope to provide crypto targets when not building shared libs
+if(DUKPT_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
+	add_subdirectory(crypto EXCLUDE_FROM_ALL)
+	add_subdirectory(crypto/test)
+elseif (NOT TARGET crypto_tdes OR
+	NOT TARGET crypto_aes OR
+	NOT TARGET crypto_hmac OR
+	NOT TARGET crypto_mem OR
+	NOT TARGET crypto_rand)
+	message(FATAL_ERROR "Parent project must provide crypto libraries for static builds")
+endif()
+
 add_subdirectory(src)
 add_subdirectory(test)
 
@@ -42,7 +64,8 @@ install(FILES
 
 # Generate and install basic CMake config files
 include(CMakePackageConfigHelpers) # Provides CMake config generator macros
-foreach(pkg IN LISTS DUKPT_PACKAGE_DEPENDENCIES)
+# NOTE: crypto subdirectory provides CRYPTO_PACKAGE_DEPENDENCIES
+foreach(pkg IN LISTS CRYPTO_PACKAGE_DEPENDENCIES)
 	# Build dependency string for use in CMake config file
 	string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(${pkg})\n")
 endforeach()
@@ -76,8 +99,10 @@ export(EXPORT dukptTargets
 # Generate and install pkgconfig files
 set(DUKPT_INSTALL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for dukpt pkgconfig files")
 message(STATUS "Using pkgconfig install location \"${DUKPT_INSTALL_PKGCONFIG_DIR}\"")
-# NOTE: Subdirectories will provide DUKPT_PKGCONFIG_REQ_PRIV and DUKPT_PKGCONFIG_LIBS_PRIV
 set(DUKPT_PKGCONFIG_LIB_NAME dukpt_tdes)
+# NOTE: crypto subdirectory provides CRYPTO_PKGCONFIG_REQ_PRIV and CRYPTO_PKGCONFIG_LIBS_PRIV
+set(DUKPT_PKGCONFIG_REQ_PRIV ${CRYPTO_PKGCONFIG_REQ_PRIV})
+set(DUKPT_PKGCONFIG_LIBS_PRIV ${CRYPTO_PKGCONFIG_LIBS_PRIV})
 configure_file(pkgconfig/libdukpt_tdes.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_tdes.pc"
 	@ONLY
