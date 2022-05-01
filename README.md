@@ -1,6 +1,8 @@
 DUKPT libraries and tools
 =========================
 
+[![License: LGPL-2.1](https://img.shields.io/github/license/openemv/dukpt)](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html)
+
 This project is an implementation of the ANSI X9.24-3:2017 standard for both
 TDES and AES Derived Unique Key Per Transaction (DUKPT) key management. Given
 that most uses of this standard involve dedicated security hardware, this
