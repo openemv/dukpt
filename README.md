@@ -24,8 +24,15 @@ Dependencies
 
 * C11 compiler such as GCC or Clang
 * CMake
-* DUKPT libraries require MbedTLS
+* DUKPT libraries require MbedTLS (preferred), or OpenSSL
 * DUKPT tool requires argp (either via Glibc or a standalone implementation)
+
+This project also makes use of the OpenEMV common crypto abstraction
+(https://github.com/openemv/crypto), which in turn depends on a cryptographic
+implementation such as MbedTLS (preferred) or OpenSSL. This abstraction should
+either be provided as a git submodule in the `crypto` subdirectory using
+`git clone --recurse-submodules`, or its CMake targets should be provided by a
+parent project.
 
 Build
 -----

@@ -7,12 +7,6 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-find_package(MbedTLS 2.16 REQUIRED) # Latest version available on Ubuntu 20.04 and Fedora 34
-list(APPEND DUKPT_PACKAGE_DEPENDENCIES "MbedTLS 2.16")
-set(DUKPT_PACKAGE_DEPENDENCIES ${DUKPT_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
-# NOTE: MbedTLS has no pkgconfig file so DUKPT_PKGCONFIG_REQ_PRIV cannot be set
-set(DUKPT_PKGCONFIG_LIBS_PRIV "-lmbedcrypto" PARENT_SCOPE)
-
 # Check whether compiler supports __builtin_popcount()
 include(CheckCSourceCompiles)
 check_c_source_compiles("int main(void) { return __builtin_popcount(42); }" HAS_BUILTIN_POPCOUNT)
@@ -25,24 +19,6 @@ configure_file(
 	dukpt_config.h.in
 	dukpt_config.h
 )
-
-# Internal TDES crypto library
-add_library(dukpt_tdes_crypto OBJECT dukpt_tdes_crypto.c dukpt_mem.c)
-set_target_properties(dukpt_tdes_crypto
-	PROPERTIES
-		C_VISIBILITY_PRESET hidden
-)
-if(BUILD_SHARED_LIBS)
-	set_target_properties(dukpt_tdes_crypto
-		PROPERTIES
-			POSITION_INDEPENDENT_CODE True
-	)
-endif()
-target_include_directories(dukpt_tdes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
-target_include_directories(dukpt_tdes_crypto INTERFACE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-)
-target_link_libraries(dukpt_tdes_crypto PRIVATE MbedTLS::mbedcrypto)
 
 # TDES DUKPT library
 add_library(dukpt_tdes dukpt_tdes.c)
@@ -57,25 +33,7 @@ target_include_directories(dukpt_tdes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_tdes PRIVATE dukpt_tdes_crypto)
-
-# Internal AES crypto library
-add_library(dukpt_aes_crypto OBJECT dukpt_aes_crypto.c dukpt_mem.c)
-set_target_properties(dukpt_aes_crypto
-	PROPERTIES
-		C_VISIBILITY_PRESET hidden
-)
-if(BUILD_SHARED_LIBS)
-	set_target_properties(dukpt_aes_crypto
-		PROPERTIES
-			POSITION_INDEPENDENT_CODE True
-	)
-endif()
-target_include_directories(dukpt_aes_crypto PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # for generated config file
-target_include_directories(dukpt_aes_crypto INTERFACE
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-)
-target_link_libraries(dukpt_aes_crypto PRIVATE MbedTLS::mbedcrypto)
+target_link_libraries(dukpt_tdes PRIVATE crypto_tdes crypto_mem crypto_rand)
 
 # AES DUKPT library
 add_library(dukpt_aes dukpt_aes.c)
@@ -90,7 +48,7 @@ target_include_directories(dukpt_aes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_aes PRIVATE dukpt_aes_crypto)
+target_link_libraries(dukpt_aes PRIVATE crypto_aes crypto_hmac crypto_mem crypto_rand)
 
 # DUKPT command line tool
 add_executable(dukpt-tool dukpt-tool.c)
@@ -98,10 +56,13 @@ target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
 
 install(
 	TARGETS
+		crypto_tdes
+		crypto_aes
+		crypto_hmac
+		crypto_mem
+		crypto_rand
 		dukpt_tdes
-		dukpt_tdes_crypto
 		dukpt_aes
-		dukpt_aes_crypto
 		dukpt-tool
 	EXPORT dukptTargets # For use by install(EXPORT) command
 	PUBLIC_HEADER

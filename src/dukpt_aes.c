@@ -20,9 +20,12 @@
  */
 
 #include "dukpt_aes.h"
-#include "dukpt_aes_crypto.h"
-#include "dukpt_mem.h"
 #include "dukpt_config.h"
+
+#include "crypto_aes.h"
+#include "crypto_hmac.h"
+#include "crypto_mem.h"
+#include "crypto_rand.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -285,7 +288,7 @@ static int dukpt_aes_derive_key(
 	// See ANSI X9.24-3:2017 6.3.1
 	for (size_t offset = 0; offset < derived_key_len; offset += AES_BLOCK_SIZE) {
 		// Each AES ECB computation provides key material of length AES_BLOCK_SIZE
-		r = dukpt_aes_encrypt(key, key_len, NULL, derivation_data, AES_BLOCK_SIZE, derived_key_output + offset);
+		r = crypto_aes_encrypt(key, key_len, NULL, derivation_data, AES_BLOCK_SIZE, derived_key_output + offset);
 		if (r) {
 			goto error;
 		}
@@ -301,10 +304,9 @@ static int dukpt_aes_derive_key(
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	dukpt_cleanse(derived_key, derived_key_len);
+	crypto_cleanse(derived_key, derived_key_len);
 exit:
-	dukpt_cleanse(derived_key_output, sizeof(derived_key_output));
+	crypto_cleanse(derived_key_output, sizeof(derived_key_output));
 	return r;
 }
 
@@ -357,10 +359,10 @@ int dukpt_aes_derive_ik(
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	dukpt_cleanse(ik, bdk_len);
+	// Ensure that output key is unusable on error
+	crypto_rand(ik, bdk_len);
 exit:
-	dukpt_cleanse(&derivation_data, sizeof(derivation_data));
+	crypto_cleanse(&derivation_data, sizeof(derivation_data));
 
 	return r;
 }
@@ -460,10 +462,10 @@ int dukpt_aes_derive_txn_key(
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	dukpt_cleanse(txn_key, txn_key_len);
+	// Ensure that output key is unusable on error
+	crypto_rand(txn_key, txn_key_len);
 exit:
-	dukpt_cleanse(&derivation_data, sizeof(derivation_data));
+	crypto_cleanse(&derivation_data, sizeof(derivation_data));
 
 	return r;
 }
@@ -658,11 +660,10 @@ int dukpt_aes_derive_update_key(
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	dukpt_cleanse(update_key, update_key_len);
-
+	// Ensure that output key is unusable on error
+	crypto_rand(update_key, update_key_len);
 exit:
-	dukpt_cleanse(txn_key, sizeof(txn_key));
+	crypto_cleanse(txn_key, sizeof(txn_key));
 	return r;
 }
 
@@ -720,7 +721,7 @@ int dukpt_aes_encrypt_pinblock(
 
 	// Encrypt PIN block
 	// See ISO 9564-1:2017 9.4.2.3
-	r = dukpt_aes_encrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
 	if (r) {
 		goto error;
 	}
@@ -729,7 +730,7 @@ int dukpt_aes_encrypt_pinblock(
 		ciphertext_buf[i] ^= panblock[i];
 	}
 
-	r = dukpt_aes_encrypt(pin_key, pin_key_len, NULL, ciphertext_buf, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, ciphertext_buf, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
 	if (r) {
 		goto error;
 	}
@@ -739,9 +740,9 @@ int dukpt_aes_encrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_cleanse(ciphertext, DUKPT_AES_PINBLOCK_LEN);
+	crypto_cleanse(ciphertext, DUKPT_AES_PINBLOCK_LEN);
 exit:
-	dukpt_cleanse(pin_key, sizeof(pin_key));
+	crypto_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }
@@ -799,7 +800,7 @@ int dukpt_aes_decrypt_pinblock(
 
 	// Decrypt PIN block
 	// See ISO 9564-1:2017 9.4.2.4
-	r = dukpt_aes_decrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, pinblock);
 	if (r) {
 		goto error;
 	}
@@ -808,7 +809,7 @@ int dukpt_aes_decrypt_pinblock(
 		pinblock[i] ^= panblock[i];
 	}
 
-	r = dukpt_aes_decrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, pinblock);
 	if (r) {
 		goto error;
 	}
@@ -818,9 +819,9 @@ int dukpt_aes_decrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_cleanse(pinblock, DUKPT_AES_PINBLOCK_LEN);
+	crypto_cleanse(pinblock, DUKPT_AES_PINBLOCK_LEN);
 exit:
-	dukpt_cleanse(pin_key, sizeof(pin_key));
+	crypto_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }
@@ -877,7 +878,7 @@ int dukpt_aes_generate_request_cmac(
 	}
 
 	// Generate AES-CMAC
-	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
+	r = crypto_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
 	if (r) {
 		goto error;
 	}
@@ -887,9 +888,9 @@ int dukpt_aes_generate_request_cmac(
 	goto exit;
 
 error:
-	dukpt_cleanse(cmac, DUKPT_AES_CMAC_LEN);
+	crypto_cleanse(cmac, DUKPT_AES_CMAC_LEN);
 exit:
-	dukpt_cleanse(cmac_key, sizeof(cmac_key));
+	crypto_cleanse(cmac_key, sizeof(cmac_key));
 
 	return r;
 }
@@ -920,7 +921,7 @@ int dukpt_aes_verify_request_cmac(
 		goto error;
 	}
 
-	if (dukpt_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
+	if (crypto_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
 		r = 1;
 		goto error;
 	}
@@ -931,7 +932,7 @@ int dukpt_aes_verify_request_cmac(
 
 error:
 exit:
-	dukpt_cleanse(cmac_verify, sizeof(cmac_verify));
+	crypto_cleanse(cmac_verify, sizeof(cmac_verify));
 
 	return r;
 }
@@ -988,7 +989,7 @@ int dukpt_aes_generate_response_cmac(
 	}
 
 	// Generate AES-CMAC
-	r = dukpt_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
+	r = crypto_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
 	if (r) {
 		goto error;
 	}
@@ -998,9 +999,9 @@ int dukpt_aes_generate_response_cmac(
 	goto exit;
 
 error:
-	dukpt_cleanse(cmac, DUKPT_AES_CMAC_LEN);
+	crypto_cleanse(cmac, DUKPT_AES_CMAC_LEN);
 exit:
-	dukpt_cleanse(cmac_key, sizeof(cmac_key));
+	crypto_cleanse(cmac_key, sizeof(cmac_key));
 
 	return r;
 }
@@ -1031,7 +1032,7 @@ int dukpt_aes_verify_response_cmac(
 		goto error;
 	}
 
-	if (dukpt_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
+	if (crypto_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
 		r = 1;
 		goto error;
 	}
@@ -1042,7 +1043,7 @@ int dukpt_aes_verify_response_cmac(
 
 error:
 exit:
-	dukpt_cleanse(cmac_verify, sizeof(cmac_verify));
+	crypto_cleanse(cmac_verify, sizeof(cmac_verify));
 
 	return r;
 }
@@ -1098,7 +1099,7 @@ int dukpt_aes_generate_request_hmac_sha256(
 	}
 
 	// Generate HMAC
-	r = dukpt_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
+	r = crypto_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
 	if (r) {
 		goto error;
 	}
@@ -1108,9 +1109,9 @@ int dukpt_aes_generate_request_hmac_sha256(
 	goto exit;
 
 error:
-	dukpt_cleanse(hmac, DUKPT_AES_HMAC_SHA256_LEN);
+	crypto_cleanse(hmac, DUKPT_AES_HMAC_SHA256_LEN);
 exit:
-	dukpt_cleanse(hmac_key, sizeof(hmac_key));
+	crypto_cleanse(hmac_key, sizeof(hmac_key));
 
 	return r;
 }
@@ -1141,7 +1142,7 @@ int dukpt_aes_verify_request_hmac_sha256(
 		goto error;
 	}
 
-	if (dukpt_memcmp_s(hmac_verify, hmac, sizeof(hmac_verify)) != 0) {
+	if (crypto_memcmp_s(hmac_verify, hmac, sizeof(hmac_verify)) != 0) {
 		r = 1;
 		goto error;
 	}
@@ -1152,7 +1153,7 @@ int dukpt_aes_verify_request_hmac_sha256(
 
 error:
 exit:
-	dukpt_cleanse(hmac_verify, sizeof(hmac_verify));
+	crypto_cleanse(hmac_verify, sizeof(hmac_verify));
 
 	return r;
 }
@@ -1208,7 +1209,7 @@ int dukpt_aes_generate_response_hmac_sha256(
 	}
 
 	// Generate HMAC
-	r = dukpt_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
+	r = crypto_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
 	if (r) {
 		goto error;
 	}
@@ -1218,9 +1219,9 @@ int dukpt_aes_generate_response_hmac_sha256(
 	goto exit;
 
 error:
-	dukpt_cleanse(hmac, DUKPT_AES_HMAC_SHA256_LEN);
+	crypto_cleanse(hmac, DUKPT_AES_HMAC_SHA256_LEN);
 exit:
-	dukpt_cleanse(hmac_key, sizeof(hmac_key));
+	crypto_cleanse(hmac_key, sizeof(hmac_key));
 
 	return r;
 }
@@ -1251,7 +1252,7 @@ int dukpt_aes_verify_response_hmac_sha256(
 		goto error;
 	}
 
-	if (dukpt_memcmp_s(hmac_verify, hmac, sizeof(hmac_verify)) != 0) {
+	if (crypto_memcmp_s(hmac_verify, hmac, sizeof(hmac_verify)) != 0) {
 		r = 1;
 		goto error;
 	}
@@ -1262,7 +1263,7 @@ int dukpt_aes_verify_response_hmac_sha256(
 
 error:
 exit:
-	dukpt_cleanse(hmac_verify, sizeof(hmac_verify));
+	crypto_cleanse(hmac_verify, sizeof(hmac_verify));
 
 	return r;
 }
@@ -1320,7 +1321,7 @@ int dukpt_aes_encrypt_request(
 	}
 
 	// Encrypt transaction data
-	r = dukpt_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
+	r = crypto_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -1330,9 +1331,9 @@ int dukpt_aes_encrypt_request(
 	goto exit;
 
 error:
-	dukpt_cleanse(ciphertext, buf_len);
+	crypto_cleanse(ciphertext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(data_key, sizeof(data_key));
 
 	return r;
 }
@@ -1390,7 +1391,7 @@ int dukpt_aes_decrypt_request(
 	}
 
 	// Decrypt transaction data
-	r = dukpt_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
+	r = crypto_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
@@ -1400,9 +1401,9 @@ int dukpt_aes_decrypt_request(
 	goto exit;
 
 error:
-	dukpt_cleanse(plaintext, buf_len);
+	crypto_cleanse(plaintext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(data_key, sizeof(data_key));
 
 	return r;
 }
@@ -1460,7 +1461,7 @@ int dukpt_aes_encrypt_response(
 	}
 
 	// Encrypt transaction data
-	r = dukpt_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
+	r = crypto_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -1470,9 +1471,9 @@ int dukpt_aes_encrypt_response(
 	goto exit;
 
 error:
-	dukpt_cleanse(ciphertext, buf_len);
+	crypto_cleanse(ciphertext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(data_key, sizeof(data_key));
 
 	return r;
 }
@@ -1530,7 +1531,7 @@ int dukpt_aes_decrypt_response(
 	}
 
 	// Decrypt transaction data
-	r = dukpt_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
+	r = crypto_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
@@ -1540,9 +1541,9 @@ int dukpt_aes_decrypt_response(
 	goto exit;
 
 error:
-	dukpt_cleanse(plaintext, buf_len);
+	crypto_cleanse(plaintext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(data_key, sizeof(data_key));
 
 	return r;
 }

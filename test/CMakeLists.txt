@@ -17,7 +17,7 @@ if(BUILD_TESTING)
 	add_test(dukpt_tdes_ksn_test dukpt_tdes_ksn_test)
 
 	add_executable(dukpt_aes128_test dukpt_aes128_test.c)
-	target_link_libraries(dukpt_aes128_test dukpt_aes dukpt_aes_crypto)
+	target_link_libraries(dukpt_aes128_test dukpt_aes crypto_aes crypto_mem)
 	add_test(dukpt_aes128_test dukpt_aes128_test)
 
 	add_executable(dukpt_aes128_update_key_test dukpt_aes128_update_key_test.c)
@@ -25,7 +25,7 @@ if(BUILD_TESTING)
 	add_test(dukpt_aes128_update_key_test dukpt_aes128_update_key_test)
 
 	add_executable(dukpt_aes256_test dukpt_aes256_test.c)
-	target_link_libraries(dukpt_aes256_test dukpt_aes dukpt_aes_crypto)
+	target_link_libraries(dukpt_aes256_test dukpt_aes crypto_aes crypto_mem)
 	add_test(dukpt_aes256_test dukpt_aes256_test)
 
 	add_executable(dukpt_aes256_update_key_test dukpt_aes256_update_key_test.c)
@@ -35,8 +35,4 @@ if(BUILD_TESTING)
 	add_executable(dukpt_aes_ksn_test dukpt_aes_ksn_test.c)
 	target_link_libraries(dukpt_aes_ksn_test dukpt_aes)
 	add_test(dukpt_aes_ksn_test dukpt_aes_ksn_test)
-
-	add_executable(dukpt_aes_cmac_test dukpt_aes_cmac_test.c)
-	target_link_libraries(dukpt_aes_cmac_test dukpt_aes_crypto)
-	add_test(dukpt_aes_cmac_test dukpt_aes_cmac_test)
 endif()

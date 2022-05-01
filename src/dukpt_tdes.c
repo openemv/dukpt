@@ -21,9 +21,11 @@
  */
 
 #include "dukpt_tdes.h"
-#include "dukpt_tdes_crypto.h"
-#include "dukpt_mem.h"
 #include "dukpt_config.h"
+
+#include "crypto_tdes.h"
+#include "crypto_mem.h"
+#include "crypto_rand.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -45,7 +47,7 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	iksn_buf[9] = 0;
 
 	// Derive left half of Initial Key (IK)
-	r = dukpt_tdes2_encrypt_ecb(bdk, iksn_buf, ik);
+	r = crypto_tdes2_encrypt_ecb(bdk, iksn_buf, ik);
 	if (r) {
 		goto error;
 	}
@@ -60,7 +62,7 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	bdk_variant[9] ^= 0xC0;
 	bdk_variant[10] ^= 0xC0;
 	bdk_variant[11] ^= 0xC0;
-	r = dukpt_tdes2_encrypt_ecb(bdk_variant, iksn_buf, ik + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(bdk_variant, iksn_buf, ik + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
@@ -70,10 +72,10 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	dukpt_cleanse(ik, sizeof(ik));
+	// Ensure that output key is unusable on error
+	crypto_rand(ik, DUKPT_TDES_KEY_LEN);
 exit:
-	dukpt_cleanse(bdk_variant, sizeof(bdk_variant));
+	crypto_cleanse(bdk_variant, sizeof(bdk_variant));
 
 	return r;
 }
@@ -104,7 +106,7 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 
 	// Crypto Register-2 DEA-encrypted using, as the key, the left half of
 	// the Key Register goes to Crypto Register-2
-	r = dukpt_des_encrypt_ecb(key_reg, crypto_reg2, crypto_reg2);
+	r = crypto_des_encrypt_ecb(key_reg, crypto_reg2, crypto_reg2);
 	if (r) {
 		goto error;
 	}
@@ -133,7 +135,7 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 
 	// Crypto Register-1 DEA-encrypted using, as the key, the left half of
 	// the Key Register goes to Crypto Register-1
-	r = dukpt_des_encrypt_ecb(key_reg, crypto_reg1, crypto_reg1);
+	r = crypto_des_encrypt_ecb(key_reg, crypto_reg1, crypto_reg1);
 	if (r) {
 		goto error;
 	}
@@ -153,11 +155,10 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	dukpt_cleanse(key_out, sizeof(key_out));
+	crypto_cleanse(key_out, DUKPT_TDES_KEY_LEN);
 exit:
-	dukpt_cleanse(crypto_reg1, sizeof(crypto_reg1));
-	dukpt_cleanse(crypto_reg2, sizeof(crypto_reg2));
+	crypto_cleanse(crypto_reg1, sizeof(crypto_reg1));
+	crypto_cleanse(crypto_reg2, sizeof(crypto_reg2));
 
 	return r;
 }
@@ -253,11 +254,11 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 	goto exit;
 
 error:
-	// TODO: randomise instead
-	dukpt_cleanse(txn_key, sizeof(txn_key));
+	// Ensure that output key is unusable on error
+	crypto_rand(txn_key, DUKPT_TDES_KEY_LEN);
 exit:
 	// Cleanup
-	dukpt_cleanse(key_reg, sizeof(key_reg));
+	crypto_cleanse(key_reg, sizeof(key_reg));
 
 	return r;
 }
@@ -412,7 +413,7 @@ int dukpt_tdes_encrypt_pinblock(
 	pin_key[15] ^= 0xFF;
 
 	// Encrypt PIN block
-	r = dukpt_tdes2_encrypt_ecb(pin_key, pinblock, ciphertext);
+	r = crypto_tdes2_encrypt_ecb(pin_key, pinblock, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -422,9 +423,9 @@ int dukpt_tdes_encrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_cleanse(ciphertext, DUKPT_TDES_PINBLOCK_LEN);
+	crypto_cleanse(ciphertext, DUKPT_TDES_PINBLOCK_LEN);
 exit:
-	dukpt_cleanse(pin_key, sizeof(pin_key));
+	crypto_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }
@@ -446,7 +447,7 @@ int dukpt_tdes_decrypt_pinblock(
 	pin_key[15] ^= 0xFF;
 
 	// Decrypt PIN block
-	r = dukpt_tdes2_decrypt_ecb(pin_key, ciphertext, pinblock);
+	r = crypto_tdes2_decrypt_ecb(pin_key, ciphertext, pinblock);
 	if (r) {
 		goto error;
 	}
@@ -456,9 +457,9 @@ int dukpt_tdes_decrypt_pinblock(
 	goto exit;
 
 error:
-	dukpt_cleanse(pinblock, DUKPT_TDES_PINBLOCK_LEN);
+	crypto_cleanse(pinblock, DUKPT_TDES_PINBLOCK_LEN);
 exit:
-	dukpt_cleanse(pin_key, sizeof(pin_key));
+	crypto_cleanse(pin_key, sizeof(pin_key));
 
 	return r;
 }
@@ -481,7 +482,7 @@ int dukpt_tdes_generate_request_mac(
 	mac_key[14] ^= 0xFF;
 
 	// Generate ANSI X9.19 Retail MAC
-	r = dukpt_tdes2_retail_mac(mac_key, buf, buf_len, mac);
+	r = crypto_tdes2_retail_mac(mac_key, buf, buf_len, mac);
 	if (r) {
 		goto error;
 	}
@@ -491,9 +492,9 @@ int dukpt_tdes_generate_request_mac(
 	goto exit;
 
 error:
-	dukpt_cleanse(mac, DUKPT_TDES_MAC_LEN);
+	crypto_cleanse(mac, DUKPT_TDES_MAC_LEN);
 exit:
-	dukpt_cleanse(mac_key, sizeof(mac_key));
+	crypto_cleanse(mac_key, sizeof(mac_key));
 
 	return r;
 }
@@ -513,7 +514,7 @@ int dukpt_tdes_verify_request_mac(
 		goto error;
 	}
 
-	if (dukpt_memcmp_s(mac_verify, mac, sizeof(mac_verify)) != 0) {
+	if (crypto_memcmp_s(mac_verify, mac, sizeof(mac_verify)) != 0) {
 		r = 1;
 		goto error;
 	}
@@ -524,7 +525,7 @@ int dukpt_tdes_verify_request_mac(
 
 error:
 exit:
-	dukpt_cleanse(mac_verify, sizeof(mac_verify));
+	crypto_cleanse(mac_verify, sizeof(mac_verify));
 
 	return r;
 }
@@ -547,7 +548,7 @@ int dukpt_tdes_generate_response_mac(
 	mac_key[12] ^= 0xFF;
 
 	// Generate ANSI X9.19 Retail MAC
-	r = dukpt_tdes2_retail_mac(mac_key, buf, buf_len, mac);
+	r = crypto_tdes2_retail_mac(mac_key, buf, buf_len, mac);
 	if (r) {
 		goto error;
 	}
@@ -557,9 +558,9 @@ int dukpt_tdes_generate_response_mac(
 	goto exit;
 
 error:
-	dukpt_cleanse(mac, DUKPT_TDES_MAC_LEN);
+	crypto_cleanse(mac, DUKPT_TDES_MAC_LEN);
 exit:
-	dukpt_cleanse(mac_key, sizeof(mac_key));
+	crypto_cleanse(mac_key, sizeof(mac_key));
 
 	return r;
 }
@@ -579,7 +580,7 @@ int dukpt_tdes_verify_response_mac(
 		goto error;
 	}
 
-	if (dukpt_memcmp_s(mac_verify, mac, sizeof(mac_verify)) != 0) {
+	if (crypto_memcmp_s(mac_verify, mac, sizeof(mac_verify)) != 0) {
 		r = 1;
 		goto error;
 	}
@@ -590,7 +591,7 @@ int dukpt_tdes_verify_response_mac(
 
 error:
 exit:
-	dukpt_cleanse(mac_verify, sizeof(mac_verify));
+	crypto_cleanse(mac_verify, sizeof(mac_verify));
 
 	return r;
 }
@@ -618,17 +619,17 @@ int dukpt_tdes_encrypt_request(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Encrypt transaction data
-	r = dukpt_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
+	r = crypto_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -638,10 +639,10 @@ int dukpt_tdes_encrypt_request(
 	goto exit;
 
 error:
-	dukpt_cleanse(ciphertext, buf_len);
+	crypto_cleanse(ciphertext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
-	dukpt_cleanse(owf_key, sizeof(owf_key));
+	crypto_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }
@@ -669,17 +670,17 @@ int dukpt_tdes_decrypt_request(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Decrypt transaction data
-	r = dukpt_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
+	r = crypto_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
@@ -689,10 +690,10 @@ int dukpt_tdes_decrypt_request(
 	goto exit;
 
 error:
-	dukpt_cleanse(plaintext, buf_len);
+	crypto_cleanse(plaintext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
-	dukpt_cleanse(owf_key, sizeof(owf_key));
+	crypto_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }
@@ -720,17 +721,17 @@ int dukpt_tdes_encrypt_response(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Encrypt transaction data
-	r = dukpt_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
+	r = crypto_tdes2_encrypt(data_key, iv, buf, buf_len, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -740,10 +741,10 @@ int dukpt_tdes_encrypt_response(
 	goto exit;
 
 error:
-	dukpt_cleanse(ciphertext, buf_len);
+	crypto_cleanse(ciphertext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
-	dukpt_cleanse(owf_key, sizeof(owf_key));
+	crypto_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }
@@ -771,17 +772,17 @@ int dukpt_tdes_decrypt_response(
 	// See ANSI X9.24-1:2009 A.4.1, figure A-2
 	// See ANSI X9.24-3:2017 C.5.2, figure 6
 	memcpy(owf_key, data_key, DUKPT_TDES_KEY_LEN);
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key, data_key);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key, data_key);
 	if (r) {
 		goto error;
 	}
-	r = dukpt_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
+	r = crypto_tdes2_encrypt_ecb(owf_key, data_key + DES_BLOCK_SIZE, data_key + DES_BLOCK_SIZE);
 	if (r) {
 		goto error;
 	}
 
 	// Decrypt transaction data
-	r = dukpt_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
+	r = crypto_tdes2_decrypt(data_key, iv, buf, buf_len, plaintext);
 	if (r) {
 		goto error;
 	}
@@ -791,10 +792,10 @@ int dukpt_tdes_decrypt_response(
 	goto exit;
 
 error:
-	dukpt_cleanse(plaintext, buf_len);
+	crypto_cleanse(plaintext, buf_len);
 exit:
-	dukpt_cleanse(data_key, sizeof(data_key));
-	dukpt_cleanse(owf_key, sizeof(owf_key));
+	crypto_cleanse(data_key, sizeof(data_key));
+	crypto_cleanse(owf_key, sizeof(owf_key));
 
 	return r;
 }
