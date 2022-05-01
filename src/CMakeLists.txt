@@ -77,7 +77,7 @@ install(
 		COMPONENT dukpt_development
 )
 
-if(BUILD_TESTING)
+if(DUKPT_IS_TOP_LEVEL AND BUILD_TESTING)
 	add_test(NAME dukpt_tool_tdes_test1
 		COMMAND dukpt-tool --bdk=0123456789ABCDEFFEDCBA9876543210 --ksn=FFFF9876543210E00000 --derive-ik
 	)
