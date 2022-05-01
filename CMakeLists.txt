@@ -39,7 +39,7 @@ include(CTest)
 
 # Allow parent scope to provide crypto targets when not building shared libs
 if(DUKPT_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
-	add_subdirectory(crypto EXCLUDE_FROM_ALL)
+	add_subdirectory(crypto)
 	add_subdirectory(crypto/test)
 elseif (NOT TARGET crypto_tdes OR
 	NOT TARGET crypto_aes OR
