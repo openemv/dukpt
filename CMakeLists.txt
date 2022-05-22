@@ -58,6 +58,14 @@ elseif (NOT TARGET crypto_tdes OR
 	message(FATAL_ERROR "Parent project must provide crypto libraries for static builds")
 endif()
 
+# Allow parent scope to provide pinblock target when not building shared libs
+if(DUKPT_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
+	add_subdirectory(pinblock)
+	add_subdirectory(pinblock/test)
+elseif (NOT TARGET pinblock)
+	message(FATAL_ERROR "Parent project must provide pinblock library for static builds")
+endif()
+
 add_subdirectory(src)
 add_subdirectory(test)
 
