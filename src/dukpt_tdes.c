@@ -27,6 +27,8 @@
 #include "crypto_mem.h"
 #include "crypto_rand.h"
 
+#include "pinblock.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -460,6 +462,122 @@ error:
 	crypto_cleanse(pinblock, DUKPT_TDES_PINBLOCK_LEN);
 exit:
 	crypto_cleanse(pin_key, sizeof(pin_key));
+
+	return r;
+}
+
+
+int dukpt_tdes_encrypt_pin(
+	const void* txn_key,
+	unsigned int format,
+	const uint8_t* pin,
+	size_t pin_len,
+	const uint8_t* pan,
+	size_t pan_len,
+	void* ciphertext
+)
+{
+	int r;
+	uint8_t pinblock[DUKPT_TDES_PINBLOCK_LEN];
+
+	// Encode PIN block
+	switch (format) {
+		case 0:
+			r = pinblock_encode_iso9564_format0(
+				pin,
+				pin_len,
+				pan,
+				pan_len,
+				pinblock
+			);
+			break;
+
+		case 3:
+			r = pinblock_encode_iso9564_format3(
+				pin,
+				pin_len,
+				pan,
+				pan_len,
+				pinblock
+			);
+			break;
+
+		default:
+			// Unsupported PIN block format
+			return 1;
+	}
+	if (r) {
+		// PIN block encoding failed
+		r = -1;
+		goto error;
+	}
+
+	// Encrypt PIN block
+	r = dukpt_tdes_encrypt_pinblock(
+		txn_key,
+		pinblock,
+		ciphertext
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	crypto_cleanse(pinblock, sizeof(pinblock));
+
+	return r;
+}
+
+int dukpt_tdes_decrypt_pin(
+	const void* txn_key,
+	const void* ciphertext,
+	const uint8_t* pan,
+	size_t pan_len,
+	void* pin,
+	size_t* pin_len
+)
+{
+	int r;
+	uint8_t pinblock[DUKPT_TDES_PINBLOCK_LEN];
+	unsigned int format;
+
+	// Decrypt PIN block
+	r = dukpt_tdes_decrypt_pinblock(
+		txn_key,
+		ciphertext,
+		pinblock
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Decode PIN block
+	r = pinblock_decode(
+		pinblock,
+		sizeof(pinblock),
+		pan,
+		pan_len,
+		&format,
+		pin,
+		pin_len
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	*pin_len = 0;
+exit:
+	crypto_cleanse(pinblock, sizeof(pinblock));
 
 	return r;
 }

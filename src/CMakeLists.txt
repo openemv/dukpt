@@ -33,7 +33,7 @@ target_include_directories(dukpt_tdes INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
-target_link_libraries(dukpt_tdes PRIVATE crypto_tdes crypto_mem crypto_rand)
+target_link_libraries(dukpt_tdes PRIVATE crypto_tdes crypto_mem crypto_rand pinblock)
 
 # AES DUKPT library
 add_library(dukpt_aes dukpt_aes.c)
@@ -61,6 +61,7 @@ install(
 		crypto_hmac
 		crypto_mem
 		crypto_rand
+		pinblock
 		dukpt_tdes
 		dukpt_aes
 		dukpt-tool

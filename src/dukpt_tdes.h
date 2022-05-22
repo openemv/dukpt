@@ -117,6 +117,61 @@ int dukpt_tdes_decrypt_pinblock(
 );
 
 /**
+ * Encrypt PIN using DUKPT transaction key
+ * @note This function should only be used by the transaction originating
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param format PIN block format. Must be @c 0 for ISO 9564-1:2017 PIN block
+ *               format 0 or @c 3 for ISO 9564-1:2017 PIN block format 3.
+ * @param pin PIN buffer containing one PIN digit value per byte
+ * @param pin_len Length of PIN
+ * @param pan PAN buffer in compressed numeric format (EMV format "cn";
+ *            nibble-per-digit; left justified; padded with trailing 0xF
+ *            nibbles). This is the same format as EMV field @c 5A which
+ *            typically contains the application PAN.
+ * @param pan_len Length of PAN buffer in bytes
+ * @param ciphertext Encrypted PIN block output of length @ref DUKPT_TDES_PINBLOCK_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid parameters.
+ */
+int dukpt_tdes_encrypt_pin(
+	const void* txn_key,
+	unsigned int format,
+	const uint8_t* pin,
+	size_t pin_len,
+	const uint8_t* pan,
+	size_t pan_len,
+	void* ciphertext
+);
+
+/**
+ * Decrypt PIN block using DUKPT transaction key
+ * @note This function should only be used by the transaction receiving
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param txn_key DUKPT transaction key of length @ref DUKPT_TDES_KEY_LEN
+ * @param ciphertext Encrypted PIN block of length @ref DUKPT_TDES_PINBLOCK_LEN
+ * @param pan PAN buffer in compressed numeric format (EMV format "cn";
+ *            nibble-per-digit; left justified; padded with trailing 0xF
+ *            nibbles). This is the same format as EMV field @c 5A which
+ *            typically contains the application PAN.
+ * @param pan_len Length of PAN buffer in bytes
+ * @param pin PIN buffer output of maximum 12 bytes/digits
+ * @param pin_len Length of PIN buffer output
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid parameters.
+ */
+int dukpt_tdes_decrypt_pin(
+	const void* txn_key,
+	const void* ciphertext,
+	const uint8_t* pan,
+	size_t pan_len,
+	void* pin,
+	size_t* pin_len
+);
+
+/**
  * Generate ANSI X9.19 Retail MAC for transaction request using DUKPT
  * transaction key
  * @note This function should only be used by the transaction originating
