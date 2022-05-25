@@ -40,6 +40,11 @@ static uint8_t* txn_key = NULL;
 static size_t txn_key_len = 0;
 static enum dukpt_aes_key_type_t key_type;
 static bool key_type_valid = false;
+static void* pan = NULL;
+static size_t pan_len = 0;
+static unsigned int pinblock_format = 0;
+static uint8_t* pin = NULL;
+static size_t pin_len = 0;
 static void* pinblock = NULL;
 static size_t pinblock_len = 0;
 static void* panblock = NULL;
@@ -65,6 +70,8 @@ enum dukpt_tool_action_t {
 	DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY,
 	DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK,
 	DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK,
+	DUKPT_TOOL_ACTION_ENCRYPT_PIN,
+	DUKPT_TOOL_ACTION_DECRYPT_PIN,
 	DUKPT_TOOL_ACTION_ENCRYPT_REQUEST,
 	DUKPT_TOOL_ACTION_DECRYPT_REQUEST,
 	DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE,
@@ -82,6 +89,8 @@ static enum dukpt_tool_output_format_t output_format = DUKPT_TOOL_OUTPUT_FORMAT_
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state);
 static int parse_hex(const char* hex, void* buf, size_t* buf_len);
 static void* read_file(FILE* file, size_t* len);
+static int parse_pan_str(const char* str, uint8_t* buf, size_t* buf_len);
+static int parse_dec_str(const char* str, uint8_t* buf, size_t* buf_len);
 static void output_buf(const void* buf, size_t length);
 
 // argp option keys
@@ -93,6 +102,8 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_IK,
 	DUKPT_TOOL_OPTION_KSN,
 	DUKPT_TOOL_OPTION_PANBLOCK,
+	DUKPT_TOOL_OPTION_PAN,
+	DUKPT_TOOL_OPTION_PINBLOCK_FORMAT,
 	DUKPT_TOOL_OPTION_IV,
 
 	DUKPT_TOOL_OPTION_DERIVE_IK,
@@ -102,6 +113,8 @@ enum dukpt_tool_option_t {
 
 	DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK,
 	DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK,
+	DUKPT_TOOL_OPTION_ENCRYPT_PIN,
+	DUKPT_TOOL_OPTION_DECRYPT_PIN,
 
 	DUKPT_TOOL_OPTION_ENCRYPT_REQUEST,
 	DUKPT_TOOL_OPTION_DECRYPT_REQUEST,
@@ -125,6 +138,8 @@ static struct argp_option argp_options[] = {
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "HEX", 0, "Key Serial Number (KSN)" },
 	{ "panblock", DUKPT_TOOL_OPTION_PANBLOCK, "HEX", 0, "Encoded PAN block used for AES PIN block encryption/decryption." },
+	{ "pan", DUKPT_TOOL_OPTION_PAN, "PAN", 0, "PAN used for PIN block encryption/decryption." },
+	{ "pinblock-format", DUKPT_TOOL_OPTION_PINBLOCK_FORMAT, "0|1|3", 0, "ISO 9564-1:2017 PIN block format used for PIN encryption" },
 	{ "iv", DUKPT_TOOL_OPTION_IV, "HEX", 0, "Initial vector used for encryption/decryption. Default is a zero buffer." },
 
 	{ NULL, 0, NULL, 0, "Actions:", 4 },
@@ -135,6 +150,8 @@ static struct argp_option argp_options[] = {
 	{ "derive-update-key", DUKPT_TOOL_OPTION_DERIVE_UPDATE_KEY, NULL, 0, "Derive DUKPT update key. Requires either BDK or IK, as well as KSN." },
 	{ "encrypt-pinblock", DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK, "DATA", 0, "Encrypt PIN block. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "decrypt-pinblock", DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK, "DATA", 0, "Decrypt PIN block. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "encrypt-pin", DUKPT_TOOL_OPTION_ENCRYPT_PIN, "PIN", 0, "Encrypt PIN. Requires either BDK or IK, as well as KSN." },
+	{ "decrypt-pin", DUKPT_TOOL_OPTION_DECRYPT_PIN, "DATA", 0, "Decrypt PIN block and decode PIN. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "encrypt-request", DUKPT_TOOL_OPTION_ENCRYPT_REQUEST, "DATA", 0, "Encrypt transaction request data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "decrypt-request", DUKPT_TOOL_OPTION_DECRYPT_REQUEST, "DATA", 0, "Decrypt transaction request data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "encrypt-response", DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE, "DATA", 0, "Encrypt transaction response data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
@@ -163,7 +180,7 @@ static struct argp argp_config = {
 static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 {
 	int r;
-	uint8_t* buf = 0;
+	uint8_t* buf = NULL;
 	size_t buf_len = 0;
 
 	if (arg) {
@@ -171,6 +188,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		switch (key) {
 			case DUKPT_TOOL_OPTION_ENCRYPT_PINBLOCK:
 			case DUKPT_TOOL_OPTION_DECRYPT_PINBLOCK:
+			case DUKPT_TOOL_OPTION_DECRYPT_PIN:
 			case DUKPT_TOOL_OPTION_ENCRYPT_REQUEST:
 			case DUKPT_TOOL_OPTION_DECRYPT_REQUEST:
 			case DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE:
@@ -211,6 +229,56 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				r = parse_hex(arg, buf, &buf_len);
 				if (r) {
 					argp_error(state, "Argument value must consist of hex digits");
+				}
+
+				break;
+			}
+
+			case DUKPT_TOOL_OPTION_PAN: {
+				// Parse arguments as PAN digits
+				size_t arg_len = strlen(arg);
+
+				// Ensure that the buffer has enough space for odd length PANs
+				// that require padding
+				buf_len = (arg_len + 1) / 2;
+				buf = malloc(buf_len);
+
+				r = parse_pan_str(arg, buf, &buf_len);
+				if (r) {
+					argp_error(state, "PAN must consist of valid decimal digits");
+				}
+
+				break;
+			}
+
+			case DUKPT_TOOL_OPTION_PINBLOCK_FORMAT: {
+				// Parse arguments as PIN block format number
+				size_t arg_len = strlen(arg);
+				uint8_t value;
+
+				if (arg_len != 1) {
+					argp_error(state, "PIN block format number must be a single decimal digit");
+				}
+
+				r = parse_dec_str(arg, &value, &arg_len);
+				if (r) {
+					argp_error(state, "PIN block format number must be a single decimal digit");
+				}
+				pinblock_format = value;
+
+				break;
+			}
+
+			case DUKPT_TOOL_OPTION_ENCRYPT_PIN: {
+				// Parse arguments as PIN digits
+				size_t arg_len = strlen(arg);
+
+				buf_len = arg_len;
+				buf = malloc(buf_len);
+
+				r = parse_dec_str(arg, buf, &buf_len);
+				if (r) {
+					argp_error(state, "PIN must consist of valid decimal digits");
 				}
 
 				break;
@@ -264,6 +332,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			panblock_len = buf_len;
 			return 0;
 
+		case DUKPT_TOOL_OPTION_PAN:
+			pan = buf;
+			pan_len = buf_len;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_PINBLOCK_FORMAT:
+			return 0;
+
 		case DUKPT_TOOL_OPTION_IV:
 			iv = buf;
 			iv_len = buf_len;
@@ -295,6 +371,18 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			pinblock = buf;
 			pinblock_len = buf_len;
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_ENCRYPT_PIN:
+			pin = buf;
+			pin_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_ENCRYPT_PIN;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_DECRYPT_PIN:
+			pinblock = buf;
+			pinblock_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_PIN;
 			return 0;
 
 		case DUKPT_TOOL_OPTION_ENCRYPT_REQUEST:
@@ -359,8 +447,23 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES && panblock_len == 0) {
 					argp_error(state, "PIN block encrypt/decrypt using derivation mode (--mode) AES requires encoded PAN block (--panblock)");
 				}
+				if ((!bdk && !ik) || (bdk && ik)) {
+					argp_error(state, "PIN block encrypt/decrypt requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+				}
 				if (iv) {
 					argp_error(state, "Initial vector (--iv) is not allowed for PIN block encrypt/decrypt");
+				}
+			}
+
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_PIN || dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_PIN) {
+				if ((!bdk && !ik) || (bdk && ik)) {
+					argp_error(state, "PIN encrypt/decrypt requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+				}
+				if (iv) {
+					argp_error(state, "Initial vector (--iv) is not allowed for PIN encrypt/decrypt");
+				}
+				if (!pan) {
+					argp_error(state, "PIN encrypt/decrypt requires PAN (--pan)");
 				}
 			}
 
@@ -441,6 +544,90 @@ static void* read_file(FILE* file, size_t* len)
 
 	*len = total_len;
 	return buf;
+}
+
+// PAN string parser helper function
+static int parse_pan_str(const char* str, uint8_t* buf, size_t* buf_len)
+{
+	size_t max_buf_len;
+	size_t i;
+
+	if (!str || !buf || !buf_len) {
+		return -1;
+	}
+	max_buf_len = *buf_len;
+	*buf_len = 0;
+
+	// Pack digits, left justified
+	i = 0;
+	while (*str && max_buf_len) {
+		uint8_t nibble;
+
+		// Extract decimal character
+		if (isdigit(*str)) {
+			// Convert decimal character to nibble
+			nibble = *str - '0';
+			++str;
+		} else {
+			// Invalid character
+			return 1;
+		}
+
+		if ((i & 0x1) == 0) { // i is even
+			// Most significant nibble
+			*buf = nibble << 4;
+		} else { // i is odd
+			// Least significant nibble
+			*buf |= nibble & 0x0F;
+			++buf;
+			++*buf_len;
+		}
+
+		++i;
+	}
+
+	// If output buffer is not full, pad with trailing 'F's
+	if (max_buf_len > *buf_len) {
+		if ((i & 0x1) == 0x1) { // i is odd
+			// Pad least significant nibble
+			*buf |= 0x0F;
+			++buf;
+			++*buf_len;
+		}
+
+		while (max_buf_len > *buf_len) {
+			*buf = 0xFF;
+			++buf;
+			++*buf_len;
+		}
+	}
+
+	return 0;
+}
+
+// Decimal string parser helper function
+static int parse_dec_str(const char* str, uint8_t* buf, size_t* buf_len)
+{
+	size_t max_buf_len;
+
+	if (!buf_len) {
+		return -1;
+	}
+	max_buf_len = *buf_len;
+	*buf_len = 0;
+
+	while (*str && max_buf_len--) {
+		if (!isdigit(*str)) {
+			return -2;
+		}
+		*buf = *str - '0';
+
+		++str;
+		++buf;
+		++*buf_len;
+	}
+
+	return 0;
 }
 
 // Buffer output helper function
@@ -629,6 +816,88 @@ static int do_tdes_mode(void)
 			}
 
 			output_buf(decrypted_pinblock, sizeof(decrypted_pinblock));
+			return 0;
+		}
+
+		case DUKPT_TOOL_ACTION_ENCRYPT_PIN: {
+			uint8_t encrypted_pinblock[DUKPT_TDES_PINBLOCK_LEN];
+
+			// Validate PIN length
+			if (pin_len < 4 || pin_len > 12) {
+				fprintf(stderr, "TDES: PIN must be 4 to 12 digits\n");
+				return 1;
+			}
+
+			// Validate PAN length
+			if (pan_len < 5 || pan_len > 10) {
+				fprintf(stderr, "TDES: PAN must be 10 to 19 digits\n");
+				return 1;
+			}
+
+			// Validate PIN block format
+			if (pinblock_format != 0 && pinblock_format != 3) {
+				fprintf(stderr, "TDES: PIN block format must be 0 or 3\n");
+				return 1;
+			}
+
+			// Ensure that DUKPT transaction key is available
+			r = prepare_tdes_txn_key();
+			if (r) {
+				return 1;
+			}
+
+			// Do it
+			r = dukpt_tdes_encrypt_pin(
+				txn_key,
+				pinblock_format,
+				pin,
+				pin_len,
+				pan,
+				pan_len,
+				encrypted_pinblock
+			);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_encrypt_pin() failed; r=%d\n", r);
+				return 1;
+			}
+
+			output_buf(encrypted_pinblock, sizeof(encrypted_pinblock));
+			return 0;
+		}
+
+		case DUKPT_TOOL_ACTION_DECRYPT_PIN: {
+			// Validate PIN block length
+			if (pinblock_len != DUKPT_TDES_PINBLOCK_LEN) {
+				fprintf(stderr, "TDES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_PINBLOCK_LEN, DUKPT_TDES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// Validate PAN length
+			if (pan_len < 5 || pan_len > 10) {
+				fprintf(stderr, "TDES: PAN must be 10 to 19 digits\n");
+				return 1;
+			}
+
+			// Ensure that DUKPT transaction key is available
+			r = prepare_tdes_txn_key();
+			if (r) {
+				return 1;
+			}
+
+			// Do it
+			pin = malloc(12);
+			pin_len = 0;
+			r = dukpt_tdes_decrypt_pin(txn_key, pinblock, pan, pan_len, pin, &pin_len);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_decrypt_pinblock() failed; r=%d\n", r);
+				return 1;
+			}
+
+			for (size_t i = 0; i < pin_len; ++i) {
+				printf("%u", pin[i]);
+			}
+			printf("\n");
+
 			return 0;
 		}
 
@@ -988,6 +1257,16 @@ static int do_aes_mode(void)
 			return 0;
 		}
 
+		case DUKPT_TOOL_ACTION_ENCRYPT_PIN: {
+			fprintf(stderr, "AES: PIN encryption not yet implemented\n");
+			return -1;
+		}
+
+		case DUKPT_TOOL_ACTION_DECRYPT_PIN: {
+			fprintf(stderr, "AES: PIN decryption not yet implemented\n");
+			return -1;
+		}
+
 		case DUKPT_TOOL_ACTION_ENCRYPT_REQUEST:
 		case DUKPT_TOOL_ACTION_DECRYPT_REQUEST:
 		case DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE:
@@ -1149,6 +1428,16 @@ int main(int argc, char** argv)
 		free(txn_key);
 		txn_key = NULL;
 		txn_key_len = 0;
+	}
+	if (pan) {
+		free(pan);
+		pan = NULL;
+		pan_len = 0;
+	}
+	if (pin) {
+		free(pin);
+		pin = NULL;
+		pin_len = 0;
 	}
 	if (pinblock) {
 		free(pinblock);

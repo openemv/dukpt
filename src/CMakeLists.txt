@@ -431,6 +431,43 @@ if(DUKPT_IS_TOP_LEVEL AND BUILD_TESTING)
 			PASS_REGULAR_EXPRESSION "^041274EDCBA9876F"
 	)
 
+	add_test(NAME dukpt_tool_tdes_pin_test1
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00001 --pan 4012345678909 --pinblock-format 0 --encrypt-pin 1234
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test1
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^1B9C1845EB993A7A"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pin_test2
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00001 --pan 4012345678909 --decrypt-pin 1B9C1845EB993A7A
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test2
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^1234"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pin_test3
+		COMMAND dukpt-tool --ik 6AC292FAA1315B4D858AB3A3D7D5933A --ksn FFFF9876543210E00002 --pan 4012345678909 --encrypt-pin 1234
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test3
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^10A01C8D02C69107"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pin_test4
+		COMMAND dukpt-tool --ik 6AC292FAA1315B4D858AB3A3D7D5933A --ksn FFFF9876543210E00002 --pan 4012345678909 --decrypt-pin 10A01C8D02C69107
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test4
+		PROPERTIES
+			PASS_REGULAR_EXPRESSION "^1234"
+	)
+
+	add_test(NAME dukpt_tool_tdes_pin_test5
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00003 --pan 4012345678909 --pinblock-format 3 --encrypt-pin 1234
+		# NOTE: this test only check for pass/fail because PIN block format 3 results in an unpredictable encrypted PIN block
+	)
+
 	add_test(NAME dukpt_tool_aes128_pinblock_test1
 		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --key-type AES128 --panblock 44111111111111111000000000000000 --encrypt-pinblock 441234AAAAAAAAAA2F69ADDE2E9E7ACE
 	)
