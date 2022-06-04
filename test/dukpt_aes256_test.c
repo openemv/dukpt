@@ -21,6 +21,7 @@
 #include "dukpt_aes.h"
 
 #include "crypto_aes.h"
+#include "crypto_mem.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -38,8 +39,11 @@ static const uint8_t ik_verify[] = {
 };
 
 // ANSI X9.24-3:2017 Supplement Test Vectors for AES-128 BDK (Calculation of AES PIN Block Format 4; top of page 31)
-static const uint8_t pinblock[] = { 0x44, 0x12, 0x34, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x2F, 0x69, 0xAD, 0xDE, 0x2E, 0x9E, 0x7A, 0xCE };
-static const uint8_t panblock[] = { 0x44, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static const uint8_t pin[] = { 0x01, 0x02, 0x03, 0x04 };
+static const uint8_t pinfield[] = { 0x44, 0x12, 0x34, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x2F, 0x69, 0xAD, 0xDE, 0x2E, 0x9E, 0x7A, 0xCE };
+static const uint8_t pinfield_verify[] = { 0x44, 0x12, 0x34, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
+static const uint8_t pan[] = { 0x41, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11 };
+static const uint8_t panfield[] = { 0x44, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // Test data for MAC and encryption testing
 static const char txn_data[] = "4012345678909D987";
@@ -194,8 +198,9 @@ static int verify_pin_block4(
 	const void* pin_key,
 	size_t pin_key_len,
 	const void* encrypted_pinblock,
-	const uint8_t* pinblock,
-	const uint8_t* panblock
+	const uint8_t* pinfield_verify,
+	size_t pinfield_verify_len,
+	const uint8_t* panfield
 )
 {
 	int r;
@@ -214,9 +219,7 @@ static int verify_pin_block4(
 		return r;
 	}
 
-	for (unsigned int i = 0; i < DUKPT_AES_PINBLOCK_LEN; ++i) {
-		decrypted_pinblock[i] ^= panblock[i];
-	}
+	crypto_xor(decrypted_pinblock, panfield, DUKPT_AES_PINBLOCK_LEN);
 
 	r = crypto_aes_decrypt(
 		pin_key,
@@ -231,10 +234,10 @@ static int verify_pin_block4(
 		return r;
 	}
 
-	if (memcmp(decrypted_pinblock, pinblock, DUKPT_AES_PINBLOCK_LEN) != 0) {
+	if (memcmp(decrypted_pinblock, pinfield_verify, pinfield_verify_len) != 0) {
 		fprintf(stderr, "Decrypted PIN block is incorrect\n");
 		print_buf("decrypted_pinblock", decrypted_pinblock, DUKPT_AES_PINBLOCK_LEN);
-		print_buf("pinblock", pinblock, DUKPT_AES_PINBLOCK_LEN);
+		print_buf("pinfield_verify", pinfield_verify, pinfield_verify_len);
 		return 1;
 	}
 
@@ -276,6 +279,8 @@ int main(void)
 	uint8_t txn_key[DUKPT_AES_KEY_LEN(AES256)];
 	uint8_t encrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
 	uint8_t decrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
+	uint8_t decrypted_pin[12];
+	size_t decrypted_pin_len;
 	uint8_t cmac[DUKPT_AES_CMAC_LEN];
 	uint8_t hmac[DUKPT_AES_HMAC_SHA256_LEN];
 	uint8_t iv[DUKPT_AES_BLOCK_LEN];
@@ -333,13 +338,14 @@ int main(void)
 		}
 
 		// Test AES-128 PIN block encryption
+		memset(encrypted_pinblock, 0, sizeof(encrypted_pinblock));
 		r = dukpt_aes_encrypt_pinblock(
 			txn_key,
 			sizeof(txn_key),
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
-			pinblock,
-			panblock,
+			pinfield,
+			panfield,
 			encrypted_pinblock
 		);
 		if (r) {
@@ -350,8 +356,9 @@ int main(void)
 			pin_key_aes128_verify[i],
 			sizeof(pin_key_aes128_verify[i]),
 			encrypted_pinblock,
-			pinblock,
-			panblock
+			pinfield,
+			sizeof(pinfield),
+			panfield
 		);
 		if (r) {
 			fprintf(stderr, "verify_pin_block4() failed; r=%d\n", r);
@@ -359,35 +366,37 @@ int main(void)
 		}
 
 		// Test AES-128 PIN block decryption
+		memset(decrypted_pinblock, 0, sizeof(decrypted_pinblock));
 		r = dukpt_aes_decrypt_pinblock(
 			txn_key,
 			sizeof(txn_key),
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			encrypted_pinblock,
-			panblock,
+			panfield,
 			decrypted_pinblock
 		);
 		if (r) {
 			fprintf(stderr, "dukpt_aes_decrypt_pinblock() failed; r=%d\n", r);
 			goto exit;
 		}
-		if (memcmp(decrypted_pinblock, pinblock, sizeof(pinblock)) != 0) {
+		if (memcmp(decrypted_pinblock, pinfield, sizeof(pinfield)) != 0) {
 			fprintf(stderr, "Decrypted PIN block %zu is incorrect\n", i);
 			print_buf("decrypted_pinblock", decrypted_pinblock, sizeof(decrypted_pinblock));
-			print_buf("pinblock", pinblock, sizeof(pinblock));
+			print_buf("pinfield", pinfield, sizeof(pinfield));
 			r = 1;
 			goto exit;
 		}
 
 		// Test AES-256 PIN block encryption
+		memset(encrypted_pinblock, 0, sizeof(encrypted_pinblock));
 		r = dukpt_aes_encrypt_pinblock(
 			txn_key,
 			sizeof(txn_key),
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES256,
-			pinblock,
-			panblock,
+			pinfield,
+			panfield,
 			encrypted_pinblock
 		);
 		if (r) {
@@ -398,8 +407,9 @@ int main(void)
 			pin_key_aes256_verify[i],
 			sizeof(pin_key_aes256_verify[i]),
 			encrypted_pinblock,
-			pinblock,
-			panblock
+			pinfield,
+			sizeof(pinfield),
+			panfield
 		);
 		if (r) {
 			fprintf(stderr, "verify_pin_block4() failed; r=%d\n", r);
@@ -407,23 +417,146 @@ int main(void)
 		}
 
 		// Test AES-256 PIN block decryption
+		memset(decrypted_pinblock, 0, sizeof(decrypted_pinblock));
 		r = dukpt_aes_decrypt_pinblock(
 			txn_key,
 			sizeof(txn_key),
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES256,
 			encrypted_pinblock,
-			panblock,
+			panfield,
 			decrypted_pinblock
 		);
 		if (r) {
 			fprintf(stderr, "dukpt_aes_decrypt_pinblock() failed; r=%d\n", r);
 			goto exit;
 		}
-		if (memcmp(decrypted_pinblock, pinblock, sizeof(pinblock)) != 0) {
+		if (memcmp(decrypted_pinblock, pinfield, sizeof(pinfield)) != 0) {
 			fprintf(stderr, "Decrypted PIN block %zu is incorrect\n", i);
 			print_buf("decrypted_pinblock", decrypted_pinblock, sizeof(decrypted_pinblock));
-			print_buf("pinblock", pinblock, sizeof(pinblock));
+			print_buf("pinfield", pinfield, sizeof(pinfield));
+			r = 1;
+			goto exit;
+		}
+
+		// Test AES-128 PIN encryption
+		memset(encrypted_pinblock, 0, sizeof(encrypted_pinblock));
+		r = dukpt_aes_encrypt_pin(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			pin,
+			sizeof(pin),
+			pan,
+			sizeof(pan),
+			encrypted_pinblock
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_encrypt_pin() failed; r=%d\n", r);
+			goto exit;
+		}
+		r = verify_pin_block4(
+			pin_key_aes128_verify[i],
+			sizeof(pin_key_aes128_verify[i]),
+			encrypted_pinblock,
+			pinfield_verify,
+			sizeof(pinfield_verify),
+			panfield
+		);
+		if (r) {
+			fprintf(stderr, "verify_pin_block4() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test AES-128 PIN decryption
+		memset(decrypted_pin, 0, sizeof(decrypted_pin));
+		decrypted_pin_len = 0;
+		r = dukpt_aes_decrypt_pin(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES128,
+			encrypted_pinblock,
+			pan,
+			sizeof(pan),
+			decrypted_pin,
+			&decrypted_pin_len
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_decrypt_pin() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (decrypted_pin_len != sizeof(pin)) {
+			fprintf(stderr, "Decrypted PIN length of %zu is incorrect; expected %zu\n", decrypted_pin_len, sizeof(pin));
+			r = 1;
+			goto exit;
+		}
+		if (memcmp(decrypted_pin, pin, sizeof(pin)) != 0) {
+			fprintf(stderr, "Decrypted PIN %zu is incorrect\n", i);
+			print_buf("decrypted_pin", decrypted_pin, decrypted_pin_len);
+			print_buf("pin", pin, sizeof(pin));
+			r = 1;
+			goto exit;
+		}
+
+		// Test AES-256 PIN encryption
+		memset(encrypted_pinblock, 0, sizeof(encrypted_pinblock));
+		r = dukpt_aes_encrypt_pin(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES256,
+			pin,
+			sizeof(pin),
+			pan,
+			sizeof(pan),
+			encrypted_pinblock
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_encrypt_pin() failed; r=%d\n", r);
+			goto exit;
+		}
+		r = verify_pin_block4(
+			pin_key_aes256_verify[i],
+			sizeof(pin_key_aes256_verify[i]),
+			encrypted_pinblock,
+			pinfield_verify,
+			sizeof(pinfield_verify),
+			panfield
+		);
+		if (r) {
+			fprintf(stderr, "verify_pin_block4() failed; r=%d\n", r);
+			goto exit;
+		}
+
+		// Test AES-256 PIN decryption
+		memset(decrypted_pin, 0, sizeof(decrypted_pin));
+		decrypted_pin_len = 0;
+		r = dukpt_aes_decrypt_pin(
+			txn_key,
+			sizeof(txn_key),
+			ksn,
+			DUKPT_AES_KEY_TYPE_AES256,
+			encrypted_pinblock,
+			pan,
+			sizeof(pan),
+			decrypted_pin,
+			&decrypted_pin_len
+		);
+		if (r) {
+			fprintf(stderr, "dukpt_aes_decrypt_pin() failed; r=%d\n", r);
+			goto exit;
+		}
+		if (decrypted_pin_len != sizeof(pin)) {
+			fprintf(stderr, "Decrypted PIN length of %zu is incorrect; expected %zu\n", decrypted_pin_len, sizeof(pin));
+			r = 1;
+			goto exit;
+		}
+		if (memcmp(decrypted_pin, pin, sizeof(pin)) != 0) {
+			fprintf(stderr, "Decrypted PIN %zu is incorrect\n", i);
+			print_buf("decrypted_pin", decrypted_pin, decrypted_pin_len);
+			print_buf("pin", pin, sizeof(pin));
 			r = 1;
 			goto exit;
 		}
