@@ -42,7 +42,7 @@ static enum dukpt_aes_key_type_t key_type;
 static bool key_type_valid = false;
 static void* pan = NULL;
 static size_t pan_len = 0;
-static unsigned int pinblock_format = 0;
+static int pinblock_format = -1;
 static uint8_t* pin = NULL;
 static size_t pin_len = 0;
 static void* pinblock = NULL;
@@ -139,7 +139,7 @@ static struct argp_option argp_options[] = {
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "HEX", 0, "Key Serial Number (KSN)" },
 	{ "panblock", DUKPT_TOOL_OPTION_PANBLOCK, "HEX", 0, "Encoded PAN block used for AES PIN block encryption/decryption." },
 	{ "pan", DUKPT_TOOL_OPTION_PAN, "PAN", 0, "PAN used for PIN block encryption/decryption." },
-	{ "pinblock-format", DUKPT_TOOL_OPTION_PINBLOCK_FORMAT, "0|1|3", 0, "ISO 9564-1:2017 PIN block format used for PIN encryption" },
+	{ "pinblock-format", DUKPT_TOOL_OPTION_PINBLOCK_FORMAT, "0|1|3|4", 0, "ISO 9564-1:2017 PIN block format used for PIN encryption. Default is 0 for TDES mode and 4 for AES mode" },
 	{ "iv", DUKPT_TOOL_OPTION_IV, "HEX", 0, "Initial vector used for encryption/decryption. Default is a zero buffer." },
 
 	{ NULL, 0, NULL, 0, "Actions:", 4 },
@@ -464,6 +464,16 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				}
 				if (!pan) {
 					argp_error(state, "PIN encrypt/decrypt requires PAN (--pan)");
+				}
+
+				// Set default PIN block format according to mode
+				if (pinblock_format == -1) {
+					if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES) {
+						pinblock_format = 0;
+					}
+					if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES) {
+						pinblock_format = 4;
+					}
 				}
 			}
 
@@ -1258,13 +1268,97 @@ static int do_aes_mode(void)
 		}
 
 		case DUKPT_TOOL_ACTION_ENCRYPT_PIN: {
-			fprintf(stderr, "AES: PIN encryption not yet implemented\n");
-			return -1;
+			uint8_t encrypted_pinblock[DUKPT_AES_PINBLOCK_LEN];
+
+			// Validate PIN length
+			if (pin_len < 4 || pin_len > 12) {
+				fprintf(stderr, "AES: PIN must be 4 to 12 digits\n");
+				return 1;
+			}
+
+			// Validate PAN length
+			if (pan_len < 5 || pan_len > 10) {
+				fprintf(stderr, "AES: PAN must be 10 to 19 digits\n");
+				return 1;
+			}
+
+			// Validate PIN block format
+			if (pinblock_format != 4) {
+				fprintf(stderr, "AES: PIN block format must be 4 (or omitted)\n");
+				return 1;
+			}
+
+			// Ensure that DUKPT transaction key is available
+			r = prepare_aes_txn_key();
+			if (r) {
+				return 1;
+			}
+
+			// Do it
+			r = dukpt_aes_encrypt_pin(
+				txn_key,
+				txn_key_len,
+				ksn,
+				key_type,
+				pin,
+				pin_len,
+				pan,
+				pan_len,
+				encrypted_pinblock
+			);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_encrypt_pin() failed; r=%d\n", r);
+				return 1;
+			}
+
+			output_buf(encrypted_pinblock, sizeof(encrypted_pinblock));
+			return 0;
 		}
 
 		case DUKPT_TOOL_ACTION_DECRYPT_PIN: {
-			fprintf(stderr, "AES: PIN decryption not yet implemented\n");
-			return -1;
+			// Validate PIN block length
+			if (pinblock_len != DUKPT_AES_PINBLOCK_LEN) {
+				fprintf(stderr, "AES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
+				return 1;
+			}
+
+			// Validate PAN length
+			if (pan_len < 5 || pan_len > 10) {
+				fprintf(stderr, "AES: PAN must be 10 to 19 digits\n");
+				return 1;
+			}
+
+			// Ensure that DUKPT transaction key is available
+			r = prepare_aes_txn_key();
+			if (r) {
+				return 1;
+			}
+
+			// Do it
+			pin = malloc(12);
+			pin_len = 0;
+			r = dukpt_aes_decrypt_pin(
+				txn_key,
+				txn_key_len,
+				ksn,
+				key_type,
+				pinblock,
+				pan,
+				pan_len,
+				pin,
+				&pin_len
+			);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_decrypt_pin() failed; r=%d\n", r);
+				return 1;
+			}
+
+			for (size_t i = 0; i < pin_len; ++i) {
+				printf("%u", pin[i]);
+			}
+			printf("\n");
+
+			return 0;
 		}
 
 		case DUKPT_TOOL_ACTION_ENCRYPT_REQUEST:
