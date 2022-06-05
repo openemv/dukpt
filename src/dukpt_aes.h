@@ -80,13 +80,14 @@ enum dukpt_aes_key_bits_t {
 
 /**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Initial Key ID.
+ *
  * @note This function should only be used by the receiving or key generating
  *       Secure Cryptographic Device (SCD)
  *
  * @param bdk Base Derivative Key
  * @param bdk_len Length of Base Derivation Key in bytes
  * @param ikid Initial Key ID of length @ref DUKPT_AES_IK_ID_LEN
- * @param ik Initial DUKPT key output of length @c bdk_len
+ * @param ik Initial DUKPT key output of length @p bdk_len
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for invalid/unsupported parameters.
  */
@@ -99,13 +100,14 @@ int dukpt_aes_derive_ik(
 
 /**
  * Derive DUKPT transaction key from Initial Key (IK) and Key Serial Number (KSN)
+ *
  * @note This function should only be used by the receiving
  *       Secure Cryptographic Device (SCD)
  *
  * @param ik Initial Key
  * @param ik_len Length of Initial Key in bytes
  * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
- * @param txn_key DUKPT transaction key output of length @c ik_len
+ * @param txn_key DUKPT transaction key output of length @p ik_len
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for invalid/unsupported parameters.
  */
@@ -140,6 +142,7 @@ bool dukpt_aes_ksn_is_exhausted(const uint8_t* ksn);
 
 /**
  * Derive DUKPT update key from Initial Key (IK) and Key Initial Key ID
+ *
  * @note This function should only be used by the receiving or key generating
  *       Secure Cryptographic Device (SCD)
  *
@@ -162,6 +165,7 @@ int dukpt_aes_derive_update_key(
 /**
  * Encrypt PIN block using DUKPT transaction key. This functions only supports
  * ISO 9564-1:2017 PIN block format 4. See ISO 9564-1:2017 9.4.2.
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -193,6 +197,7 @@ int dukpt_aes_encrypt_pinblock(
 /**
  * Decrypt PIN block using DUKPT transaction key. This function only supports
  * ISO 9564-1:2017 PIN block format 4. See ISO 9564-1:2017 9.4.2.
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -224,6 +229,7 @@ int dukpt_aes_decrypt_pinblock(
 /**
  * Encrypt PIN using DUKPT transaction key. This functions only supports
  * ISO 9564-1:2017 PIN block format 4. See ISO 9564-1:2017 9.4.2.
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -257,6 +263,7 @@ int dukpt_aes_encrypt_pin(
 /**
  * Decrypt PIN block using DUKPT transaction key. This function only supports
  * ISO 9564-1:2017 PIN block format 4. See ISO 9564-1:2017 9.4.2.
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -289,6 +296,7 @@ int dukpt_aes_decrypt_pin(
 
 /**
  * Generate AES-CMAC for transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -314,6 +322,7 @@ int dukpt_aes_generate_request_cmac(
 
 /**
  * Verify AES-CMAC for transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -340,6 +349,7 @@ int dukpt_aes_verify_request_cmac(
 
 /**
  * Generate AES-CMAC for transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -365,6 +375,7 @@ int dukpt_aes_generate_response_cmac(
 
 /**
  * Verify AES-CMAC for transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -391,6 +402,7 @@ int dukpt_aes_verify_response_cmac(
 
 /**
  * Generate HMAC-SHA256 for transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -416,6 +428,7 @@ int dukpt_aes_generate_request_hmac_sha256(
 
 /**
  * Verify HMAC-SHA256 for transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -442,6 +455,7 @@ int dukpt_aes_verify_request_hmac_sha256(
 
 /**
  * Generate HMAC-SHA256 for transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -467,6 +481,7 @@ int dukpt_aes_generate_response_hmac_sha256(
 
 /**
  * Verify HMAC-SHA256 for transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -493,6 +508,7 @@ int dukpt_aes_verify_response_hmac_sha256(
 
 /**
  * Encrypt transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -503,7 +519,7 @@ int dukpt_aes_verify_response_hmac_sha256(
  * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
  * @param buf Transaction request data
  * @param buf_len Length of transaction request data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
- * @param ciphertext Encrypted transaction request of length @c buf_len
+ * @param ciphertext Encrypted transaction request of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_aes_encrypt_request(
@@ -519,6 +535,7 @@ int dukpt_aes_encrypt_request(
 
 /**
  * Decrypt transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -529,7 +546,7 @@ int dukpt_aes_encrypt_request(
  * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
  * @param buf Encrypted transaction request data
  * @param buf_len Length of encrypted transaction request data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
- * @param plaintext Decrypted transaction request of length @c buf_len
+ * @param plaintext Decrypted transaction request of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_aes_decrypt_request(
@@ -545,6 +562,7 @@ int dukpt_aes_decrypt_request(
 
 /**
  * Encrypt transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Secure Cryptographic Device (SCD)
  *
@@ -555,7 +573,7 @@ int dukpt_aes_decrypt_request(
  * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
  * @param buf Transaction response data
  * @param buf_len Length of transaction response data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
- * @param ciphertext Encrypted transaction response of length @c buf_len
+ * @param ciphertext Encrypted transaction response of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_aes_encrypt_response(
@@ -571,6 +589,7 @@ int dukpt_aes_encrypt_response(
 
 /**
  * Decrypt transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Secure Cryptographic Device (SCD)
  *
@@ -581,7 +600,7 @@ int dukpt_aes_encrypt_response(
  * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
  * @param buf Encrypted transaction response data
  * @param buf_len Length of encrypted transaction response data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
- * @param plaintext Decrypted transaction response of length @c buf_len
+ * @param plaintext Decrypted transaction response of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_aes_decrypt_response(

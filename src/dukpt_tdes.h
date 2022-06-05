@@ -40,6 +40,7 @@ __BEGIN_DECLS
 
 /**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
+ *
  * @note This function should only be used by the receiving or key generating
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -52,6 +53,7 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik);
 
 /**
  * Derive DUKPT transaction key from Initial Key (IK) and Key Serial Number (KSN)
+ *
  * @note This function should only be used by the transaction receiving
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -86,6 +88,7 @@ bool dukpt_tdes_ksn_is_exhausted(const uint8_t* ksn);
 
 /**
  * Encrypt PIN block using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -102,6 +105,7 @@ int dukpt_tdes_encrypt_pinblock(
 
 /**
  * Decrypt PIN block using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -118,6 +122,7 @@ int dukpt_tdes_decrypt_pinblock(
 
 /**
  * Encrypt PIN using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -147,6 +152,7 @@ int dukpt_tdes_encrypt_pin(
 
 /**
  * Decrypt PIN block using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -174,6 +180,7 @@ int dukpt_tdes_decrypt_pin(
 /**
  * Generate ANSI X9.19 Retail MAC for transaction request using DUKPT
  * transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -194,6 +201,7 @@ int dukpt_tdes_generate_request_mac(
 /**
  * Verify ANSI X9.19 Retail MAC for transaction request using DUKPT
  * transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -214,6 +222,7 @@ int dukpt_tdes_verify_request_mac(
 /**
  * Generate ANSI X9.19 Retail MAC for transaction response using DUKPT
  * transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -234,6 +243,7 @@ int dukpt_tdes_generate_response_mac(
 /**
  * Verify ANSI X9.19 Retail MAC for transaction response using DUKPT
  * transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -253,6 +263,7 @@ int dukpt_tdes_verify_response_mac(
 
 /**
  * Encrypt transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -260,7 +271,7 @@ int dukpt_tdes_verify_response_mac(
  * @param iv Initial vector of length @ref DUKPT_TDES_BLOCK_LEN
  * @param buf Transaction request data
  * @param buf_len Length of transaction request data in bytes. Must be a multiple of @ref DUKPT_TDES_BLOCK_LEN
- * @param ciphertext Encrypted transaction request of length @c buf_len
+ * @param ciphertext Encrypted transaction request of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_tdes_encrypt_request(
@@ -273,6 +284,7 @@ int dukpt_tdes_encrypt_request(
 
 /**
  * Decrypt transaction request using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -280,7 +292,7 @@ int dukpt_tdes_encrypt_request(
  * @param iv Initial vector of length @ref DUKPT_TDES_BLOCK_LEN
  * @param buf Encrypted transaction request data
  * @param buf_len Length of encrypted transaction request data in bytes. Must be a multiple of @ref DUKPT_TDES_BLOCK_LEN
- * @param plaintext Decrypted transaction request of length @c buf_len
+ * @param plaintext Decrypted transaction request of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_tdes_decrypt_request(
@@ -293,6 +305,7 @@ int dukpt_tdes_decrypt_request(
 
 /**
  * Encrypt transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction receiving
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -300,7 +313,7 @@ int dukpt_tdes_decrypt_request(
  * @param iv Initial vector of length @ref DUKPT_TDES_BLOCK_LEN
  * @param buf Transaction response data
  * @param buf_len Length of transaction response data in bytes. Must be a multiple of @ref DUKPT_TDES_BLOCK_LEN
- * @param ciphertext Encrypted transaction response of length @c buf_len
+ * @param ciphertext Encrypted transaction response of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_tdes_encrypt_response(
@@ -313,6 +326,7 @@ int dukpt_tdes_encrypt_response(
 
 /**
  * Decrypt transaction response using DUKPT transaction key
+ *
  * @note This function should only be used by the transaction originating
  *       Tamper-Resistant Security Module (TRSM)
  *
@@ -320,7 +334,7 @@ int dukpt_tdes_encrypt_response(
  * @param iv Initial vector of length @ref DUKPT_TDES_BLOCK_LEN
  * @param buf Encrypted transaction response data
  * @param buf_len Length of encrypted transaction response data in bytes. Must be a multiple of @ref DUKPT_TDES_BLOCK_LEN
- * @param plaintext Decrypted transaction response of length @c buf_len
+ * @param plaintext Decrypted transaction response of length @p buf_len
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_tdes_decrypt_response(
