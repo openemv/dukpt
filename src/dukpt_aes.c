@@ -674,8 +674,9 @@ int dukpt_aes_encrypt_pinblock(
 	size_t txn_key_len,
 	const uint8_t* ksn,
 	enum dukpt_aes_key_type_t key_type,
-	const uint8_t* pinblock,
-	const uint8_t* panblock,
+	const uint8_t* pinfield,
+	const uint8_t* pan,
+	size_t pan_len,
 	void* ciphertext
 )
 {
@@ -684,7 +685,7 @@ int dukpt_aes_encrypt_pinblock(
 	struct dukpt_aes_derivation_data_t derivation_data;
 	uint8_t pin_key[DUKPT_AES_KEY_LEN(AES256)];
 	size_t pin_key_len;
-	uint8_t* ciphertext_buf = ciphertext;
+	uint8_t panfield[DUKPT_AES_PINBLOCK_LEN];
 
 	// Determine length of PIN key
 	// This function only supports AES PIN keys
@@ -721,16 +722,27 @@ int dukpt_aes_encrypt_pinblock(
 		goto error;
 	}
 
+	// Encode PAN field
+	r = pinblock_encode_iso9564_format4_panfield(
+		pan,
+		pan_len,
+		panfield
+	);
+	if (r) {
+		// PAN field encoding failed
+		goto error;
+	}
+
 	// Encrypt PIN block
 	// See ISO 9564-1:2017 9.4.2.3
-	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, pinfield, DUKPT_AES_PINBLOCK_LEN, ciphertext);
 	if (r) {
 		goto error;
 	}
 
-	crypto_xor(ciphertext_buf, panblock, DUKPT_AES_PINBLOCK_LEN);
+	crypto_xor(ciphertext, panfield, DUKPT_AES_PINBLOCK_LEN);
 
-	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, ciphertext_buf, DUKPT_AES_PINBLOCK_LEN, ciphertext_buf);
+	r = crypto_aes_encrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, ciphertext);
 	if (r) {
 		goto error;
 	}
@@ -743,6 +755,7 @@ error:
 	crypto_cleanse(ciphertext, DUKPT_AES_PINBLOCK_LEN);
 exit:
 	crypto_cleanse(pin_key, sizeof(pin_key));
+	crypto_cleanse(panfield, sizeof(panfield));
 
 	return r;
 }
@@ -753,8 +766,9 @@ int dukpt_aes_decrypt_pinblock(
 	const uint8_t* ksn,
 	enum dukpt_aes_key_type_t key_type,
 	const void* ciphertext,
-	const uint8_t* panblock,
-	uint8_t* pinblock
+	const uint8_t* pan,
+	size_t pan_len,
+	uint8_t* pinfield
 )
 {
 	int r;
@@ -762,6 +776,7 @@ int dukpt_aes_decrypt_pinblock(
 	struct dukpt_aes_derivation_data_t derivation_data;
 	uint8_t pin_key[DUKPT_AES_KEY_LEN(AES256)];
 	size_t pin_key_len;
+	uint8_t panfield[DUKPT_AES_PINBLOCK_LEN];
 
 	// Determine length of PIN key
 	// This function only supports AES PIN keys
@@ -798,18 +813,27 @@ int dukpt_aes_decrypt_pinblock(
 		goto error;
 	}
 
+	// Encode PAN field
+	r = pinblock_encode_iso9564_format4_panfield(
+		pan,
+		pan_len,
+		panfield
+	);
+	if (r) {
+		// PAN field encoding failed
+		goto error;
+	}
+
 	// Decrypt PIN block
 	// See ISO 9564-1:2017 9.4.2.4
-	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, ciphertext, DUKPT_AES_PINBLOCK_LEN, pinfield);
 	if (r) {
 		goto error;
 	}
 
-	for (unsigned int i = 0; i < DUKPT_AES_PINBLOCK_LEN; ++i) {
-		pinblock[i] ^= panblock[i];
-	}
+	crypto_xor(pinfield, panfield, DUKPT_AES_PINBLOCK_LEN);
 
-	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, pinblock, DUKPT_AES_PINBLOCK_LEN, pinblock);
+	r = crypto_aes_decrypt(pin_key, pin_key_len, NULL, pinfield, DUKPT_AES_PINBLOCK_LEN, pinfield);
 	if (r) {
 		goto error;
 	}
@@ -819,9 +843,10 @@ int dukpt_aes_decrypt_pinblock(
 	goto exit;
 
 error:
-	crypto_cleanse(pinblock, DUKPT_AES_PINBLOCK_LEN);
+	crypto_cleanse(pinfield, DUKPT_AES_PINBLOCK_LEN);
 exit:
 	crypto_cleanse(pin_key, sizeof(pin_key));
+	crypto_cleanse(panfield, sizeof(panfield));
 
 	return r;
 }
@@ -840,7 +865,6 @@ int dukpt_aes_encrypt_pin(
 {
 	int r;
 	uint8_t pinfield[DUKPT_AES_PINBLOCK_LEN];
-	uint8_t panfield[DUKPT_AES_PINBLOCK_LEN];
 
 	// Encode PIN field
 	r = pinblock_encode_iso9564_format4_pinfield(
@@ -854,18 +878,6 @@ int dukpt_aes_encrypt_pin(
 		goto error;
 	}
 
-	// Encode PAN field
-	r = pinblock_encode_iso9564_format4_panfield(
-		pan,
-		pan_len,
-		panfield
-	);
-	if (r) {
-		// PAN field encoding failed
-		r = 2;
-		goto error;
-	}
-
 	// Encrypt PIN block
 	r = dukpt_aes_encrypt_pinblock(
 		txn_key,
@@ -873,7 +885,8 @@ int dukpt_aes_encrypt_pin(
 		ksn,
 		key_type,
 		pinfield,
-		panfield,
+		pan,
+		pan_len,
 		ciphertext
 	);
 	if (r) {
@@ -888,7 +901,6 @@ error:
 	crypto_cleanse(ciphertext, DUKPT_AES_PINBLOCK_LEN);
 exit:
 	crypto_cleanse(pinfield, sizeof(pinfield));
-	crypto_cleanse(panfield, sizeof(panfield));
 
 	return r;
 }
@@ -906,20 +918,7 @@ int dukpt_aes_decrypt_pin(
 )
 {
 	int r;
-	uint8_t panfield[DUKPT_AES_PINBLOCK_LEN];
 	uint8_t pinfield[DUKPT_AES_PINBLOCK_LEN];
-
-	// Encode PAN field
-	r = pinblock_encode_iso9564_format4_panfield(
-		pan,
-		pan_len,
-		panfield
-	);
-	if (r) {
-		// PAN field encoding failed
-		r = 1;
-		goto error;
-	}
 
 	// Decrypt PIN block
 	r = dukpt_aes_decrypt_pinblock(
@@ -928,7 +927,8 @@ int dukpt_aes_decrypt_pin(
 		ksn,
 		key_type,
 		ciphertext,
-		panfield,
+		pan,
+		pan_len,
 		pinfield
 	);
 	if (r) {
@@ -953,7 +953,6 @@ int dukpt_aes_decrypt_pin(
 error:
 	*pin_len = 0;
 exit:
-	crypto_cleanse(panfield, sizeof(panfield));
 	crypto_cleanse(pinfield, sizeof(pinfield));
 
 	return r;

@@ -309,7 +309,8 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			pinfield,
-			panfield,
+			pan,
+			sizeof(pan),
 			encrypted_pinblock
 		);
 		if (r) {
@@ -332,7 +333,8 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			encrypted_pinblock,
-			panfield,
+			pan,
+			sizeof(pan),
 			decrypted_pinblock
 		);
 		if (r) {

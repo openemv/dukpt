@@ -169,8 +169,12 @@ int dukpt_aes_derive_update_key(
  * @param txn_key_len Length of DUKPT transaction key in bytes
  * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
  * @param key_type Key type of PIN key
- * @param pinblock Encoded PIN block of length @ref DUKPT_AES_PINBLOCK_LEN
- * @param panblock Encoded PAN block of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @param pinfield Encoded PIN field of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @param pan PAN buffer in compressed numeric format (EMV format "cn";
+ *            nibble-per-digit; left justified; padded with trailing 0xF
+ *            nibbles). This is the same format as EMV field @c 5A which
+ *            typically contains the application PAN.
+ * @param pan_len Length of PAN buffer in bytes
  * @param ciphertext Encrypted PIN block output of length @ref DUKPT_AES_PINBLOCK_LEN
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for invalid/unsupported parameters.
@@ -180,8 +184,9 @@ int dukpt_aes_encrypt_pinblock(
 	size_t txn_key_len,
 	const uint8_t* ksn,
 	enum dukpt_aes_key_type_t key_type,
-	const uint8_t* pinblock,
-	const uint8_t* panblock,
+	const uint8_t* pinfield,
+	const uint8_t* pan,
+	size_t pan_len,
 	void* ciphertext
 );
 
@@ -196,8 +201,12 @@ int dukpt_aes_encrypt_pinblock(
  * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
  * @param key_type Key type of PIN key
  * @param ciphertext Encrypted PIN block of length @ref DUKPT_AES_PINBLOCK_LEN
- * @param panblock Encoded PAN block of length @ref DUKPT_AES_PINBLOCK_LEN
- * @param pinblock Encoded PIN block output of length @ref DUKPT_AES_PINBLOCK_LEN
+ * @param pan PAN buffer in compressed numeric format (EMV format "cn";
+ *            nibble-per-digit; left justified; padded with trailing 0xF
+ *            nibbles). This is the same format as EMV field @c 5A which
+ *            typically contains the application PAN.
+ * @param pan_len Length of PAN buffer in bytes
+ * @param pinfield Encoded PIN field output of length @ref DUKPT_AES_PINBLOCK_LEN
  * @return Zero for success. Less than zero for internal error.
  *         Greater than zero for invalid/unsupported parameters.
  */
@@ -207,8 +216,9 @@ int dukpt_aes_decrypt_pinblock(
 	const uint8_t* ksn,
 	enum dukpt_aes_key_type_t key_type,
 	const void* ciphertext,
-	const uint8_t* panblock,
-	uint8_t* pinblock
+	const uint8_t* pan,
+	size_t pan_len,
+	uint8_t* pinfield
 );
 
 /**

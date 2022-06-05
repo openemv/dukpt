@@ -47,8 +47,6 @@ static uint8_t* pin = NULL;
 static size_t pin_len = 0;
 static void* pinblock = NULL;
 static size_t pinblock_len = 0;
-static void* panblock = NULL;
-static size_t panblock_len = 0;
 static void* txn_data = NULL;
 static size_t txn_data_len = 0;
 static void* iv = NULL;
@@ -101,7 +99,6 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_BDK,
 	DUKPT_TOOL_OPTION_IK,
 	DUKPT_TOOL_OPTION_KSN,
-	DUKPT_TOOL_OPTION_PANBLOCK,
 	DUKPT_TOOL_OPTION_PAN,
 	DUKPT_TOOL_OPTION_PINBLOCK_FORMAT,
 	DUKPT_TOOL_OPTION_IV,
@@ -137,7 +134,6 @@ static struct argp_option argp_options[] = {
 	{ "ik", DUKPT_TOOL_OPTION_IK, "KEY", 0, "Initial Key (IK)" },
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "HEX", 0, "Key Serial Number (KSN)" },
-	{ "panblock", DUKPT_TOOL_OPTION_PANBLOCK, "HEX", 0, "Encoded PAN block used for AES PIN block encryption/decryption." },
 	{ "pan", DUKPT_TOOL_OPTION_PAN, "PAN", 0, "PAN used for PIN block encryption/decryption." },
 	{ "pinblock-format", DUKPT_TOOL_OPTION_PINBLOCK_FORMAT, "0|1|3|4", 0, "ISO 9564-1:2017 PIN block format used for PIN encryption. Default is 0 for TDES mode and 4 for AES mode" },
 	{ "iv", DUKPT_TOOL_OPTION_IV, "HEX", 0, "Initial vector used for encryption/decryption. Default is a zero buffer." },
@@ -214,7 +210,6 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			case DUKPT_TOOL_OPTION_BDK:
 			case DUKPT_TOOL_OPTION_IK:
 			case DUKPT_TOOL_OPTION_KSN:
-			case DUKPT_TOOL_OPTION_PANBLOCK:
 			case DUKPT_TOOL_OPTION_IV: {
 				// Parse arguments as hex data
 				size_t arg_len = strlen(arg);
@@ -327,11 +322,6 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			ksn_len = buf_len;
 			return 0;
 
-		case DUKPT_TOOL_OPTION_PANBLOCK:
-			panblock = buf;
-			panblock_len = buf_len;
-			return 0;
-
 		case DUKPT_TOOL_OPTION_PAN:
 			pan = buf;
 			pan_len = buf_len;
@@ -441,17 +431,17 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			}
 
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK || dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK) {
-				if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES && panblock_len != 0) {
-					argp_error(state, "PIN block encrypt/decrypt using derivation mode (--mode) TDES assume PAN block is already encoded in PIN block and should not be specified separately");
-				}
-				if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES && panblock_len == 0) {
-					argp_error(state, "PIN block encrypt/decrypt using derivation mode (--mode) AES requires encoded PAN block (--panblock)");
-				}
 				if ((!bdk && !ik) || (bdk && ik)) {
 					argp_error(state, "PIN block encrypt/decrypt requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
 				}
 				if (iv) {
 					argp_error(state, "Initial vector (--iv) is not allowed for PIN block encrypt/decrypt");
+				}
+				if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES && pan) {
+					argp_error(state, "TDES: PIN block encrypt/decrypt ignores PAN (--pan)");
+				}
+				if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES && !pan) {
+					argp_error(state, "AES: PIN block encrypt/decrypt requires PAN (--pan)");
 				}
 			}
 
@@ -1196,9 +1186,9 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			// Validate PAN block length
-			if (panblock_len != DUKPT_AES_PINBLOCK_LEN) {
-				fprintf(stderr, "AES: PAN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
+			// Validate PAN length
+			if (pan_len < 5 || pan_len > 10) {
+				fprintf(stderr, "AES: PAN must be 10 to 19 digits\n");
 				return 1;
 			}
 
@@ -1215,7 +1205,8 @@ static int do_aes_mode(void)
 				ksn,
 				key_type,
 				pinblock,
-				panblock,
+				pan,
+				pan_len,
 				encrypted_pinblock
 			);
 			if (r) {
@@ -1236,9 +1227,9 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
-			// Validate PAN block length
-			if (panblock_len != DUKPT_AES_PINBLOCK_LEN) {
-				fprintf(stderr, "AES: PAN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2);
+			// Validate PAN length
+			if (pan_len < 5 || pan_len > 10) {
+				fprintf(stderr, "AES: PAN must be 10 to 19 digits\n");
 				return 1;
 			}
 
@@ -1255,7 +1246,8 @@ static int do_aes_mode(void)
 				ksn,
 				key_type,
 				pinblock,
-				panblock,
+				pan,
+				pan_len,
 				decrypted_pinblock
 			);
 			if (r) {
@@ -1537,11 +1529,6 @@ int main(int argc, char** argv)
 		free(pinblock);
 		pinblock = NULL;
 		pinblock_len = 0;
-	}
-	if (panblock) {
-		free(panblock);
-		panblock = NULL;
-		panblock_len = 0;
 	}
 
 	if (txn_data) {
