@@ -11,6 +11,12 @@ cmake_minimum_required(VERSION 3.16)
 include(CheckCSourceCompiles)
 check_c_source_compiles("int main(void) { return __builtin_popcount(42); }" HAS_BUILTIN_POPCOUNT)
 
+# Check for argp
+find_package(argp)
+if(NOT argp_FOUND)
+	message(FATAL_ERROR "Could NOT find argp on target system.")
+endif()
+
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # Generate config file for internal use only
@@ -52,6 +58,9 @@ target_link_libraries(dukpt_aes PRIVATE crypto_aes crypto_hmac crypto_mem crypto
 
 # DUKPT command line tool
 add_executable(dukpt-tool dukpt-tool.c)
+if(TARGET libargp::argp)
+	target_link_libraries(dukpt-tool PRIVATE libargp::argp)
+endif()
 target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
 
 install(
