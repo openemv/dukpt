@@ -11,10 +11,18 @@ cmake_minimum_required(VERSION 3.16)
 include(CheckCSourceCompiles)
 check_c_source_compiles("int main(void) { return __builtin_popcount(42); }" HAS_BUILTIN_POPCOUNT)
 
-# Check for argp
-find_package(argp)
+# Check for argp or allow the FETCH_ARGP option to download and build a local
+# copy of libargp for monolithic builds on platforms without package managers
+# like MacOS and Windows.
+option(FETCH_ARGP "Download and build libargp")
+if(FETCH_ARGP)
+	set(ARGP_OSX_ARCHITECTURES ${CMAKE_OSX_ARCHITECTURES})
+	include(FetchLibArgp)
+else()
+	find_package(argp)
+endif()
 if(NOT argp_FOUND)
-	message(FATAL_ERROR "Could NOT find argp on target system.")
+	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build libargp.")
 endif()
 
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
