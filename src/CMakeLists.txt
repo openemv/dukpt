@@ -11,6 +11,20 @@ cmake_minimum_required(VERSION 3.16)
 include(CheckCSourceCompiles)
 check_c_source_compiles("int main(void) { return __builtin_popcount(42); }" HAS_BUILTIN_POPCOUNT)
 
+# Check for headers that provide ntohs/htons and friends
+include(CheckIncludeFile)
+CHECK_INCLUDE_FILE(
+	arpa/inet.h
+	HAVE_ARPA_INET_H
+)
+CHECK_INCLUDE_FILE(
+	winsock.h
+	HAVE_WINSOCK_H
+)
+if(NOT HAVE_ARPA_INET_H AND NOT HAVE_WINSOCK_H)
+	message(FATAL_ERROR "Failed to find either arpa/inet.h or winsock.h")
+endif()
+
 # Check for argp or allow the FETCH_ARGP option to download and build a local
 # copy of libargp for monolithic builds on platforms without package managers
 # like MacOS and Windows.

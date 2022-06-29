@@ -23,5 +23,7 @@
 
 #define DUKPT_LIB_VERSION_STRING "@CMAKE_PROJECT_VERSION@"
 #cmakedefine HAS_BUILTIN_POPCOUNT
+#cmakedefine HAVE_ARPA_INET_H
+#cmakedefine HAVE_WINSOCK_H
 
 #endif

@@ -33,7 +33,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#if defined(HAVE_ARPA_INET_H)
 #include <arpa/inet.h> // for htons and friends
+#elif defined(HAVE_WINSOCK_H)
+#include <winsock.h>
+#endif
 
 // Derivation data version ID for AES DUKPT
 // See ANSI X9.24-3:2017 6.3.2 table 2 and table 3
