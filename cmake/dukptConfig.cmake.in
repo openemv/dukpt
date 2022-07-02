@@ -6,3 +6,7 @@ include(CMakeFindDependencyMacro)
 check_required_components(dukpt)
 
 include("${CMAKE_CURRENT_LIST_DIR}/dukptTargets.cmake")
+
+include(FindPackageHandleStandardArgs)
+set(dukpt_CONFIG ${CMAKE_CURRENT_LIST_FILE})
+find_package_handle_standard_args(dukpt CONFIG_MODE)
