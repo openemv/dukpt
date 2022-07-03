@@ -25,5 +25,6 @@
 #cmakedefine HAS_BUILTIN_POPCOUNT
 #cmakedefine HAVE_ARPA_INET_H
 #cmakedefine HAVE_WINSOCK_H
+#cmakedefine HAVE_TR31
 
 #endif

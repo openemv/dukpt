@@ -22,6 +22,10 @@
 #include "dukpt_tdes.h"
 #include "dukpt_aes.h"
 
+#ifdef DUKPT_TOOL_USE_TR31
+#include "tr31.h"
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -51,6 +55,12 @@ static void* txn_data = NULL;
 static size_t txn_data_len = 0;
 static void* iv = NULL;
 static size_t iv_len = 0;
+#ifdef DUKPT_TOOL_USE_TR31
+static void* kbpk_buf = NULL;
+static size_t kbpk_buf_len = 0;
+static enum tr31_version_t tr31_version = 0;
+static bool tr31_with_ksn = false;
+#endif
 
 static bool found_stdin_arg = false;
 
@@ -80,6 +90,9 @@ static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
 enum dukpt_tool_output_format_t {
 	DUKPT_TOOL_OUTPUT_FORMAT_HEX,
 	DUKPT_TOOL_OUTPUT_FORMAT_RAW,
+#ifdef DUKPT_TOOL_USE_TR31
+	DUKPT_TOOL_OUTPUT_FORMAT_TR31,
+#endif
 };
 static enum dukpt_tool_output_format_t output_format = DUKPT_TOOL_OUTPUT_FORMAT_HEX;
 
@@ -119,6 +132,11 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_DECRYPT_RESPONSE,
 
 	DUKPT_TOOL_OPTION_OUTPUT_RAW,
+#ifdef DUKPT_TOOL_USE_TR31
+	DUKPT_TOOL_OPTION_OUTPUT_TR31,
+	DUKPT_TOOL_OPTION_OUTPUT_TR31_FORMAT_VERSION,
+	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN,
+#endif
 };
 
 // argp option structure
@@ -155,6 +173,11 @@ static struct argp_option argp_options[] = {
 
 	{ NULL, 0, NULL, 0, "Outputs:", 5 },
 	{ "output-raw", DUKPT_TOOL_OPTION_OUTPUT_RAW, NULL, 0, "Output raw bytes instead of hex digits to stdout." },
+#ifdef DUKPT_TOOL_USE_TR31
+	{ "output-tr31", DUKPT_TOOL_OPTION_OUTPUT_TR31, "KBPK", 0, "Output TR-31 key block using provided key block protection key" },
+	{ "output-tr31-format-version", DUKPT_TOOL_OPTION_OUTPUT_TR31_FORMAT_VERSION, "B|D|E", 0, "Output TR-31 key block using provided format version" },
+	{ "output-tr31-with-ksn", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN, NULL, 0, "Output TR-31 key block with KSN in header. Format version B uses optional block KS. Format version D en E use optional block IK." },
+#endif
 
 	{ 0 },
 };
@@ -210,7 +233,11 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			case DUKPT_TOOL_OPTION_BDK:
 			case DUKPT_TOOL_OPTION_IK:
 			case DUKPT_TOOL_OPTION_KSN:
-			case DUKPT_TOOL_OPTION_IV: {
+			case DUKPT_TOOL_OPTION_IV:
+#ifdef DUKPT_TOOL_USE_TR31
+			case DUKPT_TOOL_OPTION_OUTPUT_TR31:
+#endif
+			{
 				// Parse arguments as hex data
 				size_t arg_len = strlen(arg);
 
@@ -403,6 +430,30 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			output_format = DUKPT_TOOL_OUTPUT_FORMAT_RAW;
 			return 0;
 
+#ifdef DUKPT_TOOL_USE_TR31
+		case DUKPT_TOOL_OPTION_OUTPUT_TR31:
+			kbpk_buf = buf;
+			kbpk_buf_len = buf_len;
+			output_format = DUKPT_TOOL_OUTPUT_FORMAT_TR31;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_OUTPUT_TR31_FORMAT_VERSION:
+			if (strcmp(arg, "B") == 0) {
+				tr31_version = TR31_VERSION_B;
+			} else if (strcmp(arg, "D") == 0) {
+				tr31_version = TR31_VERSION_D;
+			} else if (strcmp(arg, "E") == 0) {
+				tr31_version = TR31_VERSION_E;
+			} else {
+				argp_error(state, "Invalid TR-31 format version (--output-tr31-format-version) \"%s\"", arg);
+			}
+			return 0;
+
+		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN:
+			tr31_with_ksn = true;
+			return 0;
+#endif
+
 		case ARGP_KEY_END:
 			// Validate options
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_NONE) {
@@ -466,6 +517,21 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					}
 				}
 			}
+
+#ifdef DUKPT_TOOL_USE_TR31
+			if (output_format == DUKPT_TOOL_OUTPUT_FORMAT_TR31) {
+				if (dukpt_tool_action != DUKPT_TOOL_ACTION_DERIVE_IK) {
+					argp_error(state, "TR-31 output (--output-tr31) is only allowed for initial key derivation (--derive-ik/derive-ipek)");
+				}
+			} else {
+				if (tr31_version) {
+					argp_error(state, "TR-31 format version (--output-tr31-format-version) is only allowed for TR-31 output (--output-tr31)");
+				}
+				if (tr31_with_ksn) {
+					argp_error(state, "TR-31 with KSN (--output-tr31-with-ksn) is only allowed for TR-31 output (--output-tr31)");
+				}
+			}
+#endif
 
 			return 0;
 
@@ -647,6 +713,137 @@ static void output_buf(const void* buf, size_t length)
 	printf("\n");
 }
 
+#ifdef DUKPT_TOOL_USE_TR31
+// TR-31 output helper function
+static int output_tr31(const void* buf, size_t length)
+{
+	int r;
+	struct tr31_key_t key;
+	struct tr31_ctx_t tr31_ctx;
+	unsigned int kbpk_algorithm;
+	struct tr31_key_t kbpk;
+	char key_block[1024];
+
+	// Populate key algorithm
+	if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES) {
+		key.algorithm = TR31_KEY_ALGORITHM_TDES;
+	} else if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES) {
+		key.algorithm = TR31_KEY_ALGORITHM_AES;
+	} else {
+		fprintf(stderr, "TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_ALGORITHM));
+		return 1;
+	}
+
+	// Populate key attributes for ANSI X9.24 Initial Key
+	// See ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
+	key.usage = TR31_KEY_USAGE_DUKPT_IPEK;
+	key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
+	key.key_version = TR31_KEY_VERSION_IS_UNUSED;
+	key.exportability = TR31_KEY_EXPORT_NONE;
+
+	// Populate key data
+	// Avoid tr31_key_set_data() here to avoid tr31_key_release() later
+	key.length = length;
+	key.data = (void*)buf;
+
+	// Populate TR-31 context object
+	r = tr31_init(tr31_version, &key, &tr31_ctx);
+	if (r) {
+		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+		return 1;
+	}
+
+	// Populate optional blocks for KSN
+	if (tr31_with_ksn) {
+		switch (tr31_version) {
+			case TR31_VERSION_B: {
+				uint8_t iksn[DUKPT_TDES_KSN_LEN];
+
+				// Sanitise Initial Key Serial Number (IKSN)
+				memcpy(iksn, ksn, DUKPT_TDES_KSN_LEN - 2);
+				iksn[7] &= 0xE0;
+				iksn[8] = 0;
+				iksn[9] = 0;
+
+				// Add optional block using the provided length. This allows
+				// the user to add either 8 or 10 byte KSNs, depending on their
+				// needs.
+				r = tr31_opt_block_add(
+					&tr31_ctx,
+					TR31_OPT_BLOCK_KS,
+					iksn,
+					ksn_len
+				);
+				break;
+			}
+
+			case TR31_VERSION_D:
+			case TR31_VERSION_E:
+				// Add optional block. For AES DUKPT, this will always be the
+				// initial key ID and not the whole KSN.
+				// See TR-31:2018, A.5.6, table 11
+				r = tr31_opt_block_add(
+					&tr31_ctx,
+					TR31_OPT_BLOCK_IK,
+					ksn,
+					DUKPT_AES_IK_ID_LEN
+				);
+				break;
+
+			default:
+				fprintf(stderr, "%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_VERSION));
+				return 1;
+		}
+	}
+
+	// Determine key block protection key algorithm from keyblock format version
+	switch (tr31_version) {
+		case TR31_VERSION_B:
+			kbpk_algorithm = TR31_KEY_ALGORITHM_TDES;
+			break;
+
+		case TR31_VERSION_D:
+		case TR31_VERSION_E:
+			kbpk_algorithm = TR31_KEY_ALGORITHM_AES;
+			break;
+
+		default:
+			fprintf(stderr, "%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_VERSION));
+			return 1;
+	}
+
+	// Populate key block protection key
+	r = tr31_key_init(
+		TR31_KEY_USAGE_TR31_KBPK,
+		kbpk_algorithm,
+		TR31_KEY_MODE_OF_USE_ENC_DEC,
+		"00",
+		TR31_KEY_EXPORT_NONE,
+		kbpk_buf,
+		kbpk_buf_len,
+		&kbpk
+	);
+	if (r) {
+		fprintf(stderr, "TR-31 KBPK error %d: %s\n", r, tr31_get_error_string(r));
+		return 1;
+	}
+
+	// Export TR-31 key block
+	r = tr31_export(&tr31_ctx, &kbpk, key_block, sizeof(key_block));
+	if (r) {
+		fprintf(stderr, "TR-31 export error %d: %s\n", r, tr31_get_error_string(r));
+		return 1;
+	}
+	printf("%s\n", key_block);
+
+	// Cleanup
+	tr31_key_release(&kbpk);
+	tr31_release(&tr31_ctx);
+
+	return 0;
+}
+#endif
+
 static int prepare_tdes_ik(bool full_ksn)
 {
 	int r;
@@ -730,6 +927,11 @@ static int do_tdes_mode(void)
 				return 1;
 			}
 
+#ifdef DUKPT_TOOL_USE_TR31
+			if (output_format == DUKPT_TOOL_OUTPUT_FORMAT_TR31) {
+				return output_tr31(ik, ik_len);
+			}
+#endif
 			output_buf(ik, ik_len);
 			return 0;
 
@@ -1104,6 +1306,11 @@ static int do_aes_mode(void)
 				return 1;
 			}
 
+#ifdef DUKPT_TOOL_USE_TR31
+			if (output_format == DUKPT_TOOL_OUTPUT_FORMAT_TR31) {
+				return output_tr31(ik, ik_len);
+			}
+#endif
 			output_buf(ik, ik_len);
 			return 0;
 
@@ -1541,6 +1748,13 @@ int main(int argc, char** argv)
 		iv = NULL;
 		iv_len = 0;
 	}
+#ifdef DUKPT_TOOL_USE_TR31
+	if (kbpk_buf) {
+		free(kbpk_buf);
+		kbpk_buf = NULL;
+		kbpk_buf_len = 0;
+	}
+#endif
 
 	return r;
 }

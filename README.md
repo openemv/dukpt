@@ -34,6 +34,9 @@ Dependencies
 * DUKPT tool requires `argp` (either via Glibc, a system-provided standalone
   implementation, or a downloaded implementation;
   see [MacOS / Windows](#macos--windows))
+* DUKPT tool can _optionally_ use [tr31](https://github.com/openemv/tr31) if
+  available at build-time (either install a release build or use `tr31_DIR` to
+  find a local build)
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake

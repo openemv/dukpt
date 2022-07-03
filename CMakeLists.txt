@@ -51,6 +51,7 @@ endif()
 if(DUKPT_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
 	add_subdirectory(crypto)
 	add_subdirectory(crypto/test)
+	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/crypto/cmake/Modules/")
 elseif (NOT TARGET crypto_tdes OR
 	NOT TARGET crypto_aes OR
 	NOT TARGET crypto_hmac OR

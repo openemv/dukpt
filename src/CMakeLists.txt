@@ -39,6 +39,14 @@ if(NOT argp_FOUND)
 	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build libargp.")
 endif()
 
+# Check for tr31 but don't be verbose if it cannot be found
+find_package(tr31 0.4.2 QUIET)
+if(tr31_FOUND)
+	find_package(tr31 0.4.2 REQUIRED)
+else()
+	message(STATUS "Could NOT find tr31")
+endif()
+
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # Generate config file for internal use only
@@ -82,6 +90,10 @@ target_link_libraries(dukpt_aes PRIVATE crypto_aes crypto_hmac crypto_mem crypto
 add_executable(dukpt-tool dukpt-tool.c)
 if(TARGET libargp::argp)
 	target_link_libraries(dukpt-tool PRIVATE libargp::argp)
+endif()
+if(tr31_FOUND)
+	target_compile_definitions(dukpt-tool PRIVATE DUKPT_TOOL_USE_TR31)
+	target_link_libraries(dukpt-tool PRIVATE tr31::tr31)
 endif()
 target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
 
@@ -787,4 +799,14 @@ if(DUKPT_IS_TOP_LEVEL AND BUILD_TESTING)
 		PROPERTIES
 			PASS_REGULAR_EXPRESSION "^3430313233343536373839303944393837000000000000000000000000000000"
 	)
+
+	if(tr31_FOUND)
+		add_test(NAME dukpt_tool_tr31_test1
+			COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 1234567890123456 --derive-ik --output-tr31 3235362D62697420414553207772617070696E67202849534F20323030333829 --output-tr31-format-version E --output-tr31-with-ksn
+		)
+		set_tests_properties(dukpt_tool_tr31_test1
+			PROPERTIES
+				PASS_REGULAR_EXPRESSION "^E0116B1AX00N0200IK141234567890123456PB0C000000008FAD1464E086FA2538D8FF061AB8AAEB3264852F433F215E3CB7903F7CD393AC6F4C"
+		)
+	endif()
 endif()
