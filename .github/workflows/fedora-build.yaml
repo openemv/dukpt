@@ -98,5 +98,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: dukpt-${{env.GIT_DESCRIBE}}-artifact
+        name: dukpt-${{env.GIT_DESCRIBE}}-fedora
         path: build/dukpt-*.rpm
