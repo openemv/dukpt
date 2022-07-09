@@ -9,5 +9,6 @@
 	<use>
 		<flag name="mbedtls">Use MbedTLS as the crypto library</flag>
 		<flag name="openssl">Use OpenSSL as the crypto library</flag>
+		<flag name="tr31">Use TR-31 library</flag>
 	</use>
 </pkgmetadata>

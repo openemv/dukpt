@@ -18,7 +18,7 @@ fi
 LICENSE="LGPL-2.1"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="+mbedtls openssl doc test"
+IUSE="+mbedtls openssl +tr31 doc test"
 REQUIRED_USE="|| ( mbedtls openssl )"
 
 BDEPEND="
@@ -28,6 +28,7 @@ BDEPEND="
 RDEPEND="
 	mbedtls? ( net-libs/mbedtls )
 	openssl? ( dev-libs/openssl:0/1.1 )
+	tr31? ( >=dev-libs/tr31-0.4.2 )
 "
 DEPEND="
 	${RDEPEND}
@@ -41,6 +42,7 @@ src_configure() {
 	local mycmakeargs=(
 		$(cmake_use_find_package mbedtls MbedTLS)
 		$(cmake_use_find_package openssl OpenSSL)
+		$(cmake_use_find_package openssl tr31)
 		-DBUILD_DOCS=$(usex doc)
 		-DBUILD_TESTING=$(usex test)
 	)
