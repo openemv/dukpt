@@ -12,7 +12,7 @@ if [[ "${PV}" == *9999 ]] ; then
 	EGIT_REPO_URI="https://github.com/openemv/dukpt.git"
 	EGIT_BRANCH="master"
 else
-	SRC_URI="https://github.com/openemv/dukpt/archive/${PV}.tar.gz -> ${P}.tar.gz"
+	SRC_URI="https://github.com/openemv/dukpt/releases/download/${PV}/${P}-src.tar.gz -> ${P}.tar.gz"
 fi
 
 LICENSE="LGPL-2.1"
@@ -42,7 +42,7 @@ src_configure() {
 	local mycmakeargs=(
 		$(cmake_use_find_package mbedtls MbedTLS)
 		$(cmake_use_find_package openssl OpenSSL)
-		$(cmake_use_find_package openssl tr31)
+		$(cmake_use_find_package tr31 tr31)
 		-DBUILD_DOCS=$(usex doc)
 		-DBUILD_TESTING=$(usex test)
 	)
