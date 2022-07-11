@@ -71,6 +71,15 @@ endif()
 add_subdirectory(src)
 add_subdirectory(test)
 
+# If Qt::Widgets is available, build dukpt-ui
+find_package(Qt5 5.15 COMPONENTS Widgets QUIET)
+if(Qt5Widgets_FOUND)
+	message(STATUS "Found Qt5 Widgets: found suitable version \"${Qt5_VERSION}\"")
+	add_subdirectory(ui)
+else()
+	message(STATUS "Could NOT find Qt5 Widgets: skipping dukpt-ui build")
+endif()
+
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # Install README and LICENSE files to runtime component
