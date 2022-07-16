@@ -1,6 +1,6 @@
 /**
- * @file dukpt-ui.cpp
- * @brief Simple DUKPT User Interface using Qt
+ * @file mainwindow.cpp
+ * @brief Main window of DUKPT User Interface
  *
  * Copyright (c) 2022 Leon Lynch
  *
@@ -19,19 +19,10 @@
  * <https://www.gnu.org/licenses/>.
  */
 
-#include <QtWidgets/QApplication>
-
 #include "mainwindow.h"
 
-int main(int argc, char** argv)
+MainWindow::MainWindow(QWidget* parent)
+: QMainWindow(parent)
 {
-	QApplication app(argc, argv);
-	app.setOrganizationName("OpenEMV");
-	app.setOrganizationDomain("openemv.org");
-	app.setApplicationName("dukpt-ui");
-
-	MainWindow mainwindow;
-	mainwindow.show();
-
-	return app.exec();
+	setupUi(this);
 }

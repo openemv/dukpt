@@ -35,7 +35,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 find_package(Qt5 5.15 COMPONENTS Widgets REQUIRED)
-add_executable(dukpt-ui dukpt-ui.cpp)
+qt_wrap_ui(UI_SRCS mainwindow.ui)
+qt_wrap_cpp(MOC_SRCS mainwindow.h)
+add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp ${UI_SRCS} ${MOC_SRCS})
+target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
 target_link_libraries(dukpt-ui Qt::Widgets)
 
 install(
