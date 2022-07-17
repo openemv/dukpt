@@ -32,6 +32,26 @@ class MainWindow : public QMainWindow, private Ui::MainWindow
 
 public:
 	explicit MainWindow(QWidget* parent = nullptr);
+
+private: // helper enums and getter functions
+	enum dukpt_ui_mode_t {
+		DUKPT_UI_MODE_UNKNOWN = -1,
+		DUKPT_UI_MODE_TDES = 1,
+		DUKPT_UI_MODE_AES,
+	};
+	dukpt_ui_mode_t getMode() const;
+
+	enum dukpt_ui_input_key_type_t {
+		DUKPT_UI_INPUT_KEY_TYPE_UNKNOWN = -1,
+		DUKPT_UI_INPUT_KEY_TYPE_BDK = 1,
+		DUKPT_UI_INPUT_KEY_TYPE_IK,
+	};
+	dukpt_ui_input_key_type_t getInputKeyType() const;
+
+private slots: // connect-by-name
+	void on_keyDerivationPushButton_clicked();
+	void on_encryptDecryptPushButton_clicked();
+	void on_macPushButton_clicked();
 };
 
 #endif

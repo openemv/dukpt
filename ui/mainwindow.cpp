@@ -25,4 +25,55 @@ MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
 {
 	setupUi(this);
+
+	modeComboBox->addItem("TDES", DUKPT_UI_MODE_TDES);
+	modeComboBox->addItem("AES", DUKPT_UI_MODE_AES);
+
+	inputKeyTypeComboBox->addItem("Base Derivation Key (BDK)", DUKPT_UI_INPUT_KEY_TYPE_BDK);
+	inputKeyTypeComboBox->addItem("Initial Key (IK/IPEK)", DUKPT_UI_INPUT_KEY_TYPE_IK);
+}
+
+MainWindow::dukpt_ui_mode_t MainWindow::getMode() const
+{
+	unsigned int data;
+
+	data = modeComboBox->currentData().toUInt();
+	switch (data) {
+		case DUKPT_UI_MODE_TDES:
+		case DUKPT_UI_MODE_AES:
+			return static_cast<dukpt_ui_mode_t>(data);
+
+		default:
+			return DUKPT_UI_MODE_UNKNOWN;
+	}
+}
+
+MainWindow::dukpt_ui_input_key_type_t MainWindow::getInputKeyType() const
+{
+	unsigned int data;
+
+	data = inputKeyTypeComboBox->currentData().toUInt();
+	switch (data) {
+		case DUKPT_UI_INPUT_KEY_TYPE_BDK:
+		case DUKPT_UI_INPUT_KEY_TYPE_IK:
+			return static_cast<dukpt_ui_input_key_type_t>(data);
+
+		default:
+			return DUKPT_UI_INPUT_KEY_TYPE_UNKNOWN;
+	}
+}
+
+void MainWindow::on_keyDerivationPushButton_clicked()
+{
+	// TODO: implement
+}
+
+void MainWindow::on_encryptDecryptPushButton_clicked()
+{
+	// TODO: implement
+}
+
+void MainWindow::on_macPushButton_clicked()
+{
+	// TODO: implement
 }

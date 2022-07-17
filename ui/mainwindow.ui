@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>1024</width>
     <height>600</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>OpenEMV | dukpt-ui</string>
@@ -22,24 +28,44 @@
         <property name="title">
          <string>Inputs</string>
         </property>
-        <layout class="QGridLayout" name="gridLayout">
+        <layout class="QGridLayout" name="inputsGridLayout">
          <item row="0" column="0">
-          <widget class="QLabel" name="bdkLabel">
+          <widget class="QLabel" name="modeLabel">
            <property name="text">
-            <string>Base Derivation Key (BDK)</string>
+            <string>Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLineEdit" name="inputKeyEdit"/>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="ksnLabel">
+           <property name="text">
+            <string>Key Serial Number (KSN)</string>
            </property>
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="bdkEdit"/>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="ksnEdit"/>
+          <widget class="QComboBox" name="modeComboBox"/>
          </item>
          <item row="1" column="0">
-          <widget class="QLabel" name="ksnLabel">
+          <widget class="QLabel" name="inputKeyTypeLabel">
            <property name="text">
-            <string>Key Serial Number (KSN)</string>
+            <string>Input Key Type</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QLineEdit" name="ksnEdit"/>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="inputKeyTypeComboBox"/>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="inputKeyLabel">
+           <property name="text">
+            <string>Input Key</string>
            </property>
           </widget>
          </item>
@@ -51,25 +77,214 @@
         <property name="title">
          <string>Actions</string>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
+        <layout class="QVBoxLayout" name="actionsVerticalLayout">
          <item>
-          <spacer name="verticalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
+          <widget class="QTabWidget" name="tabWidget">
+           <property name="currentIndex">
+            <number>0</number>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton">
-           <property name="text">
-            <string>Do stuff</string>
-           </property>
+           <widget class="QWidget" name="keyDerivationTab">
+            <attribute name="title">
+             <string>Key Derivation</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="keyDerivationVerticalLayout">
+             <item>
+              <layout class="QGridLayout" name="keyDerivationGridLayout">
+               <item row="3" column="1">
+                <widget class="QLineEdit" name="kbpkEdit"/>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="outputFormatLabel">
+                 <property name="text">
+                  <string>Output Format</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="derivedKeyTypeLabel">
+                 <property name="text">
+                  <string>Derived Key Type</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QComboBox" name="outputFormatComboBox"/>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="kbpkLabel">
+                 <property name="text">
+                  <string>Key Block Protection Key</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="derivationActionComboBox"/>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="derivationActionLabel">
+                 <property name="text">
+                  <string>Derivation Action</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="derivedKeyTypeComboBox"/>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <spacer name="keyDerivationVerticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="keyDerivationPushButton">
+               <property name="text">
+                <string>Derive</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="encryptDecryptTab">
+            <attribute name="title">
+             <string>Encrypt/Decrypt</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="encryptDecryptVerticalLayout">
+             <item>
+              <layout class="QGridLayout" name="encryptDecryptGridLayout">
+               <item row="0" column="0">
+                <widget class="QLabel" name="encryptDecryptKeyTypeLabel">
+                 <property name="text">
+                  <string>Working Key Type</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QLineEdit" name="panEdit"/>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="pinActionLabel">
+                 <property name="text">
+                  <string>PIN action:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0">
+                <widget class="QLabel" name="ivLabel">
+                 <property name="text">
+                  <string>Initial Vector (IV)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QLineEdit" name="dataEdit"/>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="encryptDecryptKeyTypeComboBox"/>
+               </item>
+               <item row="5" column="0">
+                <widget class="QComboBox" name="dataActionComboBox"/>
+               </item>
+               <item row="2" column="0">
+                <widget class="QComboBox" name="pinActionComboBox"/>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="panLabel">
+                 <property name="text">
+                  <string>PAN</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="dataActionLabel">
+                 <property name="text">
+                  <string>Data action:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QLineEdit" name="pinEdit"/>
+               </item>
+               <item row="6" column="1">
+                <widget class="QLineEdit" name="ivEdit"/>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <spacer name="encryptDecryptVerticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="encryptDecryptPushButton">
+               <property name="text">
+                <string>Compute</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="macTab">
+            <attribute name="title">
+             <string>MAC</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="macVerticalLayout">
+             <item>
+              <layout class="QGridLayout" name="macGridLayout">
+               <item row="1" column="0">
+                <widget class="QComboBox" name="macActionComboBox"/>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="macActionLabel">
+                 <property name="text">
+                  <string>MAC action:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="macEdit"/>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <spacer name="macVerticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="macPushButton">
+               <property name="text">
+                <string>Compute</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </widget>
          </item>
         </layout>
@@ -95,7 +310,7 @@
       <property name="title">
        <string>Outputs</string>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <layout class="QVBoxLayout" name="outputsVerticalLayout">
        <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">
@@ -103,7 +318,7 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>372</width>
+           <width>484</width>
            <height>20</height>
           </size>
          </property>
