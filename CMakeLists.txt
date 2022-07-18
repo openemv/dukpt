@@ -71,13 +71,19 @@ endif()
 add_subdirectory(src)
 add_subdirectory(test)
 
-# If Qt::Widgets is available, build dukpt-ui
+# If Qt::Widgets and tr31 are available, build dukpt-ui
 find_package(Qt5 5.15 COMPONENTS Widgets QUIET)
 if(Qt5Widgets_FOUND)
 	message(STATUS "Found Qt5 Widgets: found suitable version \"${Qt5_VERSION}\"")
-	add_subdirectory(ui)
 else()
 	message(STATUS "Could NOT find Qt5 Widgets: skipping dukpt-ui build")
+endif()
+find_package(tr31 0.4.2 QUIET)
+if(NOT tr31_FOUND)
+	message(STATUS "Could NOT find tr31: skipping dukpt-ui build")
+endif()
+if(Qt5Widgets_FOUND AND tr31_FOUND)
+	add_subdirectory(ui)
 endif()
 
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()

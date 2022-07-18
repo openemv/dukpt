@@ -23,6 +23,7 @@
 
 #include "dukpt_tdes.h"
 #include "dukpt_aes.h"
+#include "tr31.h"
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
