@@ -33,7 +33,7 @@ class MainWindow : public QMainWindow, private Ui::MainWindow
 public:
 	explicit MainWindow(QWidget* parent = nullptr);
 
-private: // helper enums and getter functions
+private: // helper enums and helper functions for inputs
 	enum dukpt_ui_mode_t {
 		DUKPT_UI_MODE_UNKNOWN = -1,
 		DUKPT_UI_MODE_TDES = 1,
@@ -48,7 +48,42 @@ private: // helper enums and getter functions
 	};
 	dukpt_ui_input_key_type_t getInputKeyType() const;
 
+	enum dukpt_ui_derivation_action_t {
+		DUKPT_UI_DERIVATION_ACTION_UNKNOWN = -1,
+		DUKPT_UI_DERIVATION_ACTION_IK = 1,
+		DUKPT_UI_DERIVATION_ACTION_TXN,
+		DUKPT_UI_DERIVATION_ACTION_UPDATE,
+	};
+	dukpt_ui_derivation_action_t getDerivationAction() const;
+	void selectDerivationAction(dukpt_ui_derivation_action_t derivationAction);
+	void updateDerivationActions(dukpt_ui_mode_t mode, dukpt_ui_input_key_type_t inputKeyType);
+
+	enum dukpt_ui_key_type_t {
+		DUKPT_UI_KEY_TYPE_UNKNOWN = -1,
+		DUKPT_UI_KEY_TYPE_AES128 = 1,
+		DUKPT_UI_KEY_TYPE_AES192,
+		DUKPT_UI_KEY_TYPE_AES256,
+	};
+	dukpt_ui_key_type_t getDerivedKeyType() const;
+	void selectDerivedKeyType(dukpt_ui_key_type_t derivedKeyType);
+	void updateDerivedKeyTypes(dukpt_ui_derivation_action_t derivationAction);
+
+	enum dukpt_ui_output_format_t {
+		DUKPT_UI_OUTPUT_FORMAT_UNKNOWN = -1,
+		DUKPT_UI_OUTPUT_FORMAT_HEX = 1,
+		DUKPT_UI_OUTPUT_FORMAT_TR31_B,
+		DUKPT_UI_OUTPUT_FORMAT_TR31_D,
+		DUKPT_UI_OUTPUT_FORMAT_TR31_E,
+	};
+	dukpt_ui_output_format_t getOutputFormat() const;
+	void selectOutputFormat(dukpt_ui_output_format_t outputFormat);
+	void updateOutputFormats(dukpt_ui_mode_t mode);
+
 private slots: // connect-by-name
+	void on_modeComboBox_currentIndexChanged(int index);
+	void on_inputKeyTypeComboBox_currentIndexChanged(int index);
+	void on_derivationActionComboBox_currentIndexChanged(int index);
+	void on_outputFormatComboBox_currentIndexChanged(int index);
 	void on_keyDerivationPushButton_clicked();
 	void on_encryptDecryptPushButton_clicked();
 	void on_macPushButton_clicked();
