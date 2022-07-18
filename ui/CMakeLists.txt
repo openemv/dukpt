@@ -34,12 +34,26 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb>)
 endif()
 
+if(DUKPT_UI_IS_TOP_LEVEL)
+	# If this is the top-level project, it will need CMake modules provided by
+	# the crypto sub-module
+	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../crypto/cmake/Modules/")
+
+	# If this is the top-level project, look for the platform dukpt libraries
+	find_package(dukpt 0.2.0 REQUIRED)
+else()
+	# Otherwise the parent project must provide the dukpt targets
+	if(NOT TARGET dukpt::dukpt_tdes OR NOT TARGET dukpt::dukpt_aes)
+		message(FATAL_ERROR "Parent project must provide dukpt libraries")
+	endif()
+endif()
+
 find_package(Qt5 5.15 COMPONENTS Widgets REQUIRED)
 qt_wrap_ui(UI_SRCS mainwindow.ui)
 qt_wrap_cpp(MOC_SRCS mainwindow.h)
 add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp ${UI_SRCS} ${MOC_SRCS})
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
-target_link_libraries(dukpt-ui Qt::Widgets)
+target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes)
 
 install(
 	TARGETS

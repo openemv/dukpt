@@ -21,6 +21,9 @@
 
 #include "mainwindow.h"
 
+#include "dukpt_tdes.h"
+#include "dukpt_aes.h"
+
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
 {
