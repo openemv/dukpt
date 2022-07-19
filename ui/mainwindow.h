@@ -67,6 +67,9 @@ private: // helper enums and helper functions for inputs
 	dukpt_ui_key_type_t getDerivedKeyType() const;
 	void selectDerivedKeyType(dukpt_ui_key_type_t derivedKeyType);
 	void updateDerivedKeyTypes(dukpt_ui_derivation_action_t derivationAction);
+	dukpt_ui_key_type_t getEncryptDecryptKeyType() const;
+	void selectEncryptDecryptKeyType(dukpt_ui_key_type_t encryptDecryptKeyType);
+	void updateEncryptDecryptKeyTypes(dukpt_ui_mode_t mode);
 
 	enum dukpt_ui_output_format_t {
 		DUKPT_UI_OUTPUT_FORMAT_UNKNOWN = -1,
@@ -78,6 +81,22 @@ private: // helper enums and helper functions for inputs
 	dukpt_ui_output_format_t getOutputFormat() const;
 	void selectOutputFormat(dukpt_ui_output_format_t outputFormat);
 	void updateOutputFormats(dukpt_ui_mode_t mode);
+
+	enum dukpt_ui_pin_action_t {
+		DUKPT_UI_PIN_ACTION_UNKNOWN = -1,
+		DUKPT_UI_PIN_ACTION_ENCRYPT = 1,
+		DUKPT_UI_PIN_ACTION_DECRYPT,
+	};
+	dukpt_ui_pin_action_t getPinAction() const;
+
+	enum dukpt_ui_data_action_t {
+		DUKPT_UI_DATA_ACTION_UNKNOWN = -1,
+		DUKPT_UI_DATA_ACTION_ENCRYPT_REQUEST = 1,
+		DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST,
+		DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE,
+		DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE,
+	};
+	dukpt_ui_data_action_t getDataAction() const;
 
 private slots: // connect-by-name
 	void on_modeComboBox_currentIndexChanged(int index);

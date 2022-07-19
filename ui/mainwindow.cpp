@@ -35,6 +35,14 @@ MainWindow::MainWindow(QWidget* parent)
 
 	inputKeyTypeComboBox->addItem("Base Derivation Key (BDK)", DUKPT_UI_INPUT_KEY_TYPE_BDK);
 	inputKeyTypeComboBox->addItem("Initial Key (IK/IPEK)", DUKPT_UI_INPUT_KEY_TYPE_IK);
+
+	pinActionComboBox->addItem("Encrypt PIN", DUKPT_UI_PIN_ACTION_ENCRYPT);
+	pinActionComboBox->addItem("Decrypt PIN", DUKPT_UI_PIN_ACTION_DECRYPT);
+
+	dataActionComboBox->addItem("Encrypt request", DUKPT_UI_DATA_ACTION_ENCRYPT_REQUEST);
+	dataActionComboBox->addItem("Decrypt request", DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST);
+	dataActionComboBox->addItem("Encrypt response", DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE);
+	dataActionComboBox->addItem("Decrypt response", DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE);
 }
 
 MainWindow::dukpt_ui_mode_t MainWindow::getMode() const
@@ -178,6 +186,61 @@ void MainWindow::updateDerivedKeyTypes(dukpt_ui_derivation_action_t derivationAc
 	}
 }
 
+MainWindow::dukpt_ui_key_type_t MainWindow::getEncryptDecryptKeyType() const
+{
+	unsigned int data;
+
+	data = encryptDecryptKeyTypeComboBox->currentData().toUInt();
+	switch (data) {
+		case DUKPT_UI_KEY_TYPE_AES128:
+		case DUKPT_UI_KEY_TYPE_AES192:
+		case DUKPT_UI_KEY_TYPE_AES256:
+			return static_cast<dukpt_ui_key_type_t>(data);
+
+		default:
+			return DUKPT_UI_KEY_TYPE_UNKNOWN;
+	}
+}
+
+void MainWindow::selectEncryptDecryptKeyType(dukpt_ui_key_type_t encryptDecryptKeyType)
+{
+	int index;
+
+	index = encryptDecryptKeyTypeComboBox->findData(encryptDecryptKeyType);
+	if (index != -1) {
+		encryptDecryptKeyTypeComboBox->setCurrentIndex(index);
+	}
+}
+
+void MainWindow::updateEncryptDecryptKeyTypes(dukpt_ui_mode_t mode)
+{
+	dukpt_ui_key_type_t encryptDecryptKeyType;
+
+	// Remember current encrypt/decrypt key type
+	encryptDecryptKeyType = getEncryptDecryptKeyType();
+
+	// Build encrypt/decrypt key type based on mode
+	encryptDecryptKeyTypeComboBox->clear();
+	if (mode == DUKPT_UI_MODE_TDES) {
+		encryptDecryptKeyTypeComboBox->addItem("Double length TDES (128-bit)");
+		encryptDecryptKeyTypeComboBox->setEnabled(false);
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		// TODO: only show options that are <= input key length
+		encryptDecryptKeyTypeComboBox->addItem("AES 128-bit", DUKPT_UI_KEY_TYPE_AES128);
+		encryptDecryptKeyTypeComboBox->addItem("AES 192-bit", DUKPT_UI_KEY_TYPE_AES192);
+		encryptDecryptKeyTypeComboBox->addItem("AES 256-bit", DUKPT_UI_KEY_TYPE_AES256);
+		encryptDecryptKeyTypeComboBox->setEnabled(true);
+
+		// TODO: default to same as input key length
+
+		// Restore current encrypt/decrypt key type (if possible)
+		selectEncryptDecryptKeyType(encryptDecryptKeyType);
+	} else {
+		// Unknown mode
+		return;
+	}
+}
+
 MainWindow::dukpt_ui_output_format_t MainWindow::getOutputFormat() const
 {
 	unsigned int data;
@@ -232,6 +295,38 @@ void MainWindow::updateOutputFormats(dukpt_ui_mode_t mode)
 	selectOutputFormat(outputFormat);
 }
 
+MainWindow::dukpt_ui_pin_action_t MainWindow::getPinAction() const
+{
+	unsigned int data;
+
+	data = pinActionComboBox->currentData().toUInt();
+	switch (data) {
+		case DUKPT_UI_PIN_ACTION_ENCRYPT:
+		case DUKPT_UI_PIN_ACTION_DECRYPT:
+			return static_cast<dukpt_ui_pin_action_t>(data);
+
+		default:
+			return DUKPT_UI_PIN_ACTION_UNKNOWN;
+	}
+}
+
+MainWindow::dukpt_ui_data_action_t MainWindow::getDataAction() const
+{
+	unsigned int data;
+
+	data = dataActionComboBox->currentData().toUInt();
+	switch (data) {
+		case DUKPT_UI_DATA_ACTION_ENCRYPT_REQUEST:
+		case DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST:
+		case DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE:
+		case DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE:
+			return static_cast<dukpt_ui_data_action_t>(data);
+
+		default:
+			return DUKPT_UI_DATA_ACTION_UNKNOWN;
+	}
+}
+
 void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 {
 	dukpt_ui_mode_t mode;
@@ -241,6 +336,7 @@ void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 
 	on_inputKeyTypeComboBox_currentIndexChanged(inputKeyTypeComboBox->currentIndex());
 	updateOutputFormats(mode);
+	updateEncryptDecryptKeyTypes(mode);
 }
 
 void MainWindow::on_inputKeyTypeComboBox_currentIndexChanged(int index)
