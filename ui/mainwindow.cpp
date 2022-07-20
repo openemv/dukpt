@@ -327,6 +327,68 @@ MainWindow::dukpt_ui_data_action_t MainWindow::getDataAction() const
 	}
 }
 
+MainWindow::dukpt_ui_mac_action_t MainWindow::getMacAction() const
+{
+	unsigned int data;
+
+	data = macActionComboBox->currentData().toUInt();
+	switch (data) {
+		case DUKPT_UI_MAC_ACTION_RETAIL_MAC:
+		case DUKPT_UI_MAC_ACTION_AES128_CMAC:
+		case DUKPT_UI_MAC_ACTION_AES192_CMAC:
+		case DUKPT_UI_MAC_ACTION_AES256_CMAC:
+		case DUKPT_UI_MAC_ACTION_HMAC128_SHA256:
+		case DUKPT_UI_MAC_ACTION_HMAC192_SHA256:
+		case DUKPT_UI_MAC_ACTION_HMAC256_SHA256:
+			return static_cast<dukpt_ui_mac_action_t>(data);
+
+		default:
+			return DUKPT_UI_MAC_ACTION_UNKNOWN;
+	}
+}
+
+void MainWindow::selectMacAction(dukpt_ui_mac_action_t macAction)
+{
+	int index;
+
+	index = macActionComboBox->findData(macAction);
+	if (index != -1) {
+		macActionComboBox->setCurrentIndex(index);
+	}
+}
+
+void MainWindow::updateMacActions(dukpt_ui_mode_t mode)
+{
+	dukpt_ui_mac_action_t macAction;
+
+	// Remember current MAC action
+	macAction = getMacAction();
+
+	// Build MAC action list based on mode
+	macActionComboBox->clear();
+	if (mode == DUKPT_UI_MODE_TDES) {
+		macActionComboBox->addItem("ANSI X9.19 Retail MAC", DUKPT_UI_MAC_ACTION_RETAIL_MAC);
+		macActionComboBox->setEnabled(false);
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		// TODO: only show options that are <= input key length
+		macActionComboBox->addItem("AES 128-bit CMAC", DUKPT_UI_MAC_ACTION_AES128_CMAC);
+		macActionComboBox->addItem("AES 192-bit CMAC", DUKPT_UI_MAC_ACTION_AES192_CMAC);
+		macActionComboBox->addItem("AES 256-bit CMAC", DUKPT_UI_MAC_ACTION_AES256_CMAC);
+		macActionComboBox->addItem("HMAC-SHA256 (128-bit key)", DUKPT_UI_MAC_ACTION_HMAC128_SHA256);
+		macActionComboBox->addItem("HMAC-SHA256 (192-bit key)", DUKPT_UI_MAC_ACTION_HMAC192_SHA256);
+		macActionComboBox->addItem("HMAC-SHA256 (256-bit key)", DUKPT_UI_MAC_ACTION_HMAC256_SHA256);
+		macActionComboBox->setEnabled(true);
+
+		// TODO: default to same as input key length
+
+		// Restore current MAC action (if possible)
+		selectMacAction(macAction);
+	} else {
+		// Unknown mode
+		return;
+	}
+}
+
 void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 {
 	dukpt_ui_mode_t mode;
@@ -337,6 +399,7 @@ void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 	on_inputKeyTypeComboBox_currentIndexChanged(inputKeyTypeComboBox->currentIndex());
 	updateOutputFormats(mode);
 	updateEncryptDecryptKeyTypes(mode);
+	updateMacActions(mode);
 }
 
 void MainWindow::on_inputKeyTypeComboBox_currentIndexChanged(int index)

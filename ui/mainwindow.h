@@ -98,6 +98,20 @@ private: // helper enums and helper functions for inputs
 	};
 	dukpt_ui_data_action_t getDataAction() const;
 
+	enum dukpt_ui_mac_action_t {
+		DUKPT_UI_MAC_ACTION_UNKNOWN = -1,
+		DUKPT_UI_MAC_ACTION_RETAIL_MAC = 1,
+		DUKPT_UI_MAC_ACTION_AES128_CMAC,
+		DUKPT_UI_MAC_ACTION_AES192_CMAC,
+		DUKPT_UI_MAC_ACTION_AES256_CMAC,
+		DUKPT_UI_MAC_ACTION_HMAC128_SHA256,
+		DUKPT_UI_MAC_ACTION_HMAC192_SHA256,
+		DUKPT_UI_MAC_ACTION_HMAC256_SHA256,
+	};
+	dukpt_ui_mac_action_t getMacAction() const;
+	void selectMacAction(dukpt_ui_mac_action_t macAction);
+	void updateMacActions(dukpt_ui_mode_t mode);
+
 private slots: // connect-by-name
 	void on_modeComboBox_currentIndexChanged(int index);
 	void on_inputKeyTypeComboBox_currentIndexChanged(int index);
