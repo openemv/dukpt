@@ -26,9 +26,20 @@
 
 #include "ui_mainwindow.h"
 
+// Forward declarations
+class HexStringValidator;
+class CryptoKeyStringValidator;
+class CryptoHexStringValidator;
+
 class MainWindow : public QMainWindow, private Ui::MainWindow
 {
 	Q_OBJECT
+
+private:
+	CryptoKeyStringValidator* keyValidator;
+	CryptoHexStringValidator* dataValidator;
+	CryptoHexStringValidator* ivValidator;
+	HexStringValidator* macValidator;
 
 public:
 	explicit MainWindow(QWidget* parent = nullptr);
@@ -112,11 +123,24 @@ private: // helper enums and helper functions for inputs
 	void selectMacAction(dukpt_ui_mac_action_t macAction);
 	void updateMacActions(dukpt_ui_mode_t mode);
 
-private slots: // connect-by-name
+private slots: // connect-by-name helper functions for validation
+	void updateValidationStyleSheet(QLineEdit* edit);
+	void on_inputKeyEdit_textChanged(const QString&) { updateValidationStyleSheet(inputKeyEdit); }
+	void on_kbpkEdit_textChanged(const QString&) { updateValidationStyleSheet(kbpkEdit); }
+	void on_dataEdit_textChanged(const QString&) { updateValidationStyleSheet(dataEdit); }
+	void on_ivEdit_textChanged(const QString&) { updateValidationStyleSheet(ivEdit); }
+	void on_macEdit_textChanged(const QString&) { updateValidationStyleSheet(macEdit); }
+	void on_keyValidator_changed() { updateValidationStyleSheet(inputKeyEdit); updateValidationStyleSheet(kbpkEdit); }
+	void on_dataValidator_changed() { updateValidationStyleSheet(dataEdit); }
+	void on_ivValidator_changed() { updateValidationStyleSheet(ivEdit); }
+
+private slots: // connect-by-name helper functions for combo boxes
 	void on_modeComboBox_currentIndexChanged(int index);
 	void on_inputKeyTypeComboBox_currentIndexChanged(int index);
 	void on_derivationActionComboBox_currentIndexChanged(int index);
 	void on_outputFormatComboBox_currentIndexChanged(int index);
+
+private slots: // connect-by-name helper functions for push buttons
 	void on_keyDerivationPushButton_clicked();
 	void on_encryptDecryptPushButton_clicked();
 	void on_macPushButton_clicked();

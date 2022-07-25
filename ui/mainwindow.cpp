@@ -20,6 +20,7 @@
  */
 
 #include "mainwindow.h"
+#include "validators.h"
 
 #include "dukpt_tdes.h"
 #include "dukpt_aes.h"
@@ -28,7 +29,25 @@
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
 {
+	// Setup validators
+	keyValidator = new CryptoKeyStringValidator(CryptoValidator::TDES, this);
+	keyValidator->setObjectName("keyValidator");
+	dataValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 0, this);
+	dataValidator->setObjectName("dataValidator");
+	ivValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 1, this);
+	ivValidator->setObjectName("ivValidator");
+	macValidator = new HexStringValidator(this);
+	macValidator->setObjectName("macValidator");
+
+	// Setup UI widgets
 	setupUi(this);
+	inputKeyEdit->setValidator(keyValidator);
+	kbpkEdit->setValidator(keyValidator);
+	dataEdit->setValidator(dataValidator);
+	ivEdit->setValidator(ivValidator);
+	macEdit->setValidator(macValidator);
+
+	// Populate combo boxes
 
 	modeComboBox->addItem("TDES", DUKPT_UI_MODE_TDES);
 	modeComboBox->addItem("AES", DUKPT_UI_MODE_AES);
@@ -389,13 +408,37 @@ void MainWindow::updateMacActions(dukpt_ui_mode_t mode)
 	}
 }
 
+void MainWindow::updateValidationStyleSheet(QLineEdit* edit)
+{
+	if (edit->hasAcceptableInput()) {
+		edit->setStyleSheet("");
+	} else {
+		edit->setStyleSheet("color: red");
+	}
+}
+
 void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 {
 	dukpt_ui_mode_t mode;
+	CryptoValidator::Cipher cipher;
 
 	// Current state
 	mode = getMode();
 
+	// Update validators
+	if (mode == DUKPT_UI_MODE_TDES) {
+		cipher = CryptoValidator::TDES;
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		cipher = CryptoValidator::AES;
+	} else {
+		// Unknown mode
+		return;
+	}
+	keyValidator->setCipher(cipher);
+	dataValidator->setCipher(cipher);
+	ivValidator->setCipher(cipher);
+
+	// Update combo boxes
 	on_inputKeyTypeComboBox_currentIndexChanged(inputKeyTypeComboBox->currentIndex());
 	updateOutputFormats(mode);
 	updateEncryptDecryptKeyTypes(mode);
@@ -431,7 +474,12 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 	outputFormat = outputFormatComboBox->itemData(index).toUInt();
 
 	// Enable Key Block Protection Key input based on output format
-	kbpkEdit->setEnabled(outputFormat > 0);
+	if (outputFormat > DUKPT_UI_OUTPUT_FORMAT_HEX) {
+		kbpkEdit->setEnabled(true);
+	} else {
+		kbpkEdit->clear();
+		kbpkEdit->setEnabled(false);
+	}
 }
 
 void MainWindow::on_keyDerivationPushButton_clicked()

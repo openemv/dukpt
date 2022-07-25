@@ -52,8 +52,8 @@ find_package(Qt5 5.15 COMPONENTS Widgets REQUIRED)
 find_package(tr31 0.4.2 REQUIRED)
 
 qt_wrap_ui(UI_SRCS mainwindow.ui)
-qt_wrap_cpp(MOC_SRCS mainwindow.h)
-add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp ${UI_SRCS} ${MOC_SRCS})
+qt_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS})
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
 
