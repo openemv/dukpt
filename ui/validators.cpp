@@ -23,6 +23,51 @@
 
 #include <cctype>
 
+void DecStringValidator::setMinLength(unsigned int x)
+{
+	if (x != minLength) {
+		minLength = x;
+		emit minLengthChanged(x);
+		emit changed();
+	}
+}
+
+void DecStringValidator::setMaxLength(unsigned int x)
+{
+	if (x != maxLength) {
+		maxLength = x;
+		emit maxLengthChanged(x);
+		emit changed();
+	}
+}
+
+QValidator::State DecStringValidator::validate(QString& input, int& pos) const
+{
+	if (minLength) {
+		// Ensure that decimal string length is at least minLength
+		if (static_cast<unsigned int>(input.length()) < minLength) {
+			return Intermediate;
+		}
+	}
+
+	if (maxLength) {
+		// Ensure that decimal string does not exceed maxLength
+		if (static_cast<unsigned int>(input.length()) > maxLength) {
+			return Intermediate;
+		}
+	}
+
+	// Ensure that decimal string contains only decimal digits
+	for (QChar c : qAsConst(input)) {
+		if (!std::isdigit(c.toLatin1())) {
+			// Non-decimal digit is not allowed
+			return Intermediate;
+		}
+	}
+
+	return Acceptable;
+}
+
 QValidator::State HexStringValidator::validate(QString& input, int& pos) const
 {
 	// Ensure that hex string length is a multiple of 2

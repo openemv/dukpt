@@ -24,6 +24,38 @@
 
 #include <QtGui/QValidator>
 
+class DecStringValidator : public QValidator
+{
+	Q_OBJECT
+
+protected:
+	unsigned int minLength;
+	unsigned int maxLength;
+
+public:
+	DecStringValidator(
+		unsigned int minLength,
+		unsigned int maxLength,
+		QObject* parent = nullptr
+	)
+	: QValidator(parent),
+	  minLength(minLength),
+	  maxLength(maxLength)
+	{}
+	Q_DISABLE_COPY(DecStringValidator)
+
+public slots:
+	void setMinLength(unsigned int x);
+	void setMaxLength(unsigned int x);
+
+signals:
+	void minLengthChanged(unsigned int x);
+	void maxLengthChanged(unsigned int x);
+
+public:
+	State validate(QString& input, int& pos) const override;
+};
+
 class HexStringValidator : public QValidator
 {
 	Q_OBJECT

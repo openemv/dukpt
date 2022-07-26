@@ -32,6 +32,10 @@ MainWindow::MainWindow(QWidget* parent)
 	// Setup validators
 	keyValidator = new CryptoKeyStringValidator(CryptoValidator::TDES, this);
 	keyValidator->setObjectName("keyValidator");
+	pinValidator = new DecStringValidator(4, 12, this);
+	pinValidator->setObjectName("pinValidator");
+	panValidator = new DecStringValidator(12, 19, this);
+	panValidator->setObjectName("panValidator");
 	dataValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 0, this);
 	dataValidator->setObjectName("dataValidator");
 	ivValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 1, this);
@@ -43,6 +47,8 @@ MainWindow::MainWindow(QWidget* parent)
 	setupUi(this);
 	inputKeyEdit->setValidator(keyValidator);
 	kbpkEdit->setValidator(keyValidator);
+	pinEdit->setValidator(pinValidator);
+	panEdit->setValidator(panValidator);
 	dataEdit->setValidator(dataValidator);
 	ivEdit->setValidator(ivValidator);
 	macEdit->setValidator(macValidator);

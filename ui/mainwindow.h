@@ -27,6 +27,7 @@
 #include "ui_mainwindow.h"
 
 // Forward declarations
+class DecStringValidator;
 class HexStringValidator;
 class CryptoKeyStringValidator;
 class CryptoHexStringValidator;
@@ -37,6 +38,8 @@ class MainWindow : public QMainWindow, private Ui::MainWindow
 
 private:
 	CryptoKeyStringValidator* keyValidator;
+	DecStringValidator* pinValidator;
+	DecStringValidator* panValidator;
 	CryptoHexStringValidator* dataValidator;
 	CryptoHexStringValidator* ivValidator;
 	HexStringValidator* macValidator;
@@ -127,6 +130,8 @@ private slots: // connect-by-name helper functions for validation
 	void updateValidationStyleSheet(QLineEdit* edit);
 	void on_inputKeyEdit_textChanged(const QString&) { updateValidationStyleSheet(inputKeyEdit); }
 	void on_kbpkEdit_textChanged(const QString&) { updateValidationStyleSheet(kbpkEdit); }
+	void on_pinEdit_textChanged(const QString&) { updateValidationStyleSheet(pinEdit); }
+	void on_panEdit_textChanged(const QString&) { updateValidationStyleSheet(panEdit); }
 	void on_dataEdit_textChanged(const QString&) { updateValidationStyleSheet(dataEdit); }
 	void on_ivEdit_textChanged(const QString&) { updateValidationStyleSheet(ivEdit); }
 	void on_macEdit_textChanged(const QString&) { updateValidationStyleSheet(macEdit); }
