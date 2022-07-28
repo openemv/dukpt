@@ -161,16 +161,6 @@
             <layout class="QVBoxLayout" name="encryptDecryptVerticalLayout">
              <item>
               <layout class="QGridLayout" name="encryptDecryptGridLayout">
-               <item row="0" column="0">
-                <widget class="QLabel" name="encryptDecryptKeyTypeLabel">
-                 <property name="text">
-                  <string>Working Key Type</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QLineEdit" name="panEdit"/>
-               </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="pinActionLabel">
                  <property name="text">
@@ -178,29 +168,10 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="0">
-                <widget class="QLabel" name="ivLabel">
+               <item row="0" column="0">
+                <widget class="QLabel" name="encryptDecryptKeyTypeLabel">
                  <property name="text">
-                  <string>Initial Vector (IV)</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="1">
-                <widget class="QLineEdit" name="dataEdit"/>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="encryptDecryptKeyTypeComboBox"/>
-               </item>
-               <item row="5" column="0">
-                <widget class="QComboBox" name="dataActionComboBox"/>
-               </item>
-               <item row="2" column="0">
-                <widget class="QComboBox" name="pinActionComboBox"/>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="panLabel">
-                 <property name="text">
-                  <string>PAN</string>
+                  <string>Working Key Type</string>
                  </property>
                 </widget>
                </item>
@@ -211,26 +182,42 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="1">
-                <widget class="QLineEdit" name="pinEdit"/>
-               </item>
                <item row="6" column="1">
                 <widget class="QLineEdit" name="ivEdit"/>
                </item>
+               <item row="6" column="0">
+                <widget class="QLabel" name="ivLabel">
+                 <property name="text">
+                  <string>Initial Vector (IV)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="encryptDecryptKeyTypeComboBox"/>
+               </item>
+               <item row="5" column="0" alignment="Qt::AlignTop">
+                <widget class="QComboBox" name="dataActionComboBox"/>
+               </item>
+               <item row="2" column="1">
+                <widget class="QLineEdit" name="pinEdit"/>
+               </item>
+               <item row="2" column="0">
+                <widget class="QComboBox" name="pinActionComboBox"/>
+               </item>
+               <item row="3" column="1">
+                <widget class="QLineEdit" name="panEdit"/>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="panLabel">
+                 <property name="text">
+                  <string>PAN</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QPlainTextEdit" name="dataEdit"/>
+               </item>
               </layout>
-             </item>
-             <item>
-              <spacer name="encryptDecryptVerticalSpacer">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
              </item>
              <item>
               <widget class="QPushButton" name="encryptDecryptPushButton">
@@ -248,13 +235,6 @@
             <layout class="QVBoxLayout" name="macVerticalLayout">
              <item>
               <layout class="QGridLayout" name="macGridLayout">
-               <item row="1" column="0">
-                <widget class="QComboBox" name="macActionComboBox">
-                 <property name="sizeAdjustPolicy">
-                  <enum>QComboBox::AdjustToContents</enum>
-                 </property>
-                </widget>
-               </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="macActionLabel">
                  <property name="text">
@@ -262,23 +242,17 @@
                  </property>
                 </widget>
                </item>
+               <item row="1" column="0" alignment="Qt::AlignTop">
+                <widget class="QComboBox" name="macActionComboBox">
+                 <property name="sizeAdjustPolicy">
+                  <enum>QComboBox::AdjustToContents</enum>
+                 </property>
+                </widget>
+               </item>
                <item row="1" column="1">
-                <widget class="QLineEdit" name="macEdit"/>
+                <widget class="QPlainTextEdit" name="macEdit"/>
                </item>
               </layout>
-             </item>
-             <item>
-              <spacer name="macVerticalSpacer">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
              </item>
              <item>
               <widget class="QPushButton" name="macPushButton">
@@ -294,19 +268,6 @@
         </layout>
        </widget>
       </item>
-      <item>
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
      </layout>
     </item>
     <item>
@@ -316,17 +277,11 @@
       </property>
       <layout class="QVBoxLayout" name="outputsVerticalLayout">
        <item>
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+        <widget class="QPlainTextEdit" name="outputText">
+         <property name="readOnly">
+          <bool>true</bool>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>484</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
+        </widget>
        </item>
       </layout>
      </widget>

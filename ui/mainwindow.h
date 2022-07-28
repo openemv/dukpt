@@ -25,12 +25,7 @@
 #include <QtWidgets/QMainWindow>
 
 #include "ui_mainwindow.h"
-
-// Forward declarations
-class DecStringValidator;
-class HexStringValidator;
-class CryptoKeyStringValidator;
-class CryptoHexStringValidator;
+#include "validators.h"
 
 class MainWindow : public QMainWindow, private Ui::MainWindow
 {
@@ -128,15 +123,16 @@ private: // helper enums and helper functions for inputs
 
 private slots: // connect-by-name helper functions for validation
 	void updateValidationStyleSheet(QLineEdit* edit);
+	void updateValidationStyleSheet(const QValidator* validator, QPlainTextEdit* edit);
 	void on_inputKeyEdit_textChanged(const QString&) { updateValidationStyleSheet(inputKeyEdit); }
 	void on_kbpkEdit_textChanged(const QString&) { updateValidationStyleSheet(kbpkEdit); }
 	void on_pinEdit_textChanged(const QString&) { updateValidationStyleSheet(pinEdit); }
 	void on_panEdit_textChanged(const QString&) { updateValidationStyleSheet(panEdit); }
-	void on_dataEdit_textChanged(const QString&) { updateValidationStyleSheet(dataEdit); }
+	void on_dataEdit_textChanged() { updateValidationStyleSheet(dataValidator, dataEdit); }
 	void on_ivEdit_textChanged(const QString&) { updateValidationStyleSheet(ivEdit); }
-	void on_macEdit_textChanged(const QString&) { updateValidationStyleSheet(macEdit); }
+	void on_macEdit_textChanged() { updateValidationStyleSheet(macValidator, macEdit); }
 	void on_keyValidator_changed() { updateValidationStyleSheet(inputKeyEdit); updateValidationStyleSheet(kbpkEdit); }
-	void on_dataValidator_changed() { updateValidationStyleSheet(dataEdit); }
+	void on_dataValidator_changed() { updateValidationStyleSheet(dataValidator, dataEdit); }
 	void on_ivValidator_changed() { updateValidationStyleSheet(ivEdit); }
 
 private slots: // connect-by-name helper functions for combo boxes

@@ -49,9 +49,9 @@ MainWindow::MainWindow(QWidget* parent)
 	kbpkEdit->setValidator(keyValidator);
 	pinEdit->setValidator(pinValidator);
 	panEdit->setValidator(panValidator);
-	dataEdit->setValidator(dataValidator);
+	// dataEdit->setValidator(dataValidator); // see updateValidationStyleSheet()
 	ivEdit->setValidator(ivValidator);
-	macEdit->setValidator(macValidator);
+	// macEdit->setValidator(macValidator); // see updateValidationStyleSheet()
 
 	// Populate combo boxes
 
@@ -417,6 +417,20 @@ void MainWindow::updateMacActions(dukpt_ui_mode_t mode)
 void MainWindow::updateValidationStyleSheet(QLineEdit* edit)
 {
 	if (edit->hasAcceptableInput()) {
+		edit->setStyleSheet("");
+	} else {
+		edit->setStyleSheet("color: red");
+	}
+}
+
+void MainWindow::updateValidationStyleSheet(const QValidator* validator, QPlainTextEdit* edit)
+{
+	QString str;
+	int pos;
+
+	str = edit->toPlainText();
+	pos = 0;
+	if (validator->validate(str, pos) == QValidator::Acceptable) {
 		edit->setStyleSheet("");
 	} else {
 		edit->setStyleSheet("color: red");
