@@ -267,7 +267,7 @@ int main(void)
 	}
 
 	// Advance to first KSN
-	memcpy(ksn, ikid, DUKPT_AES_KSN_LEN);
+	memcpy(ksn, ikid, DUKPT_AES_IK_ID_LEN);
 	memset(ksn + DUKPT_AES_IK_ID_LEN, 0, DUKPT_AES_KSN_LEN - DUKPT_AES_IK_ID_LEN);
 	r = dukpt_aes_ksn_advance(ksn);
 	if (r) {
