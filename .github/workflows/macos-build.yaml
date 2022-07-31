@@ -9,6 +9,9 @@ name: MacOS build
 
 on: [push]
 
+env:
+  TR31_VERSION: 0.4.2
+
 jobs:
   build-macos-debug:
     strategy:
@@ -30,8 +33,20 @@ jobs:
         submodules: recursive
     - run: git describe --always --dirty
 
+    - name: Build TR-31 dependency
+      run: |
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
+        cd tr31-${{ env.TR31_VERSION }}
+        cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES
+        cmake --build build
+        echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
+        cd ..
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES
+      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }}
 
     - name: Build
       run: cmake --build build
