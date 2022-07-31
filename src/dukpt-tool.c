@@ -584,7 +584,7 @@ static int parse_hex(const char* hex, void* buf, size_t* buf_len)
 // File/stdin read helper function
 static void* read_file(FILE* file, size_t* len)
 {
-	const size_t block_size = 4; // Use common page size
+	const size_t block_size = 4096; // Use common page size
 	void* buf = NULL;
 	size_t buf_len = 0;
 	size_t total_len = 0;
