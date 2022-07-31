@@ -153,7 +153,7 @@ static struct argp_option argp_options[] = {
 	{ "ipek", DUKPT_TOOL_OPTION_IK, NULL, OPTION_ALIAS },
 	{ "ksn", DUKPT_TOOL_OPTION_KSN, "HEX", 0, "Key Serial Number (KSN)" },
 	{ "pan", DUKPT_TOOL_OPTION_PAN, "PAN", 0, "PAN used for PIN block encryption/decryption." },
-	{ "pinblock-format", DUKPT_TOOL_OPTION_PINBLOCK_FORMAT, "0|1|3|4", 0, "ISO 9564-1:2017 PIN block format used for PIN encryption. Default is 0 for TDES mode and 4 for AES mode" },
+	{ "pinblock-format", DUKPT_TOOL_OPTION_PINBLOCK_FORMAT, "0|3|4", 0, "ISO 9564-1:2017 PIN block format used for PIN encryption. Default is 0 for TDES mode and 4 for AES mode" },
 	{ "iv", DUKPT_TOOL_OPTION_IV, "HEX", 0, "Initial vector used for encryption/decryption. Default is a zero buffer." },
 
 	{ NULL, 0, NULL, 0, "Actions:", 4 },
