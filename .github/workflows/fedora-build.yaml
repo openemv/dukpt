@@ -9,6 +9,9 @@ name: Fedora build
 
 on: [push]
 
+env:
+  TR31_VERSION: 0.4.2
+
 jobs:
   build-fedora-debug:
     name: Fedora 36 (static/debug)
@@ -22,8 +25,8 @@ jobs:
 
     - name: Install TR-31 release
       run: |
-        gh release download --repo openemv/tr31 0.4.2
-        sudo dnf -y install tr31-0.4.2-1.x86_64.rpm
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        sudo dnf -y install tr31-${{ env.TR31_VERSION }}-1.x86_64.rpm
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -61,8 +64,8 @@ jobs:
 
     - name: Install TR-31 release
       run: |
-        gh release download --repo openemv/tr31 0.4.2
-        sudo dnf -y install tr31-0.4.2-1.x86_64.rpm
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        sudo dnf -y install tr31-${{ env.TR31_VERSION }}-1.x86_64.rpm
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
