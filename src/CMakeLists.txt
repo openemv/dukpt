@@ -40,9 +40,18 @@ if(NOT argp_FOUND)
 endif()
 
 # Check for tr31 but don't be verbose if it cannot be found
-find_package(tr31 0.4.2 QUIET)
+# The DUKPT_CONFIG_PACKAGE_DEPENDENCIES variable is set for the parent scope to
+# facilitate the generation of CMake package configuration files.
+# The DUKPT_PKGCONFIG_REQ_PRIV and DUKPT_PKGCONFIG_LIBS_PRIV variables are
+# set for the parent scope to facilitate the generation of pkgconfig files.
+set(TR31_MIN_VERSION 0.4.2)
+find_package(tr31 ${TR31_MIN_VERSION} QUIET)
 if(tr31_FOUND)
-	find_package(tr31 0.4.2 REQUIRED)
+	find_package(tr31 ${TR31_MIN_VERSION} REQUIRED)
+	string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(tr31 ${TR31_MIN_VERSION})\n")
+	set(DUKPT_CONFIG_PACKAGE_DEPENDENCIES ${DUKPT_CONFIG_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
+	string(APPEND DUKPT_PKGCONFIG_REQ_PRIV "libtr31 >= ${TR31_MIN_VERSION}" PARENT_SCOPE)
+	string(APPEND DUKPT_PKGCONFIG_LIBS_PRIV "-ltr31" PARENT_SCOPE)
 else()
 	message(STATUS "Could NOT find tr31")
 endif()

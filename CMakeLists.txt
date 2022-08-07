@@ -118,14 +118,17 @@ export(EXPORT dukptTargets
 # Generate and install pkgconfig files
 set(DUKPT_INSTALL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for dukpt pkgconfig files")
 message(STATUS "Using pkgconfig install location \"${DUKPT_INSTALL_PKGCONFIG_DIR}\"")
-set(DUKPT_PKGCONFIG_LIB_NAME dukpt_tdes)
+# NOTE: src subdirectory may provide DUKPT_PKGCONFIG_REQ_PRIV and DUKPT_PKGCONFIG_LIBS_PRIV
 # NOTE: crypto subdirectory provides CRYPTO_PKGCONFIG_REQ_PRIV and CRYPTO_PKGCONFIG_LIBS_PRIV
-set(DUKPT_PKGCONFIG_REQ_PRIV ${CRYPTO_PKGCONFIG_REQ_PRIV})
-set(DUKPT_PKGCONFIG_LIBS_PRIV ${CRYPTO_PKGCONFIG_LIBS_PRIV})
+string(APPEND DUKPT_PKGCONFIG_REQ_PRIV ${CRYPTO_PKGCONFIG_REQ_PRIV})
+string(APPEND DUKPT_PKGCONFIG_LIBS_PRIV ${CRYPTO_PKGCONFIG_LIBS_PRIV})
+# Generate pkgconfig for dukpt_tdes
+set(DUKPT_PKGCONFIG_LIB_NAME dukpt_tdes)
 configure_file(pkgconfig/libdukpt_tdes.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_tdes.pc"
 	@ONLY
 )
+# Generate pkgconfig for dukpt_aes
 set(DUKPT_PKGCONFIG_LIB_NAME dukpt_aes)
 configure_file(pkgconfig/libdukpt_aes.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_aes.pc"
