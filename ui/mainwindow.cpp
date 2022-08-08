@@ -26,6 +26,8 @@
 #include "dukpt_aes.h"
 #include "tr31.h"
 
+#include <QtCore/QSettings>
+
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
 {
@@ -68,6 +70,98 @@ MainWindow::MainWindow(QWidget* parent)
 	dataActionComboBox->addItem("Decrypt request", DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST);
 	dataActionComboBox->addItem("Encrypt response", DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE);
 	dataActionComboBox->addItem("Decrypt response", DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE);
+
+	// Load previous UI values
+	loadSettings();
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+	// Save current UI values
+	saveSettings();
+}
+
+void MainWindow::loadSettings()
+{
+	QSettings settings;
+	QList<QComboBox*> combo_box_list = findChildren<QComboBox*>();
+	QList<QLineEdit*> line_edit_list = findChildren<QLineEdit*>();
+	QList<QPlainTextEdit*> plain_text_edit_list = findChildren<QPlainTextEdit*>();
+
+	settings.beginGroup("inputs");
+
+	// Iterate over inputs and load from settings
+	for (auto combo_box : combo_box_list) {
+		int index;
+
+		if (!settings.contains(combo_box->objectName())) {
+			// No value to load
+			continue;
+		}
+
+		index = combo_box->findData(settings.value(combo_box->objectName()).toUInt());
+		if (index != -1) {
+			combo_box->setCurrentIndex(index);
+		}
+	}
+	for (auto line_edit : line_edit_list) {
+		if (!settings.contains(line_edit->objectName())) {
+			// No value to load
+			continue;
+		}
+		line_edit->setText(settings.value(line_edit->objectName()).toString());
+	}
+	for (auto plain_text_edit : plain_text_edit_list) {
+		if (!settings.contains(plain_text_edit->objectName())) {
+			// No value to load
+			continue;
+		}
+		plain_text_edit->setPlainText(settings.value(plain_text_edit->objectName()).toString());
+	}
+}
+
+void MainWindow::saveSettings() const
+{
+	QSettings settings;
+	QList<QComboBox*> combo_box_list = findChildren<QComboBox*>();
+	QList<QLineEdit*> line_edit_list = findChildren<QLineEdit*>();
+	QList<QPlainTextEdit*> plain_text_edit_list = findChildren<QPlainTextEdit*>();
+
+	// Start with blank settings
+	settings.clear();
+	settings.beginGroup("inputs");
+
+	// Iterate over inputs and save to settings
+	for (auto combo_box : combo_box_list) {
+		if (combo_box->currentData().isNull()) {
+			// Don't save empty values
+			continue;
+		}
+
+		settings.setValue(combo_box->objectName(), combo_box->currentData());
+	}
+	for (auto line_edit : line_edit_list) {
+		if (line_edit->text().isEmpty()) {
+			// Don't save empty values
+			continue;
+		}
+
+		settings.setValue(line_edit->objectName(), line_edit->text());
+	}
+	for (auto plain_text_edit : plain_text_edit_list) {
+		if (plain_text_edit->objectName() == "outputText") {
+			// Don't save output text
+			continue;
+		}
+		if (plain_text_edit->toPlainText().isEmpty()) {
+			// Don't save empty values
+			continue;
+		}
+
+		settings.setValue(plain_text_edit->objectName(), plain_text_edit->toPlainText());
+	}
+
+	settings.sync();
 }
 
 MainWindow::dukpt_ui_mode_t MainWindow::getMode() const

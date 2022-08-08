@@ -42,6 +42,13 @@ private:
 public:
 	explicit MainWindow(QWidget* parent = nullptr);
 
+protected:
+	void closeEvent(QCloseEvent* event) override;
+
+private:
+	void loadSettings();
+	void saveSettings() const;
+
 private: // helper enums and helper functions for inputs
 	enum dukpt_ui_mode_t {
 		DUKPT_UI_MODE_UNKNOWN = -1,
