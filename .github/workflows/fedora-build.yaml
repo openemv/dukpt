@@ -101,5 +101,6 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: dukpt-${{env.GIT_DESCRIBE}}-fedora
+        name: dukpt-${{ env.GIT_DESCRIBE }}-fedora36
         path: build/dukpt-*.rpm
+        if-no-files-found: error
