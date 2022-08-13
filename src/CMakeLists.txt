@@ -44,7 +44,7 @@ endif()
 # facilitate the generation of CMake package configuration files.
 # The DUKPT_PKGCONFIG_REQ_PRIV and DUKPT_PKGCONFIG_LIBS_PRIV variables are
 # set for the parent scope to facilitate the generation of pkgconfig files.
-set(TR31_MIN_VERSION 0.4.2)
+set(TR31_MIN_VERSION 0.4.3)
 find_package(tr31 ${TR31_MIN_VERSION} QUIET)
 if(tr31_FOUND)
 	find_package(tr31 ${TR31_MIN_VERSION} REQUIRED)

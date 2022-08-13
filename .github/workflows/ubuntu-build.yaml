@@ -10,7 +10,7 @@ name: Ubuntu build
 on: [push]
 
 env:
-  TR31_VERSION: 0.4.2
+  TR31_VERSION: 0.4.3
 
 jobs:
   build-ubuntu-debug:
@@ -34,7 +34,8 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-20.04' }}
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
-        sudo dpkg -i tr31_${{ env.TR31_VERSION }}_amd64.deb
+        unzip tr31-${{ env.TR31_VERSION }}-${{ matrix.os }}.zip
+        sudo dpkg -i tr31_${{ env.TR31_VERSION }}-0ubuntu1~ppa1~focal1_amd64.deb
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -66,7 +67,8 @@ jobs:
     - name: Install TR-31 release
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
-        sudo dpkg -i tr31_${{ env.TR31_VERSION }}_amd64.deb
+        unzip tr31-${{ env.TR31_VERSION }}-ubuntu-20.04.zip
+        sudo dpkg -i tr31_${{ env.TR31_VERSION }}-0ubuntu1~ppa1~focal1_amd64.deb
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

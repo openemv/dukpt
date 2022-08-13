@@ -10,7 +10,7 @@ name: MacOS build
 on: [push]
 
 env:
-  TR31_VERSION: 0.4.2
+  TR31_VERSION: 0.4.3
 
 jobs:
   build-macos-debug:
