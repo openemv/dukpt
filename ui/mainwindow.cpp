@@ -34,14 +34,14 @@ MainWindow::MainWindow(QWidget* parent)
 	// Setup validators
 	keyValidator = new CryptoKeyStringValidator(CryptoValidator::TDES, this);
 	keyValidator->setObjectName("keyValidator");
+	blockValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 1, this);
+	blockValidator->setObjectName("blockValidator");
 	pinValidator = new DecStringValidator(4, 12, this);
 	pinValidator->setObjectName("pinValidator");
 	panValidator = new DecStringValidator(12, 19, this);
 	panValidator->setObjectName("panValidator");
 	dataValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 0, this);
 	dataValidator->setObjectName("dataValidator");
-	ivValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 1, this);
-	ivValidator->setObjectName("ivValidator");
 	macValidator = new HexStringValidator(this);
 	macValidator->setObjectName("macValidator");
 
@@ -52,7 +52,7 @@ MainWindow::MainWindow(QWidget* parent)
 	pinEdit->setValidator(pinValidator);
 	panEdit->setValidator(panValidator);
 	// dataEdit->setValidator(dataValidator); // see updateValidationStyleSheet()
-	ivEdit->setValidator(ivValidator);
+	ivEdit->setValidator(blockValidator);
 	// macEdit->setValidator(macValidator); // see updateValidationStyleSheet()
 
 	// Populate combo boxes
@@ -549,8 +549,8 @@ void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 		return;
 	}
 	keyValidator->setCipher(cipher);
+	blockValidator->setCipher(cipher);
 	dataValidator->setCipher(cipher);
-	ivValidator->setCipher(cipher);
 
 	// Update combo boxes
 	on_inputKeyTypeComboBox_currentIndexChanged(inputKeyTypeComboBox->currentIndex());
@@ -594,6 +594,30 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 		kbpkEdit->clear();
 		kbpkEdit->setEnabled(false);
 	}
+}
+
+void MainWindow::on_pinActionComboBox_currentIndexChanged(int index)
+{
+	dukpt_ui_pin_action_t action;
+
+	// Current state
+	action = getPinAction();
+
+	switch (action) {
+		case DUKPT_UI_PIN_ACTION_ENCRYPT:
+			pinEdit->setValidator(pinValidator);
+			break;
+
+		case DUKPT_UI_PIN_ACTION_DECRYPT:
+			pinEdit->setValidator(blockValidator);
+			break;
+
+		default:
+			// Unknown action
+			return;
+	}
+
+	on_pinEdit_textChanged(pinEdit->text());
 }
 
 void MainWindow::on_keyDerivationPushButton_clicked()
