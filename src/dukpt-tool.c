@@ -867,8 +867,14 @@ static int prepare_tdes_ik(bool full_ksn)
 		}
 	}
 
-	// If IK is not available, derive it
-	if (!ik) {
+	// If initial key is available, validate it
+	if (ik) {
+		// Validate initial key length
+		if (ik_len != DUKPT_TDES_KEY_LEN) {
+			fprintf(stderr, "TDES: IK/IPEK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
+			return 1;
+		}
+	} else { // If initial key is not available, derive it
 		// Validate BDK length
 		if (bdk_len != DUKPT_TDES_KEY_LEN) {
 			fprintf(stderr, "TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2);
@@ -1205,8 +1211,20 @@ static int prepare_aes_ik(bool full_ksn)
 		}
 	}
 
-	// If IK is not available, derive it
-	if (!ik) {
+	// If initial key is available, validate it
+	if (ik) {
+		// Validate initial key length
+		if (ik_len != DUKPT_AES_KEY_LEN(AES128) &&
+			ik_len != DUKPT_AES_KEY_LEN(AES192) &&
+			ik_len != DUKPT_AES_KEY_LEN(AES256)
+		) {
+			fprintf(stderr, "AES: IK/IPEK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+				DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+				DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
+			);
+			return 1;
+		}
+	} else { // If initial key is not available, derive it
 		// Validate BDK length
 		if (bdk_len != DUKPT_AES_KEY_LEN(AES128) &&
 			bdk_len != DUKPT_AES_KEY_LEN(AES192) &&
