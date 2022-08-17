@@ -27,6 +27,10 @@
 #include "ui_mainwindow.h"
 #include "validators.h"
 
+#include <cstdint>
+#include <utility>
+#include <vector>
+
 class MainWindow : public QMainWindow, private Ui::MainWindow
 {
 	Q_OBJECT
@@ -127,6 +131,19 @@ private: // helper enums and helper functions for inputs
 	dukpt_ui_mac_action_t getMacAction() const;
 	void selectMacAction(dukpt_ui_mac_action_t macAction);
 	void updateMacActions(dukpt_ui_mode_t mode);
+
+	enum dukpt_ui_log_level_t {
+		DUKPT_LOG_INFO = 1,
+		DUKPT_LOG_SUCCESS,
+		DUKPT_LOG_ERROR,
+		DUKPT_LOG_FAILURE,
+	};
+	void log(dukpt_ui_log_level_t level, QString&& str);
+	inline void logInfo(QString&& str) { log(DUKPT_LOG_INFO, std::move(str)); }
+	inline void logSuccess(QString&& str) { log(DUKPT_LOG_SUCCESS, std::move(str)); }
+	inline void logError(QString&& str) { log(DUKPT_LOG_ERROR, std::move(str)); }
+	inline void logFailure(QString&& str) { log(DUKPT_LOG_FAILURE, std::move(str)); }
+	void logVector(QString&& str, const std::vector<std::uint8_t>& v);
 
 private slots: // connect-by-name helper functions for validation
 	void updateValidationStyleSheet(QLineEdit* edit);

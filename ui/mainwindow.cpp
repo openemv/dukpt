@@ -26,7 +26,9 @@
 #include "dukpt_aes.h"
 #include "tr31.h"
 
+#include <QtCore/QByteArray>
 #include <QtCore/QSettings>
+#include <QtWidgets/QScrollBar>
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
@@ -506,6 +508,38 @@ void MainWindow::updateMacActions(dukpt_ui_mode_t mode)
 		// Unknown mode
 		return;
 	}
+}
+
+void MainWindow::log(dukpt_ui_log_level_t level, QString&& str)
+{
+	switch (level) {
+		case DUKPT_LOG_INFO:
+			outputText->appendPlainText(str);
+			break;
+
+		case DUKPT_LOG_SUCCESS:
+			outputText->appendHtml(QString("<span style='color: green'>") + str + QString("</span><p></p>"));
+			break;
+
+		case DUKPT_LOG_FAILURE:
+			outputText->appendHtml(QString("<span style='color: red'>") + str + QString("</span><p></p>"));
+			break;
+
+		case DUKPT_LOG_ERROR:
+		default:
+			outputText->appendHtml(QString("<span style='color: red'>") + str + QString("</span>"));
+			break;
+	}
+
+	outputText->verticalScrollBar()->setValue(outputText->verticalScrollBar()->maximum());
+}
+
+void MainWindow::logVector(QString&& str, const std::vector<std::uint8_t>& v)
+{
+	// Abuse QByteArray to convert binary data to ASCII-HEX
+	QByteArray data(reinterpret_cast<const char*>(v.data()), v.size());
+	str += data.toHex().toUpper();
+	log(DUKPT_LOG_INFO, qUtf8Printable(str));
 }
 
 void MainWindow::updateValidationStyleSheet(QLineEdit* edit)
