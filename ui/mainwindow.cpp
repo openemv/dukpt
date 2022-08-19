@@ -654,9 +654,125 @@ void MainWindow::on_pinActionComboBox_currentIndexChanged(int index)
 	on_pinEdit_textChanged(pinEdit->text());
 }
 
+static std::vector<std::uint8_t> HexStringToVector(const QString& s)
+{
+	QByteArray data;
+	data = QByteArray::fromHex(s.toUtf8());
+	return std::vector<std::uint8_t>(data.constData(), data.constData() + data.size());
+}
+
 void MainWindow::on_keyDerivationPushButton_clicked()
 {
-	// TODO: implement
+	// Current state
+	mode = getMode();
+	inputKeyType = getInputKeyType();
+	inputKey = HexStringToVector(inputKeyEdit->text());
+	ksn = HexStringToVector(ksnEdit->text());
+	derivationAction = getDerivationAction();
+	derivedKeyType = getDerivedKeyType();
+	outputFormat = getOutputFormat();
+	kbpk = HexStringToVector(kbpkEdit->text());
+
+	if (mode == DUKPT_UI_MODE_TDES) {
+		logInfo("TDES mode");
+		if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_BDK) {
+			logVector("BDK: ", inputKey);
+		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
+			logVector("IK: ", inputKey);
+		}
+		logVector("KSN: ", ksn);
+
+		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_IK) {
+			std::vector<std::uint8_t> ik;
+
+			ik = prepareTdesInitialKey(false);
+			if (ik.empty()) {
+				logFailure("Action failed");
+				return;
+			}
+
+			logVector("IK: ", ik);
+			logSuccess("Key derivation successful");
+			return;
+		}
+
+		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_TXN) {
+			std::vector<std::uint8_t> txnKey;
+
+			txnKey = prepareTdesTxnKey();
+			if (txnKey.empty()) {
+				logFailure("Action failed");
+				return;
+			}
+
+			logVector("TXN: ", txnKey);
+			logSuccess("Key derivation successful");
+			return;
+		}
+
+		logFailure("Unknown derivation action");
+		return;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		logInfo("AES mode");
+		if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_BDK) {
+			logVector("BDK: ", inputKey);
+		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
+			logVector("IK: ", inputKey);
+		}
+		logVector("KSN: ", ksn);
+
+		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_IK) {
+			std::vector<std::uint8_t> ik;
+
+			ik = prepareAesInitialKey(false);
+			if (ik.empty()) {
+				logFailure("Action failed");
+				return;
+			}
+
+			logVector("IK: ", ik);
+			logSuccess("Key derivation successful");
+			return;
+		}
+
+		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_TXN) {
+			std::vector<std::uint8_t> txnKey;
+
+			txnKey = prepareAesTxnKey();
+			if (txnKey.empty()) {
+				logFailure("Action failed");
+				return;
+			}
+
+			logVector("TXN: ", txnKey);
+			logSuccess("Key derivation successful");
+			return;
+		}
+
+		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_UPDATE) {
+			std::vector<std::uint8_t> updateKey;
+
+			updateKey = prepareAesUpdateKey();
+			if (updateKey.empty()) {
+				logFailure("Action failed");
+				return;
+			}
+
+			logVector("Update key: ", updateKey);
+			logSuccess("Key derivation successful");
+			return;
+		}
+
+		logFailure("Unknown derivation action");
+		return;
+
+	} else {
+		logFailure("Unknown mode");
+		return;
+	}
+
+	logFailure("Unimplemented");
 }
 
 void MainWindow::on_encryptDecryptPushButton_clicked()
@@ -667,4 +783,210 @@ void MainWindow::on_encryptDecryptPushButton_clicked()
 void MainWindow::on_macPushButton_clicked()
 {
 	// TODO: implement
+}
+
+std::vector<std::uint8_t> MainWindow::prepareTdesInitialKey(bool full_ksn)
+{
+	int r;
+	std::vector<std::uint8_t> ik;
+
+	if (full_ksn) {
+		// Validate KSN length
+		if (ksn.size() != DUKPT_TDES_KSN_LEN) {
+			logError(QString::asprintf("TDES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KSN_LEN, DUKPT_TDES_KSN_LEN * 2));
+			return {};
+		}
+	} else {
+		// Validate KSN length
+		if (ksn.size() != DUKPT_TDES_KSN_LEN - 2 &&
+			ksn.size() != DUKPT_TDES_KSN_LEN
+		) {
+			logError(QString::asprintf("TDES: KSN must be either %u (for IKSN) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
+				DUKPT_TDES_KSN_LEN - 2, DUKPT_TDES_KSN_LEN,
+				(DUKPT_TDES_KSN_LEN - 2) * 2, DUKPT_TDES_KSN_LEN * 2
+			));
+			return {};
+		}
+	}
+
+	switch (inputKeyType) {
+		case DUKPT_UI_INPUT_KEY_TYPE_BDK:
+			// Validate BDK length
+			if (inputKey.size() != DUKPT_TDES_KEY_LEN) {
+				logError(QString::asprintf("TDES: BDK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2));
+				return {};
+			}
+
+			// Derive initial key
+			ik.resize(DUKPT_TDES_KEY_LEN);
+			r = dukpt_tdes_derive_ik(inputKey.data(), ksn.data(), ik.data());
+			if (r) {
+				logError(QString::asprintf("dukpt_tdes_derive_ik() failed; r=%d\n", r));
+				return {};
+			}
+			return ik;
+
+		case DUKPT_UI_INPUT_KEY_TYPE_IK:
+			// Validate IK length
+			if (inputKey.size() != DUKPT_TDES_KEY_LEN) {
+				logError(QString::asprintf("TDES: IK/IPEK must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_KEY_LEN, DUKPT_TDES_KEY_LEN * 2));
+				return {};
+			}
+			return inputKey;
+
+		default:
+			logError("Unknown input key type");
+			return {};
+	}
+}
+
+std::vector<std::uint8_t> MainWindow::prepareTdesTxnKey()
+{
+	int r;
+	std::vector<std::uint8_t> ik;
+	std::vector<std::uint8_t> txnKey;
+
+	ik = prepareTdesInitialKey(true);
+	if (ik.empty()) {
+		return {};
+	}
+
+	txnKey.resize(DUKPT_TDES_KEY_LEN);
+	r = dukpt_tdes_derive_txn_key(ik.data(), ksn.data(), txnKey.data());
+	if (r) {
+		logError(QString::asprintf("dukpt_tdes_derive_txn_key() failed; r=%d\n", r));
+		return {};
+	}
+
+	return txnKey;
+}
+
+std::vector<std::uint8_t> MainWindow::prepareAesInitialKey(bool full_ksn)
+{
+	int r;
+	std::vector<std::uint8_t> ik;
+
+	if (full_ksn) {
+		// Validate KSN length
+		if (ksn.size() != DUKPT_AES_KSN_LEN) {
+			logError(QString::asprintf("AES: KSN must be %u bytes (thus %u hex digits)\n", DUKPT_AES_KSN_LEN, DUKPT_AES_KSN_LEN * 2));
+			return {};
+		}
+	} else {
+		// Validate KSN length
+		if (ksn.size() != DUKPT_AES_IK_ID_LEN &&
+			ksn.size() != DUKPT_AES_KSN_LEN
+		) {
+			logError(QString::asprintf("AES: KSN must be either %u (for IK ID) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
+				DUKPT_AES_IK_ID_LEN, DUKPT_AES_KSN_LEN,
+				DUKPT_AES_IK_ID_LEN * 2, DUKPT_AES_KSN_LEN * 2
+			));
+			return {};
+		}
+	}
+
+	switch (inputKeyType) {
+		case DUKPT_UI_INPUT_KEY_TYPE_BDK:
+			// Validate BDK length
+			if (inputKey.size() != DUKPT_AES_KEY_LEN(AES128) &&
+				inputKey.size() != DUKPT_AES_KEY_LEN(AES192) &&
+				inputKey.size() != DUKPT_AES_KEY_LEN(AES256)
+			) {
+				logError(QString::asprintf("AES: BDK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+					DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+					DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
+				));
+				return {};
+			}
+
+			// Derive initial key
+			ik.resize(inputKey.size());
+			r = dukpt_aes_derive_ik(inputKey.data(), inputKey.size(), ksn.data(), ik.data());
+			if (r) {
+				logError(QString::asprintf("dukpt_aes_derive_ik() failed; r=%d\n", r));
+				return {};
+			}
+			return ik;
+
+		case DUKPT_UI_INPUT_KEY_TYPE_IK:
+			// Validate IK length
+			if (inputKey.size() != DUKPT_AES_KEY_LEN(AES128) &&
+				inputKey.size() != DUKPT_AES_KEY_LEN(AES192) &&
+				inputKey.size() != DUKPT_AES_KEY_LEN(AES256)
+			) {
+				logError(QString::asprintf("AES: IK/IPEK must be %u|%u|%u bytes (thus %u|%u|%u hex digits)\n",
+					DUKPT_AES_KEY_LEN(AES128), DUKPT_AES_KEY_LEN(AES192), DUKPT_AES_KEY_LEN(AES256),
+					DUKPT_AES_KEY_LEN(AES128) * 2, DUKPT_AES_KEY_LEN(AES192) * 2, DUKPT_AES_KEY_LEN(AES256) * 2
+				));
+				return {};
+			}
+			return inputKey;
+
+		default:
+			logError("Unknown input key type");
+			return {};
+	}
+}
+
+std::vector<std::uint8_t> MainWindow::prepareAesTxnKey()
+{
+	int r;
+	std::vector<std::uint8_t> ik;
+	std::vector<std::uint8_t> txnKey;
+
+	ik = prepareAesInitialKey(true);
+	if (ik.empty()) {
+		return {};
+	}
+
+	txnKey.resize(ik.size());
+	r = dukpt_aes_derive_txn_key(ik.data(), ik.size(), ksn.data(), txnKey.data());
+	if (r) {
+		logError(QString::asprintf("dukpt_aes_derive_txn_key() failed; r=%d\n", r));
+		return {};
+	}
+
+	return txnKey;
+}
+
+std::vector<std::uint8_t> MainWindow::prepareAesUpdateKey()
+{
+	int r;
+	dukpt_aes_key_type_t key_type;
+	std::vector<std::uint8_t> ik;
+	std::vector<std::uint8_t> updateKey;
+
+	ik = prepareAesInitialKey(true);
+	if (ik.empty()) {
+		return {};
+	}
+
+	switch (derivedKeyType) {
+		case DUKPT_UI_KEY_TYPE_AES128:
+			key_type = DUKPT_AES_KEY_TYPE_AES128;
+			updateKey.resize(DUKPT_AES_KEY_LEN(AES128));
+			break;
+
+		case DUKPT_UI_KEY_TYPE_AES192:
+			key_type = DUKPT_AES_KEY_TYPE_AES192;
+			updateKey.resize(DUKPT_AES_KEY_LEN(AES192));
+			break;
+
+		case DUKPT_UI_KEY_TYPE_AES256:
+			key_type = DUKPT_AES_KEY_TYPE_AES256;
+			updateKey.resize(DUKPT_AES_KEY_LEN(AES256));
+			break;
+
+		default:
+			logError("Invalid derived key type");
+			return {};
+	}
+
+	r = dukpt_aes_derive_update_key(ik.data(), ik.size(), ksn.data(), key_type, updateKey.data());
+	if (r) {
+		logError(QString::asprintf("dukpt_aes_derive_update_key() failed; r=%d\n", r));
+		return {};
+	}
+
+	return updateKey;
 }

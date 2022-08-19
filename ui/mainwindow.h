@@ -170,6 +170,28 @@ private slots: // connect-by-name helper functions for push buttons
 	void on_keyDerivationPushButton_clicked();
 	void on_encryptDecryptPushButton_clicked();
 	void on_macPushButton_clicked();
+
+private:
+	// DUKPT state populated when any button is clicked
+	dukpt_ui_mode_t mode;
+	dukpt_ui_input_key_type_t inputKeyType;
+	std::vector<std::uint8_t> inputKey;
+	std::vector<std::uint8_t> ksn;
+
+	// Derivation state populated when derivation button is clicked
+	dukpt_ui_derivation_action_t derivationAction;
+	dukpt_ui_key_type_t derivedKeyType;
+	dukpt_ui_output_format_t outputFormat;
+	std::vector<std::uint8_t> kbpk;
+
+	// Validation and preparation functions for TDES DUKPT
+	std::vector<std::uint8_t> prepareTdesInitialKey(bool full_ksn);
+	std::vector<std::uint8_t> prepareTdesTxnKey();
+
+	// Validation and preparation functions for AES DUKPT
+	std::vector<std::uint8_t> prepareAesInitialKey(bool full_ksn);
+	std::vector<std::uint8_t> prepareAesTxnKey();
+	std::vector<std::uint8_t> prepareAesUpdateKey();
 };
 
 #endif
