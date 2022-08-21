@@ -394,6 +394,7 @@ void MainWindow::selectOutputFormat(dukpt_ui_output_format_t outputFormat)
 void MainWindow::updateOutputFormats(dukpt_ui_mode_t mode)
 {
 	dukpt_ui_output_format_t outputFormat;
+	dukpt_ui_derivation_action_t derivationAction;
 
 	// Remember current output format
 	outputFormat = getOutputFormat();
@@ -401,15 +402,18 @@ void MainWindow::updateOutputFormats(dukpt_ui_mode_t mode)
 	// Build output format list based on mode
 	outputFormatComboBox->clear();
 	outputFormatComboBox->addItem("ASCII-HEX", DUKPT_UI_OUTPUT_FORMAT_HEX);
-	if (mode == DUKPT_UI_MODE_TDES) {
-		outputFormatComboBox->addItem("TR-31 format version B", DUKPT_UI_OUTPUT_FORMAT_TR31_B);
-	} else if (mode == DUKPT_UI_MODE_AES) {
-		outputFormatComboBox->addItem("TR-31 format version D", DUKPT_UI_OUTPUT_FORMAT_TR31_D);
-		outputFormatComboBox->addItem("ISO 20038 format version E", DUKPT_UI_OUTPUT_FORMAT_TR31_E);
-	} else {
-		// Unknown mode
-		outputFormatComboBox->clear();
-		return;
+	derivationAction = getDerivationAction();
+	if (derivationAction == DUKPT_UI_DERIVATION_ACTION_IK) {
+		if (mode == DUKPT_UI_MODE_TDES) {
+			outputFormatComboBox->addItem("TR-31 format version B", DUKPT_UI_OUTPUT_FORMAT_TR31_B);
+		} else if (mode == DUKPT_UI_MODE_AES) {
+			outputFormatComboBox->addItem("TR-31 format version D", DUKPT_UI_OUTPUT_FORMAT_TR31_D);
+			outputFormatComboBox->addItem("ISO 20038 format version E", DUKPT_UI_OUTPUT_FORMAT_TR31_E);
+		} else {
+			// Unknown mode
+			outputFormatComboBox->clear();
+			return;
+		}
 	}
 
 	// Restore current output format (if possible)
@@ -607,12 +611,15 @@ void MainWindow::on_inputKeyTypeComboBox_currentIndexChanged(int index)
 
 void MainWindow::on_derivationActionComboBox_currentIndexChanged(int index)
 {
+	dukpt_ui_mode_t mode;
 	dukpt_ui_derivation_action_t derivationAction;
 
 	// Current state
+	mode = getMode();
 	derivationAction = getDerivationAction();
 
 	updateDerivedKeyTypes(derivationAction);
+	updateOutputFormats(mode);
 }
 
 void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
@@ -691,7 +698,18 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 				return;
 			}
 
-			logVector("IK: ", ik);
+			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B) {
+				QString keyBlock = outputTr31InitialKey(ik);
+				if (keyBlock.isEmpty()) {
+					logFailure("Action failed");
+					return;
+				}
+				keyBlock.prepend("TR-31: ");
+				logInfo(std::move(keyBlock));
+			} else {
+				logVector("IK: ", ik);
+			}
+
 			logSuccess("Key derivation successful");
 			return;
 		}
@@ -731,7 +749,20 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 				return;
 			}
 
-			logVector("IK: ", ik);
+			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_D ||
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_E
+			) {
+				QString keyBlock = outputTr31InitialKey(ik);
+				if (keyBlock.isEmpty()) {
+					logFailure("Action failed");
+					return;
+				}
+				keyBlock.prepend("TR-31: ");
+				logInfo(std::move(keyBlock));
+			} else {
+				logVector("IK: ", ik);
+			}
+
 			logSuccess("Key derivation successful");
 			return;
 		}
@@ -989,4 +1020,97 @@ std::vector<std::uint8_t> MainWindow::prepareAesUpdateKey()
 	}
 
 	return updateKey;
+}
+
+QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
+{
+	int r;
+	std::uint8_t tr31_version;
+	struct tr31_key_t key;
+	struct tr31_ctx_t tr31_ctx;
+	unsigned int kbpk_algorithm;
+	struct tr31_key_t kbpk_obj;
+	char key_block[1024];
+
+	// Populate key attributes for ANSI X9.24 Initial Key
+	// See ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
+	key.usage = TR31_KEY_USAGE_DUKPT_IK;
+	key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
+	key.key_version = TR31_KEY_VERSION_IS_UNUSED;
+	key.exportability = TR31_KEY_EXPORT_NONE;
+
+	// Populate key algorithm
+	if (mode == DUKPT_UI_MODE_TDES) {
+		key.algorithm = TR31_KEY_ALGORITHM_TDES;
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		key.algorithm = TR31_KEY_ALGORITHM_AES;
+	} else {
+		logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_ALGORITHM)));
+		return QString();
+	}
+
+	// Populate key data
+	// Avoid tr31_key_set_data() here to avoid tr31_key_release() later
+	key.length = ik.size();
+	key.data = const_cast<std::uint8_t*>(ik.data());
+
+	// Populate TR-31 context object
+	switch (outputFormat) {
+		case DUKPT_UI_OUTPUT_FORMAT_TR31_B: tr31_version = TR31_VERSION_B; break;
+		case DUKPT_UI_OUTPUT_FORMAT_TR31_D: tr31_version = TR31_VERSION_D; break;
+		case DUKPT_UI_OUTPUT_FORMAT_TR31_E: tr31_version = TR31_VERSION_E; break;
+		default:
+			logError("Unknown input key type");
+			return QString();
+	}
+	r = tr31_init(tr31_version, &key, &tr31_ctx);
+	if (r) {
+		logError(QString::asprintf("tr31_init() failed; r=%d\n", r));
+		return QString();
+	}
+
+	// Determine key block protection key algorithm from keyblock format version
+	switch (tr31_version) {
+		case TR31_VERSION_B:
+			kbpk_algorithm = TR31_KEY_ALGORITHM_TDES;
+			break;
+
+		case TR31_VERSION_D:
+		case TR31_VERSION_E:
+			kbpk_algorithm = TR31_KEY_ALGORITHM_AES;
+			break;
+
+		default:
+			logError(QString::asprintf("%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_VERSION)));
+			return QString();
+	}
+
+	// Populate key block protection key
+	r = tr31_key_init(
+		TR31_KEY_USAGE_TR31_KBPK,
+		kbpk_algorithm,
+		TR31_KEY_MODE_OF_USE_ENC_DEC,
+		"00",
+		TR31_KEY_EXPORT_NONE,
+		kbpk.data(),
+		kbpk.size(),
+		&kbpk_obj
+	);
+	if (r) {
+		logError(QString::asprintf("TR-31 KBPK error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+		return QString();
+	}
+
+	// Export TR-31 key block
+	r = tr31_export(&tr31_ctx, &kbpk_obj, key_block, sizeof(key_block));
+	if (r) {
+		logError(QString::asprintf("TR-31 export error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+		return QString();
+	}
+
+	// Cleanup
+	tr31_key_release(&kbpk_obj);
+	tr31_release(&tr31_ctx);
+
+	return key_block;
 }

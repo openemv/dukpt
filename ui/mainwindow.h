@@ -192,6 +192,9 @@ private:
 	std::vector<std::uint8_t> prepareAesInitialKey(bool full_ksn);
 	std::vector<std::uint8_t> prepareAesTxnKey();
 	std::vector<std::uint8_t> prepareAesUpdateKey();
+
+	// TR-31 helper function
+	QString outputTr31InitialKey(const std::vector<std::uint8_t>& ik);
 };
 
 #endif
