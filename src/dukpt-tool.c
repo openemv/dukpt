@@ -755,44 +755,43 @@ static int output_tr31(const void* buf, size_t length)
 
 	// Populate optional blocks for KSN
 	if (tr31_with_ksn) {
-		switch (tr31_version) {
-			case TR31_VERSION_B: {
-				uint8_t iksn[DUKPT_TDES_KSN_LEN];
+		if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES) {
+			uint8_t iksn[DUKPT_TDES_KSN_LEN];
 
-				// Sanitise Initial Key Serial Number (IKSN)
-				memcpy(iksn, ksn, DUKPT_TDES_KSN_LEN - 2);
-				iksn[7] &= 0xE0;
-				iksn[8] = 0;
-				iksn[9] = 0;
+			// Sanitise Initial Key Serial Number (IKSN)
+			memcpy(iksn, ksn, DUKPT_TDES_KSN_LEN - 2);
+			iksn[7] &= 0xE0;
+			iksn[8] = 0;
+			iksn[9] = 0;
 
-				// Add optional block using the provided length. This allows
-				// the user to add either 8 or 10 byte KSNs, depending on their
-				// needs.
-				r = tr31_opt_block_add(
-					&tr31_ctx,
-					TR31_OPT_BLOCK_KS,
-					iksn,
-					ksn_len
-				);
-				break;
+			// Add optional block using the provided length. This allows
+			// the user to add either 8 or 10 byte KSNs, depending on their
+			// needs.
+			r = tr31_opt_block_add(
+				&tr31_ctx,
+				TR31_OPT_BLOCK_KS,
+				iksn,
+				ksn_len
+			);
+			if (r) {
+				fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+				return 1;
 			}
 
-			case TR31_VERSION_D:
-			case TR31_VERSION_E:
-				// Add optional block. For AES DUKPT, this will always be the
-				// initial key ID and not the whole KSN.
-				// See TR-31:2018, A.5.6, table 11
-				r = tr31_opt_block_add(
-					&tr31_ctx,
-					TR31_OPT_BLOCK_IK,
-					ksn,
-					DUKPT_AES_IK_ID_LEN
-				);
-				break;
-
-			default:
-				fprintf(stderr, "%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_VERSION));
+		} else if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES) {
+			// Add optional block. For AES DUKPT, this will always be the
+			// initial key ID and not the whole KSN.
+			// See TR-31:2018, A.5.6, table 11
+			r = tr31_opt_block_add(
+				&tr31_ctx,
+				TR31_OPT_BLOCK_IK,
+				ksn,
+				DUKPT_AES_IK_ID_LEN
+			);
+			if (r) {
+				fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
 				return 1;
+			}
 		}
 	}
 
