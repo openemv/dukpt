@@ -60,6 +60,8 @@ static void* kbpk_buf = NULL;
 static size_t kbpk_buf_len = 0;
 static enum tr31_version_t tr31_version = 0;
 static bool tr31_with_ksn = false;
+static bool tr31_with_kc = false;
+static bool tr31_with_kp = false;
 #endif
 
 static bool found_stdin_arg = false;
@@ -136,6 +138,8 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_OUTPUT_TR31,
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_FORMAT_VERSION,
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN,
+	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC,
+	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP,
 #endif
 };
 
@@ -177,6 +181,8 @@ static struct argp_option argp_options[] = {
 	{ "output-tr31", DUKPT_TOOL_OPTION_OUTPUT_TR31, "KBPK", 0, "Output TR-31 key block using provided key block protection key" },
 	{ "output-tr31-format-version", DUKPT_TOOL_OPTION_OUTPUT_TR31_FORMAT_VERSION, "B|D|E", 0, "Output TR-31 key block using provided format version" },
 	{ "output-tr31-with-ksn", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN, NULL, 0, "Output TR-31 key block with KSN in header. Format version B uses optional block KS. Format version D en E use optional block IK." },
+	{ "output-tr31-with-kc", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC, NULL, 0, "Output TR-31 key block with KCV of wrapped key in header. This uses optional block KC." },
+	{ "output-tr31-with-kp", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP, NULL, 0, "Output TR-31 key block with KCV of key block protection key in header. This uses optional block KP." },
 #endif
 
 	{ 0 },
@@ -452,6 +458,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN:
 			tr31_with_ksn = true;
 			return 0;
+
+		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC:
+			tr31_with_kc = true;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP:
+			tr31_with_kp = true;
+			return 0;
 #endif
 
 		case ARGP_KEY_END:
@@ -529,6 +543,12 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				}
 				if (tr31_with_ksn) {
 					argp_error(state, "TR-31 with KSN (--output-tr31-with-ksn) is only allowed for TR-31 output (--output-tr31)");
+				}
+				if (tr31_with_kc) {
+					argp_error(state, "TR-31 with KC (--output-tr31-with-kc) is only allowed for TR-31 output (--output-tr31)");
+				}
+				if (tr31_with_kp) {
+					argp_error(state, "TR-31 with KP (--output-tr31-with-kp) is only allowed for TR-31 output (--output-tr31)");
 				}
 			}
 #endif
@@ -792,6 +812,24 @@ static int output_tr31(const void* buf, size_t length)
 				fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
 				return 1;
 			}
+		}
+	}
+
+	// Populate optional block KC
+	if (tr31_with_kc) {
+		r = tr31_opt_block_add_KC(&tr31_ctx);
+		if (r) {
+			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	// Populate optional block KP
+	if (tr31_with_kp) {
+		r = tr31_opt_block_add_KP(&tr31_ctx);
+		if (r) {
+			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
 		}
 	}
 
