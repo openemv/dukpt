@@ -90,13 +90,57 @@
             <layout class="QVBoxLayout" name="keyDerivationVerticalLayout">
              <item>
               <layout class="QGridLayout" name="keyDerivationGridLayout">
-               <item row="3" column="1">
-                <widget class="QLineEdit" name="kbpkEdit"/>
+               <item row="3" column="0">
+                <widget class="QLabel" name="kbpkLabel">
+                 <property name="text">
+                  <string>Key Block Protection Key</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="2">
+                <widget class="QComboBox" name="outputFormatComboBox"/>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="keyblockAttributesLabel">
+                 <property name="text">
+                  <string>Key Block Attributes</string>
+                 </property>
+                </widget>
                </item>
                <item row="2" column="0">
                 <widget class="QLabel" name="outputFormatLabel">
                  <property name="text">
                   <string>Output Format</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QComboBox" name="derivationActionComboBox"/>
+               </item>
+               <item row="5" column="2">
+                <widget class="QCheckBox" name="tr31KcCheckBox">
+                 <property name="text">
+                  <string>KCV of wrapped key in key block header</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="derivationActionLabel">
+                 <property name="text">
+                  <string>Derivation Action</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2">
+                <widget class="QLineEdit" name="kbpkEdit"/>
+               </item>
+               <item row="1" column="2">
+                <widget class="QComboBox" name="derivedKeyTypeComboBox"/>
+               </item>
+               <item row="4" column="2">
+                <widget class="QCheckBox" name="tr31KsnCheckBox">
+                 <property name="text">
+                  <string>KSN in key block header</string>
                  </property>
                 </widget>
                </item>
@@ -107,28 +151,12 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="1">
-                <widget class="QComboBox" name="outputFormatComboBox"/>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="kbpkLabel">
+               <item row="6" column="2">
+                <widget class="QCheckBox" name="tr31KpCheckBox">
                  <property name="text">
-                  <string>Key Block Protection Key</string>
+                  <string>KCV of KBPK in key block header</string>
                  </property>
                 </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QComboBox" name="derivationActionComboBox"/>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="derivationActionLabel">
-                 <property name="text">
-                  <string>Derivation Action</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QComboBox" name="derivedKeyTypeComboBox"/>
                </item>
               </layout>
              </item>

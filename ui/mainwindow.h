@@ -183,6 +183,9 @@ private:
 	dukpt_ui_key_type_t derivedKeyType;
 	dukpt_ui_output_format_t outputFormat;
 	std::vector<std::uint8_t> kbpk;
+	bool tr31WithKsn;
+	bool tr31WithKc;
+	bool tr31WithKp;
 
 	// Validation and preparation functions for TDES DUKPT
 	std::vector<std::uint8_t> prepareTdesInitialKey(bool full_ksn);

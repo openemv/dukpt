@@ -87,6 +87,7 @@ void MainWindow::loadSettings()
 {
 	QSettings settings;
 	QList<QComboBox*> combo_box_list = findChildren<QComboBox*>();
+	QList<QCheckBox*> check_box_list = findChildren<QCheckBox*>();
 	QList<QLineEdit*> line_edit_list = findChildren<QLineEdit*>();
 	QList<QPlainTextEdit*> plain_text_edit_list = findChildren<QPlainTextEdit*>();
 
@@ -105,6 +106,17 @@ void MainWindow::loadSettings()
 		if (index != -1) {
 			combo_box->setCurrentIndex(index);
 		}
+	}
+	for (auto check_box : check_box_list) {
+		Qt::CheckState state;
+
+		if (!settings.contains(check_box->objectName())) {
+			// No value to load
+			continue;
+		}
+
+		state = static_cast<Qt::CheckState>(settings.value(check_box->objectName()).toUInt());
+		check_box->setCheckState(state);
 	}
 	for (auto line_edit : line_edit_list) {
 		if (!settings.contains(line_edit->objectName())) {
@@ -126,6 +138,7 @@ void MainWindow::saveSettings() const
 {
 	QSettings settings;
 	QList<QComboBox*> combo_box_list = findChildren<QComboBox*>();
+	QList<QCheckBox*> check_box_list = findChildren<QCheckBox*>();
 	QList<QLineEdit*> line_edit_list = findChildren<QLineEdit*>();
 	QList<QPlainTextEdit*> plain_text_edit_list = findChildren<QPlainTextEdit*>();
 
@@ -149,6 +162,14 @@ void MainWindow::saveSettings() const
 		}
 
 		settings.setValue(line_edit->objectName(), line_edit->text());
+	}
+	for (auto check_box : check_box_list) {
+		if (!check_box->isChecked()) {
+			// Don't save unchecked checkboxes
+			continue;
+		}
+
+		settings.setValue(check_box->objectName(), check_box->checkState());
 	}
 	for (auto plain_text_edit : plain_text_edit_list) {
 		if (plain_text_edit->objectName() == "outputText") {
@@ -631,9 +652,18 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 	// Enable Key Block Protection Key input based on output format
 	if (outputFormat > DUKPT_UI_OUTPUT_FORMAT_HEX) {
 		kbpkEdit->setEnabled(true);
+		tr31KsnCheckBox->setEnabled(true);
+		tr31KcCheckBox->setEnabled(true);
+		tr31KpCheckBox->setEnabled(true);
 	} else {
 		kbpkEdit->clear();
 		kbpkEdit->setEnabled(false);
+		tr31KsnCheckBox->setCheckState(Qt::Unchecked);
+		tr31KsnCheckBox->setEnabled(false);
+		tr31KcCheckBox->setCheckState(Qt::Unchecked);
+		tr31KcCheckBox->setEnabled(false);
+		tr31KpCheckBox->setCheckState(Qt::Unchecked);
+		tr31KpCheckBox->setEnabled(false);
 	}
 }
 
@@ -679,6 +709,9 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 	derivedKeyType = getDerivedKeyType();
 	outputFormat = getOutputFormat();
 	kbpk = HexStringToVector(kbpkEdit->text());
+	tr31WithKsn = tr31KsnCheckBox->isChecked();
+	tr31WithKc = tr31KcCheckBox->isChecked();
+	tr31WithKp = tr31KpCheckBox->isChecked();
 
 	if (mode == DUKPT_UI_MODE_TDES) {
 		logInfo("TDES mode");
@@ -1067,6 +1100,66 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 	if (r) {
 		logError(QString::asprintf("tr31_init() failed; r=%d\n", r));
 		return QString();
+	}
+
+	// Populate optional blocks for KSN
+	if (tr31WithKsn) {
+		if (mode == DUKPT_UI_MODE_TDES) {
+			uint8_t iksn[DUKPT_TDES_KSN_LEN];
+
+			// Sanitise Initial Key Serial Number (IKSN)
+			memcpy(iksn, ksn.data(), DUKPT_TDES_KSN_LEN - 2);
+			iksn[7] &= 0xE0;
+			iksn[8] = 0;
+			iksn[9] = 0;
+
+			// Add optional block using the provided length. This allows
+			// the user to add either 8 or 10 byte KSNs, depending on their
+			// needs.
+			r = tr31_opt_block_add(
+				&tr31_ctx,
+				TR31_OPT_BLOCK_KS,
+				iksn,
+				ksn.size()
+			);
+			if (r) {
+				logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+				return QString();
+			}
+
+		} else if (mode == DUKPT_UI_MODE_AES) {
+			// Add optional block. For AES DUKPT, this will always be the
+			// initial key ID and not the whole KSN.
+			// See TR-31:2018, A.5.6, table 11
+			r = tr31_opt_block_add(
+				&tr31_ctx,
+				TR31_OPT_BLOCK_IK,
+				ksn.data(),
+				DUKPT_AES_IK_ID_LEN
+			);
+			if (r) {
+				logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+				return QString();
+			}
+		}
+	}
+
+	// Populate optional block KC
+	if (tr31WithKc) {
+		r = tr31_opt_block_add_KC(&tr31_ctx);
+		if (r) {
+			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+			return QString();
+		}
+	}
+
+	// Populate optional block KP
+	if (tr31WithKp) {
+		r = tr31_opt_block_add_KP(&tr31_ctx);
+		if (r) {
+			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+			return QString();
+		}
 	}
 
 	// Determine key block protection key algorithm from keyblock format version
