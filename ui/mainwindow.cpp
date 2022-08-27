@@ -30,6 +30,8 @@
 #include <QtCore/QSettings>
 #include <QtWidgets/QScrollBar>
 
+#include <cstddef>
+
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
 {
@@ -567,6 +569,18 @@ void MainWindow::logVector(QString&& str, const std::vector<std::uint8_t>& v)
 	log(DUKPT_LOG_INFO, qUtf8Printable(str));
 }
 
+void MainWindow::logDigitVector(QString&& str, std::vector<std::uint8_t> v)
+{
+	for (auto&& digit : v) {
+		if (digit <= 9) {
+			str += '0' + digit;
+		} else {
+			str += '?';
+		}
+	}
+	log(DUKPT_LOG_INFO, qUtf8Printable(str));
+}
+
 void MainWindow::updateValidationStyleSheet(QLineEdit* edit)
 {
 	if (edit->hasAcceptableInput()) {
@@ -696,6 +710,26 @@ static std::vector<std::uint8_t> HexStringToVector(const QString& s)
 	QByteArray data;
 	data = QByteArray::fromHex(s.toUtf8());
 	return std::vector<std::uint8_t>(data.constData(), data.constData() + data.size());
+}
+
+static std::vector<std::uint8_t> PinStringToVector(const QString& s)
+{
+	QByteArray data;
+	data = s.toUtf8();
+	for (auto&& digit : data) {
+		digit -= '0';
+	}
+	return std::vector<std::uint8_t>(data.constData(), data.constData() + data.size());
+}
+
+static std::vector<std::uint8_t> PanStringToVector(QString pan)
+{
+	if (pan.length() % 2 == 1) {
+		// Pad uneven number of PAN digits with trailing 'F'
+		pan += "F";
+	}
+
+	return HexStringToVector(pan);
 }
 
 void MainWindow::on_keyDerivationPushButton_clicked()
@@ -841,7 +875,94 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 
 void MainWindow::on_encryptDecryptPushButton_clicked()
 {
-	// TODO: implement
+	std::vector<std::uint8_t> txnKey;
+
+	// Current state
+	mode = getMode();
+	inputKeyType = getInputKeyType();
+	inputKey = HexStringToVector(inputKeyEdit->text());
+	ksn = HexStringToVector(ksnEdit->text());
+	encryptDecryptKeyType = getEncryptDecryptKeyType();
+	pinAction = getPinAction();
+	pan = PanStringToVector(panEdit->text());
+
+	// Derive transaction key
+	if (mode == DUKPT_UI_MODE_TDES) {
+		logInfo("TDES mode");
+		if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_BDK) {
+			logVector("BDK: ", inputKey);
+		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
+			logVector("IK: ", inputKey);
+		}
+		logVector("KSN: ", ksn);
+
+		txnKey = prepareTdesTxnKey();
+		if (txnKey.empty()) {
+			logFailure("Action failed");
+			return;
+		}
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		logInfo("AES mode");
+		if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_BDK) {
+			logVector("BDK: ", inputKey);
+		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
+			logVector("IK: ", inputKey);
+		}
+		logVector("KSN: ", ksn);
+
+		txnKey = prepareAesTxnKey();
+		if (txnKey.empty()) {
+			logFailure("Action failed");
+			return;
+		}
+
+	} else {
+		logFailure("Unknown mode");
+		return;
+	}
+
+	// Perform PIN action
+	if (pinAction == DUKPT_UI_PIN_ACTION_ENCRYPT &&
+		!pinEdit->text().trimmed().isEmpty() &&
+		!pan.empty()
+	) {
+		std::vector<std::uint8_t> pin;
+		std::vector<std::uint8_t> encryptedPin;
+
+		pin = PinStringToVector(pinEdit->text());
+		logDigitVector("PIN: ", pin);
+		logVector("PAN: ", pan);
+
+		encryptedPin = encryptPin(txnKey, pin);
+		if (encryptedPin.empty()) {
+			logFailure("Action failed");
+			return;
+		}
+		logVector("Encrypted PIN: ", encryptedPin);
+		logSuccess("PIN encryption successful");
+
+	} else if (pinAction == DUKPT_UI_PIN_ACTION_DECRYPT &&
+		!pinEdit->text().trimmed().isEmpty() &&
+		!pan.empty()
+	) {
+		std::vector<std::uint8_t> encryptedPin;
+		std::vector<std::uint8_t> pin;
+
+		encryptedPin = HexStringToVector(pinEdit->text());
+		logVector("PAN: ", pan);
+
+		pin = decryptPin(txnKey, encryptedPin);
+		if (pin.empty()) {
+			logFailure("Action failed");
+			return;
+		}
+		logDigitVector("Decrypted PIN: ", pin);
+		logSuccess("PIN decryption successful");
+
+	} else {
+		logInfo("Skipping PIN action");
+	}
 }
 
 void MainWindow::on_macPushButton_clicked()
@@ -1206,4 +1327,172 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 	tr31_release(&tr31_ctx);
 
 	return key_block;
+}
+
+std::vector<std::uint8_t> MainWindow::encryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& pin)
+{
+	int r;
+	std::vector<std::uint8_t> encryptedPin;
+
+	// Validate PIN length
+	if (pin.size() < 4 || pin.size() > 12) {
+		logError(QString::asprintf("TDES: PIN must be 4 to 12 digits\n"));
+		return {};
+	}
+
+	// Validate PAN length
+	if (pan.size() < 5 || pan.size() > 10) {
+		logError(QString::asprintf("TDES: PAN must be 10 to 19 digits\n"));
+		return {};
+	}
+
+	if (mode == DUKPT_UI_MODE_TDES) {
+		// Do it
+		encryptedPin.resize(DUKPT_TDES_PINBLOCK_LEN);
+		r = dukpt_tdes_encrypt_pin(
+			txnKey.data(),
+			0,
+			pin.data(),
+			pin.size(),
+			pan.data(),
+			pan.size(),
+			encryptedPin.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_encrypt_pin() failed; r=%d\n", r));
+			return {};
+		}
+
+		return encryptedPin;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		switch (encryptDecryptKeyType) {
+			case DUKPT_UI_KEY_TYPE_AES128:
+				key_type = DUKPT_AES_KEY_TYPE_AES128;
+				break;
+
+			case DUKPT_UI_KEY_TYPE_AES192:
+				key_type = DUKPT_AES_KEY_TYPE_AES192;
+				break;
+
+			case DUKPT_UI_KEY_TYPE_AES256:
+				key_type = DUKPT_AES_KEY_TYPE_AES256;
+				break;
+
+		default:
+			logError("Invalid encrypt/decrypt key type");
+			return {};
+		}
+
+		// Do it
+		encryptedPin.resize(DUKPT_AES_PINBLOCK_LEN);
+		r = dukpt_aes_encrypt_pin(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			pin.data(),
+			pin.size(),
+			pan.data(),
+			pan.size(),
+			encryptedPin.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_encrypt_pin() failed; r=%d\n", r));
+			return {};
+		}
+
+		return encryptedPin;
+	}
+
+	return {};
+}
+
+std::vector<std::uint8_t> MainWindow::decryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& encryptedPin)
+{
+	int r;
+	std::uint8_t pin[12];
+	std::size_t pin_len;
+
+	// Validate PAN length
+	if (pan.size() < 5 || pan.size() > 10) {
+		logError(QString::asprintf("TDES: PAN must be 10 to 19 digits\n"));
+		return {};
+	}
+
+	if (mode == DUKPT_UI_MODE_TDES) {
+		// Validate PIN block length
+		if (encryptedPin.size() != DUKPT_TDES_PINBLOCK_LEN) {
+			logError(QString::asprintf("TDES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_PINBLOCK_LEN, DUKPT_TDES_PINBLOCK_LEN * 2));
+			return {};
+		}
+
+		// Do it
+		pin_len = 0;
+		r = dukpt_tdes_decrypt_pin(
+			txnKey.data(),
+			encryptedPin.data(),
+			pan.data(),
+			pan.size(),
+			pin,
+			&pin_len
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_decrypt_pin() failed; r=%d\n", r));
+			return {};
+		}
+
+		return std::vector<std::uint8_t>(pin, pin + pin_len);
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		// Validate PIN block length
+		if (encryptedPin.size() != DUKPT_AES_PINBLOCK_LEN) {
+			logError(QString::asprintf( "AES: PIN block must be %u bytes (thus %u hex digits)\n", DUKPT_AES_PINBLOCK_LEN, DUKPT_AES_PINBLOCK_LEN * 2));
+			return {};
+		}
+
+		switch (encryptDecryptKeyType) {
+			case DUKPT_UI_KEY_TYPE_AES128:
+				key_type = DUKPT_AES_KEY_TYPE_AES128;
+				break;
+
+			case DUKPT_UI_KEY_TYPE_AES192:
+				key_type = DUKPT_AES_KEY_TYPE_AES192;
+				break;
+
+			case DUKPT_UI_KEY_TYPE_AES256:
+				key_type = DUKPT_AES_KEY_TYPE_AES256;
+				break;
+
+			default:
+				logError("Invalid encrypt/decrypt key type");
+				return {};
+		}
+
+		// Do it
+		pin_len = 0;
+		r = dukpt_aes_decrypt_pin(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			encryptedPin.data(),
+			pan.data(),
+			pan.size(),
+			pin,
+			&pin_len
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_decrypt_pin() failed; r=%d\n", r));
+			return {};
+		}
+
+		return std::vector<std::uint8_t>(pin, pin + pin_len);
+	}
+
+	return {};
 }

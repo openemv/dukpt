@@ -144,6 +144,7 @@ private: // helper enums and helper functions for inputs
 	inline void logError(QString&& str) { log(DUKPT_LOG_ERROR, std::move(str)); }
 	inline void logFailure(QString&& str) { log(DUKPT_LOG_FAILURE, std::move(str)); }
 	void logVector(QString&& str, const std::vector<std::uint8_t>& v);
+	void logDigitVector(QString&& str, std::vector<std::uint8_t> v);
 
 private slots: // connect-by-name helper functions for validation
 	void updateValidationStyleSheet(QLineEdit* edit);
@@ -187,6 +188,11 @@ private:
 	bool tr31WithKc;
 	bool tr31WithKp;
 
+	// Encrypt/decrypt state populated when encrypt/decrypt button is clicked
+	dukpt_ui_key_type_t encryptDecryptKeyType;
+	dukpt_ui_pin_action_t pinAction;
+	std::vector<std::uint8_t> pan;
+
 	// Validation and preparation functions for TDES DUKPT
 	std::vector<std::uint8_t> prepareTdesInitialKey(bool full_ksn);
 	std::vector<std::uint8_t> prepareTdesTxnKey();
@@ -198,6 +204,10 @@ private:
 
 	// TR-31 helper function
 	QString outputTr31InitialKey(const std::vector<std::uint8_t>& ik);
+
+	// Encrypt/decrypt helper functions
+	std::vector<std::uint8_t> encryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& pin);
+	std::vector<std::uint8_t> decryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& encryptedPin);
 };
 
 #endif
