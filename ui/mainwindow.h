@@ -192,6 +192,9 @@ private:
 	dukpt_ui_key_type_t encryptDecryptKeyType;
 	dukpt_ui_pin_action_t pinAction;
 	std::vector<std::uint8_t> pan;
+	dukpt_ui_data_action_t dataAction;
+	std::vector<std::uint8_t> encDecData;
+	std::vector<std::uint8_t> iv;
 
 	// Validation and preparation functions for TDES DUKPT
 	std::vector<std::uint8_t> prepareTdesInitialKey(bool full_ksn);
@@ -201,6 +204,11 @@ private:
 	std::vector<std::uint8_t> prepareAesInitialKey(bool full_ksn);
 	std::vector<std::uint8_t> prepareAesTxnKey();
 	std::vector<std::uint8_t> prepareAesUpdateKey();
+	int prepareAesKeyType(dukpt_ui_key_type_t uiKeyType);
+
+	// Other validation and preparation functions
+	bool validateTxnData(const std::vector<std::uint8_t>& txnData);
+	bool prepareIv();
 
 	// TR-31 helper function
 	QString outputTr31InitialKey(const std::vector<std::uint8_t>& ik);
@@ -208,6 +216,10 @@ private:
 	// Encrypt/decrypt helper functions
 	std::vector<std::uint8_t> encryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& pin);
 	std::vector<std::uint8_t> decryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& encryptedPin);
+	std::vector<std::uint8_t> encryptRequest(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> decryptRequest(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> encryptResponse(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> decryptResponse(const std::vector<std::uint8_t>& txnKey);
 };
 
 #endif

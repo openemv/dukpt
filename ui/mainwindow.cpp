@@ -885,6 +885,9 @@ void MainWindow::on_encryptDecryptPushButton_clicked()
 	encryptDecryptKeyType = getEncryptDecryptKeyType();
 	pinAction = getPinAction();
 	pan = PanStringToVector(panEdit->text());
+	dataAction = getDataAction();
+	encDecData = HexStringToVector(dataEdit->toPlainText());
+	iv = HexStringToVector(ivEdit->text());
 
 	// Derive transaction key
 	if (mode == DUKPT_UI_MODE_TDES) {
@@ -962,6 +965,65 @@ void MainWindow::on_encryptDecryptPushButton_clicked()
 
 	} else {
 		logInfo("Skipping PIN action");
+	}
+
+	if (!encDecData.empty()) {
+		std::vector<std::uint8_t> outputData;
+
+		if (!iv.empty()) {
+			logVector("IV: ", iv);
+		}
+
+		// Perform data action
+		switch (dataAction) {
+			case DUKPT_UI_DATA_ACTION_ENCRYPT_REQUEST:
+				outputData = encryptRequest(txnKey);
+				if (outputData.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Encrypted request: ", outputData);
+				logSuccess("Request encryption successful");
+				return;
+
+			case DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST:
+				outputData = decryptRequest(txnKey);
+				if (outputData.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Decrypted request: ", outputData);
+				logSuccess("Request decryption successful");
+				return;
+
+			case DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE:
+				outputData = encryptResponse(txnKey);
+				if (outputData.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Encrypted response: ", outputData);
+				logSuccess("Response encryption successful");
+				return;
+
+			case DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE:
+				outputData = decryptResponse(txnKey);
+				if (outputData.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Decrypted response: ", outputData);
+				logSuccess("Response decryption successful");
+				return;
+
+			default:
+				logFailure("Invalid data action");
+				return;
+		}
 	}
 }
 
@@ -1176,6 +1238,78 @@ std::vector<std::uint8_t> MainWindow::prepareAesUpdateKey()
 	return updateKey;
 }
 
+int MainWindow::prepareAesKeyType(dukpt_ui_key_type_t uiKeyType)
+{
+	switch (uiKeyType) {
+		case DUKPT_UI_KEY_TYPE_AES128:
+			return DUKPT_AES_KEY_TYPE_AES128;
+
+		case DUKPT_UI_KEY_TYPE_AES192:
+			return DUKPT_AES_KEY_TYPE_AES192;
+
+		case DUKPT_UI_KEY_TYPE_AES256:
+			return DUKPT_AES_KEY_TYPE_AES256;
+
+		default:
+			logError("Invalid AES key type");
+			return -1;
+	}
+}
+
+bool MainWindow::validateTxnData(const std::vector<std::uint8_t>& txnData)
+{
+	if (mode == DUKPT_UI_MODE_TDES) {
+		if ((txnData.size() & (DUKPT_TDES_BLOCK_LEN-1)) != 0) {
+			logError(QString::asprintf("TDES: Transaction data length must be a multiple of %u bytes\n", DUKPT_TDES_BLOCK_LEN));
+			return false;
+		}
+
+		return true;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		if ((txnData.size() & (DUKPT_AES_BLOCK_LEN-1)) != 0) {
+			logError(QString::asprintf("AES: Transaction data length must be a multiple of %u bytes\n", DUKPT_AES_BLOCK_LEN));
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool MainWindow::prepareIv()
+{
+	if (mode == DUKPT_UI_MODE_TDES) {
+		if (iv.empty()) {
+			iv.resize(DUKPT_TDES_BLOCK_LEN, 0);
+			return true;
+		}
+
+		if (iv.size() != DUKPT_TDES_BLOCK_LEN) {
+			logError(QString::asprintf("TDES: IV length must be %u bytes (thus %u hex digits)\n", DUKPT_TDES_BLOCK_LEN, DUKPT_TDES_BLOCK_LEN * 2));
+			return false;
+		}
+
+		return true;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		if (iv.empty()) {
+			iv.resize(DUKPT_AES_BLOCK_LEN, 0);
+			return true;
+		}
+
+		if (iv.size() != DUKPT_AES_BLOCK_LEN) {
+			logError(QString::asprintf("AES: IV length must be %u bytes (thus %u hex digits)\n", DUKPT_AES_BLOCK_LEN, DUKPT_AES_BLOCK_LEN * 2));
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
 QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 {
 	int r;
@@ -1368,23 +1502,11 @@ std::vector<std::uint8_t> MainWindow::encryptPin(const std::vector<std::uint8_t>
 	} else if (mode == DUKPT_UI_MODE_AES) {
 		dukpt_aes_key_type_t key_type;
 
-		switch (encryptDecryptKeyType) {
-			case DUKPT_UI_KEY_TYPE_AES128:
-				key_type = DUKPT_AES_KEY_TYPE_AES128;
-				break;
-
-			case DUKPT_UI_KEY_TYPE_AES192:
-				key_type = DUKPT_AES_KEY_TYPE_AES192;
-				break;
-
-			case DUKPT_UI_KEY_TYPE_AES256:
-				key_type = DUKPT_AES_KEY_TYPE_AES256;
-				break;
-
-		default:
-			logError("Invalid encrypt/decrypt key type");
+		r = prepareAesKeyType(encryptDecryptKeyType);
+		if (r < 0) {
 			return {};
 		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
 
 		// Do it
 		encryptedPin.resize(DUKPT_AES_PINBLOCK_LEN);
@@ -1455,23 +1577,11 @@ std::vector<std::uint8_t> MainWindow::decryptPin(const std::vector<std::uint8_t>
 			return {};
 		}
 
-		switch (encryptDecryptKeyType) {
-			case DUKPT_UI_KEY_TYPE_AES128:
-				key_type = DUKPT_AES_KEY_TYPE_AES128;
-				break;
-
-			case DUKPT_UI_KEY_TYPE_AES192:
-				key_type = DUKPT_AES_KEY_TYPE_AES192;
-				break;
-
-			case DUKPT_UI_KEY_TYPE_AES256:
-				key_type = DUKPT_AES_KEY_TYPE_AES256;
-				break;
-
-			default:
-				logError("Invalid encrypt/decrypt key type");
-				return {};
+		r = prepareAesKeyType(encryptDecryptKeyType);
+		if (r < 0) {
+			return {};
 		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
 
 		// Do it
 		pin_len = 0;
@@ -1492,6 +1602,258 @@ std::vector<std::uint8_t> MainWindow::decryptPin(const std::vector<std::uint8_t>
 		}
 
 		return std::vector<std::uint8_t>(pin, pin + pin_len);
+	}
+
+	return {};
+}
+
+std::vector<std::uint8_t> MainWindow::encryptRequest(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	std::vector<std::uint8_t> outputData;
+
+	// Validate transaction data
+	if (!validateTxnData(encDecData)) {
+		return {};
+	}
+
+	// Ensure that IV is non-empty and valid
+	if (!prepareIv()) {
+		return {};
+	}
+
+	// Output data will always be the same length as input data
+	outputData.resize(encDecData.size());
+
+	if (mode == DUKPT_UI_MODE_TDES) {
+		r = dukpt_tdes_encrypt_request(
+			txnKey.data(),
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_encrypt_request() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		r = prepareAesKeyType(encryptDecryptKeyType);
+		if (r < 0) {
+			return {};
+		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+		r = dukpt_aes_encrypt_request(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_encrypt_request() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
+	}
+
+	return {};
+}
+
+std::vector<std::uint8_t> MainWindow::decryptRequest(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	std::vector<std::uint8_t> outputData;
+
+	// Validate transaction data
+	if (!validateTxnData(encDecData)) {
+		return {};
+	}
+
+	// Ensure that IV is non-empty and valid
+	if (!prepareIv()) {
+		return {};
+	}
+
+	// Output data will always be the same length as input data
+	outputData.resize(encDecData.size());
+
+	if (mode == DUKPT_UI_MODE_TDES) {
+		r = dukpt_tdes_decrypt_request(
+			txnKey.data(),
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_decrypt_request() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		r = prepareAesKeyType(encryptDecryptKeyType);
+		if (r < 0) {
+			return {};
+		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+		r = dukpt_aes_decrypt_request(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_decrypt_request() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
+	}
+
+	return {};
+}
+
+std::vector<std::uint8_t> MainWindow::encryptResponse(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	std::vector<std::uint8_t> outputData;
+
+	// Validate transaction data
+	if (!validateTxnData(encDecData)) {
+		return {};
+	}
+
+	// Ensure that IV is non-empty and valid
+	if (!prepareIv()) {
+		return {};
+	}
+
+	// Output data will always be the same length as input data
+	outputData.resize(encDecData.size());
+
+	if (mode == DUKPT_UI_MODE_TDES) {
+		r = dukpt_tdes_encrypt_response(
+			txnKey.data(),
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_encrypt_response() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		r = prepareAesKeyType(encryptDecryptKeyType);
+		if (r < 0) {
+			return {};
+		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+		r = dukpt_aes_encrypt_response(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_encrypt_response() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
+	}
+
+	return {};
+}
+
+std::vector<std::uint8_t> MainWindow::decryptResponse(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	std::vector<std::uint8_t> outputData;
+
+	// Validate transaction data
+	if (!validateTxnData(encDecData)) {
+		return {};
+	}
+
+	// Ensure that IV is non-empty and valid
+	if (!prepareIv()) {
+		return {};
+	}
+
+	// Output data will always be the same length as input data
+	outputData.resize(encDecData.size());
+
+	if (mode == DUKPT_UI_MODE_TDES) {
+		r = dukpt_tdes_decrypt_response(
+			txnKey.data(),
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_decrypt_response() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		r = prepareAesKeyType(encryptDecryptKeyType);
+		if (r < 0) {
+			return {};
+		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+		r = dukpt_aes_decrypt_response(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			iv.data(),
+			encDecData.data(),
+			encDecData.size(),
+			outputData.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_decrypt_response() failed; r=%d\n", r));
+			return {};
+		}
+
+		return outputData;
 	}
 
 	return {};
