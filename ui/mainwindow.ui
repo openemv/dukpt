@@ -263,22 +263,32 @@
             <layout class="QVBoxLayout" name="macVerticalLayout">
              <item>
               <layout class="QGridLayout" name="macGridLayout">
-               <item row="0" column="0">
+               <item row="2" column="1">
+                <widget class="QPlainTextEdit" name="macEdit"/>
+               </item>
+               <item row="1" column="0">
                 <widget class="QLabel" name="macActionLabel">
                  <property name="text">
                   <string>MAC action:</string>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="0" alignment="Qt::AlignTop">
+               <item row="2" column="0" alignment="Qt::AlignTop">
                 <widget class="QComboBox" name="macActionComboBox">
                  <property name="sizeAdjustPolicy">
                   <enum>QComboBox::AdjustToContents</enum>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="1">
-                <widget class="QPlainTextEdit" name="macEdit"/>
+               <item row="0" column="0">
+                <widget class="QLabel" name="macKeyTypeLabel">
+                 <property name="text">
+                  <string>Working Key Type</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="macKeyTypeComboBox"/>
                </item>
               </layout>
              </item>

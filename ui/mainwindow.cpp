@@ -385,6 +385,67 @@ void MainWindow::updateEncryptDecryptKeyTypes(dukpt_ui_mode_t mode)
 	}
 }
 
+MainWindow::dukpt_ui_key_type_t MainWindow::getMacKeyType() const
+{
+	unsigned int data;
+
+	data = macKeyTypeComboBox->currentData().toUInt();
+	switch (data) {
+		case DUKPT_UI_KEY_TYPE_AES128:
+		case DUKPT_UI_KEY_TYPE_AES192:
+		case DUKPT_UI_KEY_TYPE_AES256:
+		case DUKPT_UI_KEY_TYPE_HMAC128:
+		case DUKPT_UI_KEY_TYPE_HMAC192:
+		case DUKPT_UI_KEY_TYPE_HMAC256:
+			return static_cast<dukpt_ui_key_type_t>(data);
+
+		default:
+			return DUKPT_UI_KEY_TYPE_UNKNOWN;
+	}
+}
+
+void MainWindow::selectMacKeyType(dukpt_ui_key_type_t macKeyType)
+{
+	int index;
+
+	index = macKeyTypeComboBox->findData(macKeyType);
+	if (index != -1) {
+		macKeyTypeComboBox->setCurrentIndex(index);
+	}
+}
+
+void MainWindow::updateMacKeyTypes(dukpt_ui_mode_t mode)
+{
+	dukpt_ui_key_type_t macKeyType;
+
+	// Remember current MAC key type
+	macKeyType = getMacKeyType();
+
+	// Build MAC key type based on mode
+	macKeyTypeComboBox->clear();
+	if (mode == DUKPT_UI_MODE_TDES) {
+		macKeyTypeComboBox->addItem("ANSI X9.19 Retail MAC (128-bit)");
+		macKeyTypeComboBox->setEnabled(false);
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		// TODO: only show options that are <= input key length
+		macKeyTypeComboBox->addItem("AES 128-bit", DUKPT_UI_KEY_TYPE_AES128);
+		macKeyTypeComboBox->addItem("AES 192-bit", DUKPT_UI_KEY_TYPE_AES192);
+		macKeyTypeComboBox->addItem("AES 256-bit", DUKPT_UI_KEY_TYPE_AES256);
+		macKeyTypeComboBox->addItem("HMAC 128-bit", DUKPT_UI_KEY_TYPE_HMAC128);
+		macKeyTypeComboBox->addItem("HMAC 192-bit", DUKPT_UI_KEY_TYPE_HMAC192);
+		macKeyTypeComboBox->addItem("HMAC 256-bit", DUKPT_UI_KEY_TYPE_HMAC256);
+		macKeyTypeComboBox->setEnabled(true);
+
+		// TODO: default to same as input key length
+
+		// Restore current MAC key type (if possible)
+		selectMacKeyType(macKeyType);
+	} else {
+		// Unknown mode
+		return;
+	}
+}
+
 MainWindow::dukpt_ui_output_format_t MainWindow::getOutputFormat() const
 {
 	unsigned int data;
@@ -481,13 +542,12 @@ MainWindow::dukpt_ui_mac_action_t MainWindow::getMacAction() const
 
 	data = macActionComboBox->currentData().toUInt();
 	switch (data) {
-		case DUKPT_UI_MAC_ACTION_RETAIL_MAC:
-		case DUKPT_UI_MAC_ACTION_AES128_CMAC:
-		case DUKPT_UI_MAC_ACTION_AES192_CMAC:
-		case DUKPT_UI_MAC_ACTION_AES256_CMAC:
-		case DUKPT_UI_MAC_ACTION_HMAC128_SHA256:
-		case DUKPT_UI_MAC_ACTION_HMAC192_SHA256:
-		case DUKPT_UI_MAC_ACTION_HMAC256_SHA256:
+		case DUKPT_UI_MAC_ACTION_RETAIL_MAC_REQUEST:
+		case DUKPT_UI_MAC_ACTION_RETAIL_MAC_RESPONSE:
+		case DUKPT_UI_MAC_ACTION_CMAC_REQUEST:
+		case DUKPT_UI_MAC_ACTION_CMAC_RESPONSE:
+		case DUKPT_UI_MAC_ACTION_HMAC_SHA256_REQUEST:
+		case DUKPT_UI_MAC_ACTION_HMAC_SHA256_RESPONSE:
 			return static_cast<dukpt_ui_mac_action_t>(data);
 
 		default:
@@ -515,19 +575,13 @@ void MainWindow::updateMacActions(dukpt_ui_mode_t mode)
 	// Build MAC action list based on mode
 	macActionComboBox->clear();
 	if (mode == DUKPT_UI_MODE_TDES) {
-		macActionComboBox->addItem("ANSI X9.19 Retail MAC", DUKPT_UI_MAC_ACTION_RETAIL_MAC);
-		macActionComboBox->setEnabled(false);
+		macActionComboBox->addItem("MAC request", DUKPT_UI_MAC_ACTION_RETAIL_MAC_REQUEST);
+		macActionComboBox->addItem("MAC response", DUKPT_UI_MAC_ACTION_RETAIL_MAC_RESPONSE);
 	} else if (mode == DUKPT_UI_MODE_AES) {
-		// TODO: only show options that are <= input key length
-		macActionComboBox->addItem("AES 128-bit CMAC", DUKPT_UI_MAC_ACTION_AES128_CMAC);
-		macActionComboBox->addItem("AES 192-bit CMAC", DUKPT_UI_MAC_ACTION_AES192_CMAC);
-		macActionComboBox->addItem("AES 256-bit CMAC", DUKPT_UI_MAC_ACTION_AES256_CMAC);
-		macActionComboBox->addItem("HMAC-SHA256 (128-bit key)", DUKPT_UI_MAC_ACTION_HMAC128_SHA256);
-		macActionComboBox->addItem("HMAC-SHA256 (192-bit key)", DUKPT_UI_MAC_ACTION_HMAC192_SHA256);
-		macActionComboBox->addItem("HMAC-SHA256 (256-bit key)", DUKPT_UI_MAC_ACTION_HMAC256_SHA256);
-		macActionComboBox->setEnabled(true);
-
-		// TODO: default to same as input key length
+		macActionComboBox->addItem("CMAC request", DUKPT_UI_MAC_ACTION_CMAC_REQUEST);
+		macActionComboBox->addItem("CMAC response", DUKPT_UI_MAC_ACTION_CMAC_RESPONSE);
+		macActionComboBox->addItem("HMAC-SHA256 request", DUKPT_UI_MAC_ACTION_HMAC_SHA256_REQUEST);
+		macActionComboBox->addItem("HMAC-SHA256 response", DUKPT_UI_MAC_ACTION_HMAC_SHA256_RESPONSE);
 
 		// Restore current MAC action (if possible)
 		selectMacAction(macAction);
@@ -629,6 +683,7 @@ void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 	on_inputKeyTypeComboBox_currentIndexChanged(inputKeyTypeComboBox->currentIndex());
 	updateOutputFormats(mode);
 	updateEncryptDecryptKeyTypes(mode);
+	updateMacKeyTypes(mode);
 	updateMacActions(mode);
 }
 

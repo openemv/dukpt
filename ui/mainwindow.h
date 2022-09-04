@@ -83,6 +83,9 @@ private: // helper enums and helper functions for inputs
 		DUKPT_UI_KEY_TYPE_AES128 = 1,
 		DUKPT_UI_KEY_TYPE_AES192,
 		DUKPT_UI_KEY_TYPE_AES256,
+		DUKPT_UI_KEY_TYPE_HMAC128,
+		DUKPT_UI_KEY_TYPE_HMAC192,
+		DUKPT_UI_KEY_TYPE_HMAC256,
 	};
 	dukpt_ui_key_type_t getDerivedKeyType() const;
 	void selectDerivedKeyType(dukpt_ui_key_type_t derivedKeyType);
@@ -90,6 +93,9 @@ private: // helper enums and helper functions for inputs
 	dukpt_ui_key_type_t getEncryptDecryptKeyType() const;
 	void selectEncryptDecryptKeyType(dukpt_ui_key_type_t encryptDecryptKeyType);
 	void updateEncryptDecryptKeyTypes(dukpt_ui_mode_t mode);
+	dukpt_ui_key_type_t getMacKeyType() const;
+	void selectMacKeyType(dukpt_ui_key_type_t macKeyType);
+	void updateMacKeyTypes(dukpt_ui_mode_t mode);
 
 	enum dukpt_ui_output_format_t {
 		DUKPT_UI_OUTPUT_FORMAT_UNKNOWN = -1,
@@ -120,13 +126,12 @@ private: // helper enums and helper functions for inputs
 
 	enum dukpt_ui_mac_action_t {
 		DUKPT_UI_MAC_ACTION_UNKNOWN = -1,
-		DUKPT_UI_MAC_ACTION_RETAIL_MAC = 1,
-		DUKPT_UI_MAC_ACTION_AES128_CMAC,
-		DUKPT_UI_MAC_ACTION_AES192_CMAC,
-		DUKPT_UI_MAC_ACTION_AES256_CMAC,
-		DUKPT_UI_MAC_ACTION_HMAC128_SHA256,
-		DUKPT_UI_MAC_ACTION_HMAC192_SHA256,
-		DUKPT_UI_MAC_ACTION_HMAC256_SHA256,
+		DUKPT_UI_MAC_ACTION_RETAIL_MAC_REQUEST = 1,
+		DUKPT_UI_MAC_ACTION_RETAIL_MAC_RESPONSE,
+		DUKPT_UI_MAC_ACTION_CMAC_REQUEST,
+		DUKPT_UI_MAC_ACTION_CMAC_RESPONSE,
+		DUKPT_UI_MAC_ACTION_HMAC_SHA256_REQUEST,
+		DUKPT_UI_MAC_ACTION_HMAC_SHA256_RESPONSE,
 	};
 	dukpt_ui_mac_action_t getMacAction() const;
 	void selectMacAction(dukpt_ui_mac_action_t macAction);
