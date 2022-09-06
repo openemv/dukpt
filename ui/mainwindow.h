@@ -201,6 +201,11 @@ private:
 	std::vector<std::uint8_t> encDecData;
 	std::vector<std::uint8_t> iv;
 
+	// MAC state populated when MAC button is clicked
+	dukpt_ui_key_type_t macKeyType;
+	dukpt_ui_mac_action_t macAction;
+	std::vector<std::uint8_t> macData;
+
 	// Validation and preparation functions for TDES DUKPT
 	std::vector<std::uint8_t> prepareTdesInitialKey(bool full_ksn);
 	std::vector<std::uint8_t> prepareTdesTxnKey();
@@ -210,6 +215,8 @@ private:
 	std::vector<std::uint8_t> prepareAesTxnKey();
 	std::vector<std::uint8_t> prepareAesUpdateKey();
 	int prepareAesKeyType(dukpt_ui_key_type_t uiKeyType);
+	int prepareCmacKeyType(dukpt_ui_key_type_t uiKeyType);
+	int prepareHmacKeyType(dukpt_ui_key_type_t uiKeyType);
 
 	// Other validation and preparation functions
 	bool validateTxnData(const std::vector<std::uint8_t>& txnData);
@@ -225,6 +232,14 @@ private:
 	std::vector<std::uint8_t> decryptRequest(const std::vector<std::uint8_t>& txnKey);
 	std::vector<std::uint8_t> encryptResponse(const std::vector<std::uint8_t>& txnKey);
 	std::vector<std::uint8_t> decryptResponse(const std::vector<std::uint8_t>& txnKey);
+
+	// MAC helper functions
+	std::vector<std::uint8_t> macRequest(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> macResponse(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> cmacRequest(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> cmacResponse(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> hmacRequest(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> hmacResponse(const std::vector<std::uint8_t>& txnKey);
 };
 
 #endif
