@@ -173,6 +173,7 @@ private slots: // connect-by-name helper functions for combo boxes
 	void on_pinActionComboBox_currentIndexChanged(int index);
 
 private slots: // connect-by-name helper functions for push buttons
+	void on_ksnAdvancePushButton_clicked();
 	void on_keyDerivationPushButton_clicked();
 	void on_encryptDecryptPushButton_clicked();
 	void on_macPushButton_clicked();
@@ -205,6 +206,9 @@ private:
 	dukpt_ui_key_type_t macKeyType;
 	dukpt_ui_mac_action_t macAction;
 	std::vector<std::uint8_t> macData;
+
+	// KSN helper function
+	int advanceKSN();
 
 	// Validation and preparation functions for TDES DUKPT
 	std::vector<std::uint8_t> prepareTdesInitialKey(bool full_ksn);

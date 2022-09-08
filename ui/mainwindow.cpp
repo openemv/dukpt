@@ -787,6 +787,36 @@ static std::vector<std::uint8_t> PanStringToVector(QString pan)
 	return HexStringToVector(pan);
 }
 
+void MainWindow::on_ksnAdvancePushButton_clicked()
+{
+	int r;
+	std::vector<std::uint8_t> prevKsn;
+
+	// Current state
+	mode = getMode();
+	ksn = HexStringToVector(ksnEdit->text());
+	prevKsn = ksn;
+
+	// Attempt to advance KSN
+	r = advanceKSN();
+	if (r < 0) {
+		logFailure("Invalid KSN");
+		return;
+	}
+	if (r > 0) {
+		logFailure("KSN exhausted");
+		return;
+	}
+
+	// Convert KSN back to ASCII-HEX
+	QByteArray ksnByteArray(reinterpret_cast<const char*>(ksn.data()), ksn.size());
+	ksnEdit->setText(ksnByteArray.toHex().toUpper());
+
+	logVector("Prev KSN: ", prevKsn);
+	logVector("Next KSN: ", ksn);
+	logSuccess("KSN advance successful");
+}
+
 void MainWindow::on_keyDerivationPushButton_clicked()
 {
 	// Current state
@@ -1208,6 +1238,44 @@ void MainWindow::on_macPushButton_clicked()
 	} else {
 		logFailure("Unknown mode");
 		return;
+	}
+}
+
+int MainWindow::advanceKSN()
+{
+	if (mode == DUKPT_UI_MODE_TDES) {
+		// Validate KSN length
+		if (ksn.size() != DUKPT_TDES_KSN_LEN - 2 &&
+			ksn.size() != DUKPT_TDES_KSN_LEN
+		) {
+			logError(QString::asprintf("TDES: KSN must be either %u (for IKSN) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
+				DUKPT_TDES_KSN_LEN - 2, DUKPT_TDES_KSN_LEN,
+				(DUKPT_TDES_KSN_LEN - 2) * 2, DUKPT_TDES_KSN_LEN * 2
+			));
+			return -1;
+		}
+
+		ksn.resize(DUKPT_TDES_KSN_LEN);
+		return dukpt_tdes_ksn_advance(ksn.data());
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		// Validate KSN length
+		if (ksn.size() != DUKPT_AES_IK_ID_LEN &&
+			ksn.size() != DUKPT_AES_KSN_LEN
+		) {
+			logError(QString::asprintf("AES: KSN must be either %u (for IK ID) or %u (for full KSN) bytes (thus %u or %u hex digits)\n",
+				DUKPT_AES_IK_ID_LEN, DUKPT_AES_KSN_LEN,
+				DUKPT_AES_IK_ID_LEN * 2, DUKPT_AES_KSN_LEN * 2
+			));
+			return {};
+		}
+
+		ksn.resize(DUKPT_AES_KSN_LEN);
+		return dukpt_aes_ksn_advance(ksn.data());
+
+	} else {
+		logFailure("Unknown mode");
+		return -1;
 	}
 }
 
