@@ -37,6 +37,7 @@ class MainWindow : public QMainWindow, private Ui::MainWindow
 
 private:
 	CryptoKeyStringValidator* keyValidator;
+	DukptKsnStringValidator* ksnValidator;
 	CryptoHexStringValidator* blockValidator;
 	DecStringValidator* pinValidator;
 	DecStringValidator* panValidator;
@@ -155,6 +156,7 @@ private slots: // connect-by-name helper functions for validation
 	void updateValidationStyleSheet(QLineEdit* edit);
 	void updateValidationStyleSheet(const QValidator* validator, QPlainTextEdit* edit);
 	void on_inputKeyEdit_textChanged(const QString&) { updateValidationStyleSheet(inputKeyEdit); }
+	void on_ksnEdit_textChanged(const QString&) { updateValidationStyleSheet(ksnEdit); }
 	void on_kbpkEdit_textChanged(const QString&) { updateValidationStyleSheet(kbpkEdit); }
 	void on_pinEdit_textChanged(const QString&) { updateValidationStyleSheet(pinEdit); }
 	void on_panEdit_textChanged(const QString&) { updateValidationStyleSheet(panEdit); }
@@ -162,6 +164,7 @@ private slots: // connect-by-name helper functions for validation
 	void on_ivEdit_textChanged(const QString&) { updateValidationStyleSheet(ivEdit); }
 	void on_macEdit_textChanged() { updateValidationStyleSheet(macValidator, macEdit); }
 	void on_keyValidator_changed() { updateValidationStyleSheet(inputKeyEdit); updateValidationStyleSheet(kbpkEdit); }
+	void on_ksnValidator_changed() { updateValidationStyleSheet(ksnEdit); }
 	void on_blockValidator_changed() { updateValidationStyleSheet(pinEdit); updateValidationStyleSheet(ivEdit); }
 	void on_dataValidator_changed() { updateValidationStyleSheet(dataValidator, dataEdit); }
 

@@ -21,6 +21,11 @@
 
 #include "validators.h"
 
+#include "dukpt_tdes.h"
+#include "dukpt_aes.h"
+
+#include <QtCore/QByteArray>
+
 #include <cctype>
 
 void DecStringValidator::setMinLength(unsigned int x)
@@ -168,6 +173,79 @@ QValidator::State CryptoHexStringValidator::validate(QString& input, int& pos) c
 		if (dataLength > blockSize * maxBlocks) {
 			return Intermediate;
 		}
+	}
+
+	return Acceptable;
+}
+
+QValidator::State DukptKsnStringValidator::validate(QString& input, int& pos) const
+{
+	State state;
+	QByteArray tmp;
+	std::vector<std::uint8_t> ksn;
+
+	// Ensure that input is a hex string
+	state = HexStringValidator::validate(input, pos);
+	if (state != Acceptable) {
+		return state;
+	}
+
+	// Convert to std::vector. This is mostly because std::vector<>::resize()
+	// adds zero bytes in contrast to QByteArray::resize() adding uninitialised
+	// bytes.
+	tmp = QByteArray::fromHex(input.toUtf8());
+	ksn = std::vector<std::uint8_t>(tmp.constData(), tmp.constData() + tmp.size());
+
+	if (cipher == TDES) {
+		// Validate length
+		if (ksn.size() && // Empty string is allowed
+			ksn.size() != DUKPT_TDES_KSN_LEN - 2 &&
+			ksn.size() != DUKPT_TDES_KSN_LEN
+		) {
+			return Intermediate;
+		}
+
+		// Validate transaction counter
+		ksn.resize(DUKPT_TDES_KSN_LEN);
+		if (dukpt_tdes_ksn_is_valid(ksn.data())) {
+			return Acceptable;
+		}
+
+		// Allow IKSN (zero transaction counter)
+		if (ksn[DUKPT_TDES_KSN_LEN - 1] == 0 &&
+			ksn[DUKPT_TDES_KSN_LEN - 2] == 0 &&
+			(ksn[DUKPT_TDES_KSN_LEN - 3] & 0x1f) == 0
+		) {
+			return Acceptable;
+		}
+
+		return Intermediate;
+
+	} else if (cipher == AES) {
+		// Validate length
+		if (ksn.size() && // Empty string is allowed
+			ksn.size() != DUKPT_AES_IK_ID_LEN &&
+			ksn.size() != DUKPT_AES_KSN_LEN
+		) {
+			return Intermediate;
+		}
+
+		// Validate transaction counter
+		ksn.resize(DUKPT_AES_KSN_LEN);
+		if (dukpt_aes_ksn_is_valid(ksn.data())) {
+			return Acceptable;
+		}
+
+		// Allow IKSN (zero transaction counter)
+		if (ksn[DUKPT_AES_KSN_LEN - 1] == 0 &&
+			ksn[DUKPT_AES_KSN_LEN - 2] == 0 &&
+			ksn[DUKPT_AES_KSN_LEN - 3] == 0 &&
+			ksn[DUKPT_AES_KSN_LEN - 4] == 0
+		) {
+			return Acceptable;
+		}
+
+		return Intermediate;
 	}
 
 	return Acceptable;

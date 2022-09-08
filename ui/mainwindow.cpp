@@ -38,6 +38,8 @@ MainWindow::MainWindow(QWidget* parent)
 	// Setup validators
 	keyValidator = new CryptoKeyStringValidator(CryptoValidator::TDES, this);
 	keyValidator->setObjectName("keyValidator");
+	ksnValidator = new DukptKsnStringValidator(CryptoValidator::TDES, this);
+	ksnValidator->setObjectName("ksnValidator");
 	blockValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 1, this);
 	blockValidator->setObjectName("blockValidator");
 	pinValidator = new DecStringValidator(4, 12, this);
@@ -52,6 +54,7 @@ MainWindow::MainWindow(QWidget* parent)
 	// Setup UI widgets
 	setupUi(this);
 	inputKeyEdit->setValidator(keyValidator);
+	ksnEdit->setValidator(ksnValidator);
 	kbpkEdit->setValidator(keyValidator);
 	pinEdit->setValidator(pinValidator);
 	panEdit->setValidator(panValidator);
@@ -676,6 +679,7 @@ void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 		return;
 	}
 	keyValidator->setCipher(cipher);
+	ksnValidator->setCipher(cipher);
 	blockValidator->setCipher(cipher);
 	dataValidator->setCipher(cipher);
 

@@ -143,4 +143,18 @@ public:
 	State validate(QString& input, int& pos) const override;
 };
 
+class DukptKsnStringValidator : public CryptoValidator
+{
+	Q_OBJECT
+
+public:
+	DukptKsnStringValidator(Cipher cipher, QObject* parent = nullptr)
+	: CryptoValidator(cipher, parent)
+	{}
+	Q_DISABLE_COPY(DukptKsnStringValidator)
+
+public:
+	State validate(QString& input, int& pos) const override;
+};
+
 #endif
