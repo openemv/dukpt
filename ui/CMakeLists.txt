@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt-ui
-	VERSION 0.2.0
+	VERSION 0.2.2
 	DESCRIPTION "DUKPT User Interface using Qt"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C CXX
@@ -49,7 +49,7 @@ else()
 endif()
 
 find_package(Qt5 5.15 COMPONENTS Widgets REQUIRED)
-find_package(tr31 0.4.2 REQUIRED)
+find_package(tr31 0.4.3 REQUIRED)
 
 qt_wrap_ui(UI_SRCS mainwindow.ui)
 qt_wrap_cpp(MOC_SRCS mainwindow.h validators.h)

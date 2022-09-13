@@ -28,7 +28,7 @@ BDEPEND="
 RDEPEND="
 	mbedtls? ( net-libs/mbedtls )
 	openssl? ( dev-libs/openssl:0/1.1 )
-	tr31? ( >=dev-libs/tr31-0.4.2 )
+	tr31? ( >=dev-libs/tr31-0.4.3 )
 "
 DEPEND="
 	${RDEPEND}

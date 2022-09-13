@@ -1,3 +1,10 @@
+* Tue Sep 13 2022 Leon Lynch <lynch.leon@gmail.com> - 0.2.2-1
+- Update to dukpt-0.2.2
+
+* Sun Aug 14 2022 Leon Lynch <lynch.leon@gmail.com> - 0.2.1-1
+- Update to dukpt-0.2.1
+- Require tr31-0.4.3
+
 * Sat Jul 09 2022 Leon Lynch <lynch.leon@gmail.com> - 0.2.0-1
 - Update to dukpt-0.2.0
 - Require tr31-0.4.2

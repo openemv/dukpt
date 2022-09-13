@@ -9,6 +9,9 @@ name: Windows build
 
 on: [push]
 
+env:
+  TR31_VERSION: 0.4.3
+
 jobs:
   build-windows-msys2-debug:
     runs-on: windows-latest
@@ -41,10 +44,23 @@ jobs:
         msystem: ${{matrix.sys}}
         install: >-
           base-devel
+          git
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-ninja
-          git
+          mingw-w64-${{matrix.env}}-github-cli
+
+    - name: Build TR-31 dependency
+      run: |
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
+        cd tr31-${{ env.TR31_VERSION }}
+        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES
+        cmake --build build
+        echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
+        cd ..
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # MSYS2 Git assumes CRLF by default
     - name: Configure Git
@@ -53,7 +69,7 @@ jobs:
         git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }}
 
     - name: Build
       run: cmake --build build

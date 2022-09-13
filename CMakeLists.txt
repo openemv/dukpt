@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt
-	VERSION 0.2.0
+	VERSION 0.2.2
 	DESCRIPTION "DUKPT libraries and tools"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C
@@ -78,7 +78,7 @@ if(Qt5Widgets_FOUND)
 else()
 	message(STATUS "Could NOT find Qt5 Widgets: skipping dukpt-ui build")
 endif()
-find_package(tr31 0.4.2 QUIET)
+find_package(tr31 0.4.3 QUIET)
 if(NOT tr31_FOUND)
 	message(STATUS "Could NOT find tr31: skipping dukpt-ui build")
 endif()
@@ -133,14 +133,17 @@ export(EXPORT dukptTargets
 # Generate and install pkgconfig files
 set(DUKPT_INSTALL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE STRING "Installation location for dukpt pkgconfig files")
 message(STATUS "Using pkgconfig install location \"${DUKPT_INSTALL_PKGCONFIG_DIR}\"")
-set(DUKPT_PKGCONFIG_LIB_NAME dukpt_tdes)
+# NOTE: src subdirectory may provide DUKPT_PKGCONFIG_REQ_PRIV and DUKPT_PKGCONFIG_LIBS_PRIV
 # NOTE: crypto subdirectory provides CRYPTO_PKGCONFIG_REQ_PRIV and CRYPTO_PKGCONFIG_LIBS_PRIV
-set(DUKPT_PKGCONFIG_REQ_PRIV ${CRYPTO_PKGCONFIG_REQ_PRIV})
-set(DUKPT_PKGCONFIG_LIBS_PRIV ${CRYPTO_PKGCONFIG_LIBS_PRIV})
+string(APPEND DUKPT_PKGCONFIG_REQ_PRIV ${CRYPTO_PKGCONFIG_REQ_PRIV})
+string(APPEND DUKPT_PKGCONFIG_LIBS_PRIV ${CRYPTO_PKGCONFIG_LIBS_PRIV})
+# Generate pkgconfig for dukpt_tdes
+set(DUKPT_PKGCONFIG_LIB_NAME dukpt_tdes)
 configure_file(pkgconfig/libdukpt_tdes.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_tdes.pc"
 	@ONLY
 )
+# Generate pkgconfig for dukpt_aes
 set(DUKPT_PKGCONFIG_LIB_NAME dukpt_aes)
 configure_file(pkgconfig/libdukpt_aes.pc.in
 	"${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/libdukpt_aes.pc"
@@ -249,6 +252,7 @@ if(rpmbuild_FOUND)
 	set(CPACK_RPM_COMPONENT_INSTALL ON)
 	# Use default rpm package naming
 	set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
+	set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
 	# Configure license and changelog
 	set(CPACK_RPM_PACKAGE_LICENSE "LGPLv2+")
 	set(CPACK_RPM_CHANGELOG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/rpm_changelog.txt")
