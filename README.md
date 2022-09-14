@@ -40,7 +40,8 @@ Dependencies
   find a local build)
 * `dukpt-ui` can _optionally_ be built if both [Qt5](https://www.qt.io/) and
   [tr31](https://github.com/openemv/tr31) are available at build-time. If
-  either are not available, `dukpt-ui` will not be built.
+  either are not available, `dukpt-ui` will not be built. Use the
+  `BUILD_DUKPT_UI` option to ensure that `dukpt-ui` will be built.
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake
@@ -149,6 +150,10 @@ rm -Rf build &&
 cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES &&
 cmake --build build
 ```
+
+Note that it may also be necessary to use the `Qt5_DIR` option to specify the
+Qt installation to be used. If the Qt installation does not provide universal
+binaries, it will not be possible to build `dukpt-ui` as a universal binary.
 
 Usage
 -----
