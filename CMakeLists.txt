@@ -73,7 +73,7 @@ add_subdirectory(test)
 
 # If Qt::Widgets and tr31 are available, build dukpt-ui
 option(BUILD_DUKPT_UI "Build dukpt-ui")
-find_package(Qt5 5.15 COMPONENTS Widgets QUIET)
+find_package(Qt5 5.12 COMPONENTS Widgets QUIET)
 if(Qt5Widgets_FOUND)
 	message(STATUS "Found Qt5 Widgets: found suitable version \"${Qt5_VERSION}\"")
 else()

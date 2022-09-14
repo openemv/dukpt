@@ -48,11 +48,20 @@ else()
 	endif()
 endif()
 
-find_package(Qt5 5.15 COMPONENTS Widgets REQUIRED)
+find_package(Qt5 5.12 COMPONENTS Widgets REQUIRED)
 find_package(tr31 0.4.3 REQUIRED)
 
-qt_wrap_ui(UI_SRCS mainwindow.ui)
-qt_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+if(Qt5_VERSION VERSION_LESS 5.15)
+	# Qt-5.12 provides these versioned commands
+	qt5_wrap_ui(UI_SRCS mainwindow.ui)
+	qt5_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+	add_library(Qt::Widgets ALIAS Qt5::Widgets)
+else()
+	# Qt-5.15 and Qt-6 provide these version-less commands
+	qt_wrap_ui(UI_SRCS mainwindow.ui)
+	qt_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+endif()
+
 add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS})
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
