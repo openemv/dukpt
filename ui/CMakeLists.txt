@@ -48,6 +48,8 @@ else()
 	endif()
 endif()
 
+include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
+
 find_package(Qt5 5.12 COMPONENTS Widgets REQUIRED)
 find_package(tr31 0.4.3 REQUIRED)
 
@@ -65,6 +67,24 @@ endif()
 add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS})
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
+
+if(APPLE)
+	# Set properties needed for GUI applications on MacOS
+	set_target_properties(
+		dukpt-ui
+		PROPERTIES
+			MACOSX_BUNDLE TRUE
+	)
+endif()
+
+if(WIN32)
+	# Set properties needed for GUI applications on Windows
+	set_target_properties(
+		dukpt-ui
+		PROPERTIES
+			WIN32_EXECUTABLE TRUE
+	)
+endif()
 
 install(
 	TARGETS
