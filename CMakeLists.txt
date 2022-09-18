@@ -277,4 +277,30 @@ if(rpmbuild_FOUND)
 	# NOTE: RPM generator automatically detects dependencies
 endif()
 
+# Generate NSIS package for Windows if dukpt-ui is available
+if(WIN32 AND TARGET dukpt-ui)
+	list(APPEND CPACK_GENERATOR "NSIS")
+	# Only package runtime components
+	set(CPACK_COMPONENTS_ALL dukpt_runtime dukpt_ui_runtime dukpt_development)
+	# Set display name used by Control Panel
+	set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_VERSION}")
+	# Set name used by installer application
+	set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
+	# Set project URL
+	set(CPACK_NSIS_URL_INFO_ABOUT "${CMAKE_PROJECT_HOMEPAGE_URL}")
+	# Install into vendor/package-version directory
+	set(CPACK_NSIS_INSTALL_ROOT "C:\\${CPACK_PACKAGE_VENDOR}")
+	set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
+	# Set display name used by Start Menu
+	set(CPACK_PACKAGE_EXECUTABLES "dukpt-ui" "Dukpt UI")
+	# Set desktop link to dukpt-ui
+	set(CPACK_CREATE_DESKTOP_LINKS dukpt-ui)
+	# Set package file name based on architecture
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}-win64-setup)
+	elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}-win32-setup)
+	endif()
+endif()
+
 include(CPack)

@@ -113,6 +113,7 @@ jobs:
           mingw-w64-${{matrix.env}}-github-cli
           mingw-w64-${{matrix.env}}-qt5-base
           mingw-w64-${{matrix.env}}-qt5-tools
+          mingw-w64-${{matrix.env}}-nsis
 
     - name: Build TR-31 dependency
       run: |
@@ -148,5 +149,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: dukpt-${{ env.GIT_DESCRIBE }}-windows
-        path: build/dukpt-*.tar.gz
+        path: |
+            build/dukpt-*.tar.gz
+            build/dukpt-*.exe
         if-no-files-found: error
