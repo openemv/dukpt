@@ -48,6 +48,7 @@ jobs:
           mingw-w64-${{matrix.env}}-ninja
           mingw-w64-${{matrix.env}}-github-cli
           mingw-w64-${{matrix.env}}-qt5-base
+          mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Build TR-31 dependency
       run: |
@@ -111,6 +112,7 @@ jobs:
           mingw-w64-${{matrix.env}}-ninja
           mingw-w64-${{matrix.env}}-github-cli
           mingw-w64-${{matrix.env}}-qt5-base
+          mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Build TR-31 dependency
       run: |
