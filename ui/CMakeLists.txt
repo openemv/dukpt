@@ -68,7 +68,7 @@ add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
 
-option(BUILD_MACOSX_BUNDLE "Build MacOS bundle containing dukpt-ui")
+option(BUILD_MACOSX_BUNDLE "Build MacOS bundle containing dukpt-ui and dukpt-tool")
 if(APPLE AND BUILD_MACOSX_BUNDLE)
 	# Set properties needed for bundle applications on MacOS
 	set_target_properties(
@@ -89,6 +89,15 @@ if(APPLE AND BUILD_MACOSX_BUNDLE)
 			${CMAKE_SOURCE_DIR}/LICENSE
 			COMPONENT dukpt_ui_bundle
 			DESTINATION $<TARGET_BUNDLE_CONTENT_DIR:dukpt-ui>/doc/
+		)
+	endif()
+
+	# Install dukpt-tool into bundle for MacOS
+	if(TARGET dukpt-tool)
+		install(PROGRAMS
+			$<TARGET_FILE:dukpt-tool>
+			COMPONENT dukpt_ui_bundle
+			DESTINATION $<TARGET_BUNDLE_CONTENT_DIR:dukpt-ui>/bin/
 		)
 	endif()
 endif()
