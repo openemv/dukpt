@@ -155,6 +155,16 @@ Note that it may also be necessary to use the `Qt5_DIR` option to specify the
 Qt installation to be used. If the Qt installation does not provide universal
 binaries, it will not be possible to build `dukpt-ui` as a universal binary.
 
+On MacOS, a bundle can also be built using the `BUILD_MACOSX_BUNDLE` option and
+packaged as a DMG installer. Assuming `tr31_DIR` and `Qt5_DIR` are already
+appropriately set, this is an example of how a self-contained, static, native
+bundle and isntaller can be built from scratch for MacOS:
+```
+rm -Rf build &&
+cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES &&
+cmake --build build --target package
+```
+
 Usage
 -----
 

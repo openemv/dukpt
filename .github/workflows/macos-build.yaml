@@ -92,7 +92,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DQt5_DIR=${{ env.QT5_DIR }}
+      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DQt5_DIR=${{ env.QT5_DIR }}
 
     - name: Build
       run: cmake --build build
@@ -107,5 +107,5 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: dukpt-${{ env.GIT_DESCRIBE }}-macos
-        path: build/dukpt-*.tar.gz
+        path: build/dukpt-*.dmg
         if-no-files-found: error

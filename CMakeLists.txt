@@ -277,6 +277,15 @@ if(rpmbuild_FOUND)
 	# NOTE: RPM generator automatically detects dependencies
 endif()
 
+# Generate DragNDrop package for MacOS if dukpt-ui is available
+if(APPLE AND TARGET dukpt-ui AND BUILD_MACOSX_BUNDLE)
+	set(CPACK_GENERATOR "DragNDrop") # Skip TGZ generator when building MacOS bundle
+	set(CPACK_COMPONENTS_ALL dukpt_ui_bundle)
+	set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE ON)
+	set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/macos/dukpt_dmg_setup.scpt")
+	set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/macos/openemv_dmg_bg.tif")
+endif()
+
 # Generate NSIS package for Windows if dukpt-ui is available
 if(WIN32 AND TARGET dukpt-ui)
 	list(APPEND CPACK_GENERATOR "NSIS")

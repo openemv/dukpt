@@ -68,12 +68,18 @@ add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
 
-if(APPLE)
-	# Set properties needed for GUI applications on MacOS
+option(BUILD_MACOSX_BUNDLE "Build MacOS bundle containing dukpt-ui")
+if(APPLE AND BUILD_MACOSX_BUNDLE)
+	# Set properties needed for bundle applications on MacOS
 	set_target_properties(
 		dukpt-ui
 		PROPERTIES
 			MACOSX_BUNDLE TRUE
+			MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME}
+			MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION}
+			MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION}
+			MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2021, 2022 Leon Lynch"
+			MACOSX_BUNDLE_GUI_IDENTIFIER org.openemv.${CMAKE_PROJECT_NAME}
 	)
 endif()
 
@@ -103,4 +109,7 @@ install(
 	EXPORT dukptTargets # For use by install(EXPORT) command
 	RUNTIME
 		COMPONENT dukpt_ui_runtime
+	BUNDLE
+		COMPONENT dukpt_ui_bundle
+		DESTINATION . # Install to root of MacOS bundle
 )
