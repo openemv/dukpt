@@ -100,6 +100,10 @@ if(APPLE AND BUILD_MACOSX_BUNDLE)
 			DESTINATION $<TARGET_BUNDLE_CONTENT_DIR:dukpt-ui>/bin/
 		)
 	endif()
+
+	# Deploy Qt into bundle for MacOS
+	include(DeployQt)
+	macdeployqt(dukpt-ui dukpt_ui_bundle)
 endif()
 
 if(WIN32)

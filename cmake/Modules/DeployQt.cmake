@@ -16,10 +16,25 @@ find_package(Qt5Core REQUIRED)
 get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
 get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
 
+find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${_qt_bin_dir}")
+if(APPLE AND NOT MACDEPLOYQT_EXECUTABLE)
+	message(FATAL_ERROR "macdeployqt not found")
+endif()
+
 find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
 if(WIN32 AND NOT WINDEPLOYQT_EXECUTABLE)
 	message(FATAL_ERROR "windeployqt not found")
 endif()
+
+function(macdeployqt target component)
+	add_custom_command(TARGET ${target} POST_BUILD
+		COMMAND "${MACDEPLOYQT_EXECUTABLE}"
+			\"$<TARGET_BUNDLE_DIR:${target}>\"
+			-verbose=1
+			-always-overwrite
+		COMMENT "Deploying Qt..."
+	)
+endfunction()
 
 function(windeployqt target component)
 	# Deploy Qt to output directory from where it can be installed to a component
@@ -46,4 +61,4 @@ function(windeployqt target component)
 	)
 endfunction()
 
-mark_as_advanced(WINDEPLOYQT_EXECUTABLE)
+mark_as_advanced(MACDEPLOYQT_EXECUTABLE WINDEPLOYQT_EXECUTABLE)
