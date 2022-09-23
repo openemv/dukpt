@@ -75,11 +75,22 @@ if(APPLE AND BUILD_MACOSX_BUNDLE)
 		dukpt-ui
 		PROPERTIES
 			MACOSX_BUNDLE TRUE
-			MACOSX_BUNDLE_BUNDLE_NAME ${CMAKE_PROJECT_NAME}
+			MACOSX_BUNDLE_BUNDLE_NAME Dukpt
 			MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION}
 			MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION}
 			MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2021, 2022 Leon Lynch"
 			MACOSX_BUNDLE_GUI_IDENTIFIER org.openemv.${CMAKE_PROJECT_NAME}
+			OUTPUT_NAME Dukpt
+	)
+
+	# Install dukpt-ui symlink into bundle for MacOS
+	install(CODE
+		"execute_process(COMMAND \"${CMAKE_COMMAND}\" -E make_directory \"$<TARGET_BUNDLE_CONTENT_DIR:dukpt-ui>/bin/\")"
+		COMPONENT dukpt_ui_bundle
+	)
+	install(CODE
+		"execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink \"../MacOS/$<TARGET_FILE_NAME:dukpt-ui>\" \"$<TARGET_BUNDLE_CONTENT_DIR:dukpt-ui>/bin/dukpt-ui\")"
+		COMPONENT dukpt_ui_bundle
 	)
 
 	# Install README and LICENSE into bundle for MacOS
