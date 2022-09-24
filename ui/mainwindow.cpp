@@ -78,6 +78,14 @@ MainWindow::MainWindow(QWidget* parent)
 	dataActionComboBox->addItem("Encrypt response", DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE);
 	dataActionComboBox->addItem("Decrypt response", DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE);
 
+	// Display copyright, license and disclaimer notice
+	outputText->appendHtml(
+		"Copyright &copy; 2021, 2022 <a href='https://github.com/leonlynch'>Leon Lynch</a><br/><br/>"
+		"<a href='https://github.com/openemv/dukpt'>This program</a> is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation.<br/>"
+		"<a href='https://github.com/openemv/dukpt'>This program</a> is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.<br/>"
+		"See <a href='https://raw.githubusercontent.com/openemv/dukpt/master/LICENSE'>LICENSE</a> file for more details.<br/><br/>"
+	);
+
 	// Load previous UI values
 	loadSettings();
 }
