@@ -220,9 +220,18 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 
 # Configure generic component packaging attributes
-set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DESCRIPTION "Development files for DUKPT libraries")
-set(CPACK_COMPONENT_DUKPT_DOCS_DESCRIPTION "Documentation for DUKPT libraries")
-set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DEPENDS dukpt_runtime)
+set(CPACK_COMPONENT_DUKPT_RUNTIME_DISPLAY_NAME "DUKPT tool and libraries")
+set(CPACK_COMPONENT_DUKPT_RUNTIME_DESCRIPTION "DUKPT command line tool (dukpt-tool) and runtime libraries (dukpt_tdes and dukpt_aes)")
+set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DISPLAY_NAME "DUKPT development files")
+set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DESCRIPTION "Development files (headers, pkgconfig files, CMake config files, etc) for DUKPT libraries")
+set(CPACK_COMPONENT_DUKPT_DOCS_DISPLAY_NAME "Documentation for DUKPT libraries")
+set(CPACK_COMPONENT_DUKPT_DOCS_DESCRIPTION ${CPACK_COMPONENT_DUKPT_DOCS_DISPLAY_NAME})
+set(CPACK_COMPONENT_DUKPT_UI_RUNTIME_DISPLAY_NAME "DUKPT UI")
+set(CPACK_COMPONENT_DUKPT_UI_RUNTIME_DESCRIPTION "DUKPT graphical user interface (dukpt-ui)")
+if(BUILD_SHARED_LIBS)
+	set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DEPENDS dukpt_runtime)
+	set(CPACK_COMPONENT_DUKPT_UI_RUNTIME_DEPENDS dukpt_runtime)
+endif()
 
 # NOTE: for monolithic packages, uncomment the line below or specify it when
 # invoking CMake
@@ -242,16 +251,19 @@ if(dpkg_FOUND)
 	set(CPACK_DEBIAN_DUKPT_RUNTIME_PACKAGE_NAME "dukpt-runtime")
 	set(CPACK_DEBIAN_DUKPT_DEVELOPMENT_PACKAGE_NAME "dukpt-dev")
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_NAME "dukpt-doc")
+	set(CPACK_DEBIAN_DUKPT_UI_RUNTIME_PACKAGE_NAME "dukpt-ui")
 	# Assign package architecture to documentation component
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_ARCHITECTURE "all")
 	# Assign package sections to components
 	set(CPACK_DEBIAN_DUKPT_RUNTIME_PACKAGE_SECTION "utils")
 	set(CPACK_DEBIAN_DUKPT_DEVELOPMENT_PACKAGE_SECTION "devel")
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_SECTION "doc")
+	set(CPACK_DEBIAN_DUKPT_UI_RUNTIME_PACKAGE_SECTION "x11")
 	# Assign package suggestions
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_SUGGESTS "dukpt-dev")
 	# Generate package dependency list
 	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/src/) # dpkg-shlibdeps cannot find dependencies that aren't installed, so it needs some help
 endif()
 
 find_package(rpmbuild) # Optional for building RedHat/Fedora packages
@@ -270,6 +282,7 @@ if(rpmbuild_FOUND)
 	set(CPACK_RPM_DUKPT_RUNTIME_PACKAGE_NAME "dukpt-runtime")
 	set(CPACK_RPM_DUKPT_DEVELOPMENT_PACKAGE_NAME "dukpt-devel")
 	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_NAME "dukpt-doc")
+	set(CPACK_RPM_DUKPT_UI_RUNTIME_PACKAGE_NAME "dukpt-ui")
 	# Assign package architecture to documentation component
 	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_ARCHITECTURE "noarch")
 	# Assign package suggestions
