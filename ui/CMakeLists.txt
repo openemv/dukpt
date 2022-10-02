@@ -50,6 +50,13 @@ endif()
 
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
+# Generate config file for internal use only
+# This file should NOT be installed or used by an installed header
+configure_file(
+	dukpt_ui_config.h.in
+	dukpt_ui_config.h
+)
+
 find_package(Qt5 5.12 COMPONENTS Widgets REQUIRED)
 find_package(tr31 0.4.3 REQUIRED)
 
