@@ -18,8 +18,11 @@ fi
 LICENSE="LGPL-2.1"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="+mbedtls openssl +tr31 doc test"
-REQUIRED_USE="|| ( mbedtls openssl )"
+IUSE="+mbedtls openssl qt5 +tr31 doc test"
+REQUIRED_USE="
+	^^ ( mbedtls openssl )
+	qt5? ( tr31 )
+"
 
 BDEPEND="
 	doc? ( app-doc/doxygen )
@@ -28,6 +31,11 @@ BDEPEND="
 RDEPEND="
 	mbedtls? ( net-libs/mbedtls )
 	openssl? ( dev-libs/openssl:0/1.1 )
+	qt5? (
+		dev-qt/qtcore:5
+		dev-qt/qtgui:5
+		dev-qt/qtwidgets:5
+	)
 	tr31? ( >=dev-libs/tr31-0.4.3 )
 "
 DEPEND="
@@ -42,8 +50,10 @@ src_configure() {
 	local mycmakeargs=(
 		$(cmake_use_find_package mbedtls MbedTLS)
 		$(cmake_use_find_package openssl OpenSSL)
+		$(cmake_use_find_package qt5 Qt5)
 		$(cmake_use_find_package tr31 tr31)
 		-DBUILD_DOCS=$(usex doc)
+		-DBUILD_DUKPT_UI=$(usex qt5)
 		-DBUILD_TESTING=$(usex test)
 	)
 
