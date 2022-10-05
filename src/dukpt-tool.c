@@ -141,6 +141,7 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC,
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP,
 #endif
+	DUKPT_TOOL_OPTION_VERSION
 };
 
 // argp option structure
@@ -184,6 +185,8 @@ static struct argp_option argp_options[] = {
 	{ "output-tr31-with-kc", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC, NULL, 0, "Output TR-31 key block with KCV of wrapped key in header. This uses optional block KC." },
 	{ "output-tr31-with-kp", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP, NULL, 0, "Output TR-31 key block with KCV of key block protection key in header. This uses optional block KP." },
 #endif
+
+	{ "version", DUKPT_TOOL_OPTION_VERSION, NULL, 0, "Display DUKPT library version" },
 
 	{ 0 },
 };
@@ -467,6 +470,23 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			tr31_with_kp = true;
 			return 0;
 #endif
+
+		case DUKPT_TOOL_OPTION_VERSION: {
+			const char* version_tdes;
+			const char* version_aes;
+
+			version_tdes = dukpt_tdes_lib_version_string();
+			version_aes = dukpt_aes_lib_version_string();
+			if (!version_tdes || !version_aes) {
+				printf("Unknown\n");
+			} else if (strcmp(version_tdes, version_aes) != 0) {
+				printf("Invalid\n");
+			} else {
+				printf("%s\n", version_tdes);
+			}
+			exit(EXIT_SUCCESS);
+			return 0;
+		}
 
 		case ARGP_KEY_END:
 			// Validate options

@@ -79,6 +79,12 @@ enum dukpt_aes_key_bits_t {
 #define DUKPT_AES_KEY_LEN(key_type) ((DUKPT_AES_KEY_BITS_##key_type) / 8)
 
 /**
+ * Retrieve DUKPT library version string
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* dukpt_aes_lib_version_string(void);
+
+/**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Initial Key ID.
  *
  * @note This function should only be used by the receiving or key generating

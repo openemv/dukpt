@@ -39,6 +39,12 @@ __BEGIN_DECLS
 #define DUKPT_TDES_BLOCK_LEN (8) ///< Transaction data block length for TDES DUKPT
 
 /**
+ * Retrieve DUKPT library version string
+ * @return Pointer to null-terminated string. Do not free.
+ */
+const char* dukpt_tdes_lib_version_string(void);
+
+/**
  * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
  *
  * @note This function should only be used by the receiving or key generating
