@@ -311,7 +311,7 @@ if(WIN32 AND TARGET dukpt-ui)
 	# Set project URL
 	set(CPACK_NSIS_URL_INFO_ABOUT "${CMAKE_PROJECT_HOMEPAGE_URL}")
 	# Install into vendor/package-version directory
-	set(CPACK_NSIS_INSTALL_ROOT "C:\\${CPACK_PACKAGE_VENDOR}")
+	set(CPACK_NSIS_INSTALL_ROOT "C:\\\\${CPACK_PACKAGE_VENDOR}")
 	set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
 	# Set display name used by Start Menu
 	set(CPACK_PACKAGE_EXECUTABLES "dukpt-ui" "Dukpt UI")
