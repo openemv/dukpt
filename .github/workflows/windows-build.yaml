@@ -111,9 +111,16 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-ninja
           mingw-w64-${{matrix.env}}-github-cli
-          mingw-w64-${{matrix.env}}-qt5-base
-          mingw-w64-${{matrix.env}}-qt5-tools
           mingw-w64-${{matrix.env}}-nsis
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: 5.15.*
+        host: windows
+        target: desktop
+        arch: win64_mingw81
+        archives: qtbase qttools
 
     - name: Build TR-31 dependency
       run: |
