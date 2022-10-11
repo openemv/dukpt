@@ -94,6 +94,9 @@ target_include_directories(dukpt_aes INTERFACE
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
 target_link_libraries(dukpt_aes PRIVATE crypto_aes crypto_hmac crypto_mem crypto_rand pinblock)
+if(HAVE_WINSOCK_H AND NOT HAVE_ARPA_INET_H)
+	target_link_libraries(dukpt_aes PRIVATE ws2_32)
+endif()
 
 # DUKPT command line tool
 add_executable(dukpt-tool dukpt-tool.c)
