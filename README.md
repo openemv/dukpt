@@ -32,9 +32,10 @@ Dependencies
 * [CMake](https://cmake.org/)
 * DUKPT libraries require [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
-* DUKPT tool requires `argp` (either via Glibc, a system-provided standalone
-  implementation, or a downloaded implementation;
-  see [MacOS / Windows](#macos--windows))
+* DUKPT tool will be built by default and requires `argp` (either via Glibc, a
+  system-provided standalone or a downloaded implementation; see
+  [MacOS / Windows](#macos--windows)). Use the `BUILD_DUKPT_TOOL` option to
+  prevent DUKPT tool from being built and avoid the dependency on `argp`.
 * DUKPT tool can _optionally_ use [tr31](https://github.com/openemv/tr31) if
   available at build-time (either install a release build or use `tr31_DIR` to
   find a local build)

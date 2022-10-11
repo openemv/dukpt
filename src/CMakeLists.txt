@@ -25,6 +25,9 @@ if(NOT HAVE_ARPA_INET_H AND NOT HAVE_WINSOCK_H)
 	message(FATAL_ERROR "Failed to find either arpa/inet.h or winsock.h")
 endif()
 
+# Build DUKPT tool by default
+option(BUILD_DUKPT_TOOL "Build dukpt-tool" ON)
+
 # Check for argp or allow the FETCH_ARGP option to download and build a local
 # copy of libargp for monolithic builds on platforms without package managers
 # like MacOS and Windows.
@@ -36,7 +39,9 @@ else()
 	find_package(argp)
 endif()
 if(NOT argp_FOUND)
-	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build libargp.")
+	if(BUILD_DUKPT_TOOL)
+		message(FATAL_ERROR "Could NOT find argp. Enable FETCH_ARGP to download and build libargp. This is required to build dukpt-tool")
+	endif()
 endif()
 
 # Check for tr31 but don't be verbose if it cannot be found
@@ -98,17 +103,6 @@ if(HAVE_WINSOCK_H AND NOT HAVE_ARPA_INET_H)
 	target_link_libraries(dukpt_aes PRIVATE ws2_32)
 endif()
 
-# DUKPT command line tool
-add_executable(dukpt-tool dukpt-tool.c)
-if(TARGET libargp::argp)
-	target_link_libraries(dukpt-tool PRIVATE libargp::argp)
-endif()
-if(tr31_FOUND)
-	target_compile_definitions(dukpt-tool PRIVATE DUKPT_TOOL_USE_TR31)
-	target_link_libraries(dukpt-tool PRIVATE tr31::tr31)
-endif()
-target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
-
 install(
 	TARGETS
 		crypto_tdes
@@ -119,7 +113,6 @@ install(
 		pinblock
 		dukpt_tdes
 		dukpt_aes
-		dukpt-tool
 	EXPORT dukptTargets # For use by install(EXPORT) command
 	PUBLIC_HEADER
 		DESTINATION "include/${PROJECT_NAME}"
@@ -133,7 +126,28 @@ install(
 		COMPONENT dukpt_development
 )
 
-if(DUKPT_IS_TOP_LEVEL AND BUILD_TESTING)
+# DUKPT command line tool
+if(BUILD_DUKPT_TOOL)
+	add_executable(dukpt-tool dukpt-tool.c)
+	if(TARGET libargp::argp)
+		target_link_libraries(dukpt-tool PRIVATE libargp::argp)
+	endif()
+	if(tr31_FOUND)
+		target_compile_definitions(dukpt-tool PRIVATE DUKPT_TOOL_USE_TR31)
+		target_link_libraries(dukpt-tool PRIVATE tr31::tr31)
+	endif()
+	target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
+
+	install(
+		TARGETS
+			dukpt-tool
+		EXPORT dukptTargets # For use by install(EXPORT) command
+		RUNTIME
+			COMPONENT dukpt_runtime
+	)
+endif()
+
+if(TARGET dukpt-tool AND BUILD_TESTING)
 	add_test(NAME dukpt_tool_tdes_test1
 		COMMAND dukpt-tool --bdk=0123456789ABCDEFFEDCBA9876543210 --ksn=FFFF9876543210E00000 --derive-ik
 	)
