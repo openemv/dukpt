@@ -35,4 +35,16 @@ if(BUILD_TESTING)
 	add_executable(dukpt_aes_ksn_test dukpt_aes_ksn_test.c)
 	target_link_libraries(dukpt_aes_ksn_test dukpt_aes)
 	add_test(dukpt_aes_ksn_test dukpt_aes_ksn_test)
+
+	if(WIN32)
+		# Ensure that tests can find required DLLs (if any)
+		# Assume that the PATH already contains the compiler runtime DLLs
+		set(DUKPT_TEST_PATH "${CMAKE_CURRENT_BINARY_DIR}/../src/;$ENV{PATH}")
+		cmake_path(NATIVE_PATH DUKPT_TEST_PATH NORMALIZE DUKPT_TEST_PATH)
+		get_property(DUKPT_TEST_TARGETS DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY TESTS)
+		set_property(TEST ${DUKPT_TEST_TARGETS}
+			PROPERTY
+				ENVIRONMENT "PATH=${DUKPT_TEST_PATH}"
+		)
+	endif()
 endif()
