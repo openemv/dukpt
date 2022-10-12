@@ -39,6 +39,9 @@ Dependencies
 * DUKPT tool can _optionally_ use [tr31](https://github.com/openemv/tr31) if
   available at build-time (either install a release build or use `tr31_DIR` to
   find a local build)
+* [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
+  generate API documentation if it is available; see
+  [Documentation](#documentation)
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake
