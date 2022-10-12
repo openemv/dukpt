@@ -20,12 +20,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "Debug" }
-          - { sys: mingw64, env: x86_64, build_type: "Release" }
-          - { sys: mingw32, env: i686, build_type: "Debug" }
-          - { sys: mingw32, env: i686, build_type: "Release" }
+          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES" }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO" }
+          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO" }
+          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES" }
 
-    name: Windows MSYS2 ${{matrix.sys}} build (static/${{ matrix.build_type }})
+    name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }})
 
     defaults:
       run:
@@ -55,7 +55,7 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DBUILD_TR31_TOOL=NO
+        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=YES -DBUILD_TR31_TOOL=NO
         cmake --build build
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         cd ..
@@ -69,7 +69,7 @@ jobs:
         git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }}
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }}
 
     - name: Build
       run: cmake --build build
