@@ -136,6 +136,26 @@ if(WIN32)
 	include(DeployQt)
 	windeployqt(dukpt-ui dukpt_ui_runtime)
 
+	# Install tr31 DLL library to DUKPT runtime, if necessary
+	# NOTE: The tr31 DLL is installed to the DUKPT runtime, not the DUKPT UI
+	# runtime, because the latter depends on the former and it should be
+	# possible to install the former without the latter. It is implemented here
+	# because when the GUI is not being built, it is assumed that tr31 will be
+	# available in the PATH of the shell environment.
+	get_target_property(tr31_TYPE tr31::tr31 TYPE)
+	if(tr31_TYPE STREQUAL "SHARED_LIBRARY")
+		if(${CMAKE_VERSION} VERSION_LESS "3.21")
+			message(FATAL_ERROR "CMake >=3.21 is required to install on Windows when tr31 library is a DLL")
+		endif()
+
+		install(
+			IMPORTED_RUNTIME_ARTIFACTS # NOTE: requires CMake >=3.21
+				tr31::tr31
+			RUNTIME
+				COMPONENT dukpt_runtime
+		)
+	endif()
+
 	# Deploy runtime libraries for Windows
 	set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT dukpt_ui_runtime)
 	include(InstallRequiredSystemLibraries)
