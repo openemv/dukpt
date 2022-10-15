@@ -556,6 +556,24 @@ if(TARGET dukpt-tool AND BUILD_TESTING)
 			WILL_FAIL True
 	)
 
+	add_test(NAME dukpt_tool_tdes_pin_test7
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00001 --pan 4022345678909 --decrypt-pin 1B9C1845EB993A7A
+		# NOTE: this test will fail because the PAN is incorrect
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test7
+		PROPERTIES
+			WILL_FAIL True
+	)
+
+	add_test(NAME dukpt_tool_tdes_pin_test8
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00001 --pan 4022345678909 --decrypt-pin 1B9C1845EB993A7A
+		# NOTE: this test will fail because the PAN is incorrect
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test8
+		PROPERTIES
+			WILL_FAIL True
+	)
+
 	add_test(NAME dukpt_tool_aes128_pinblock_test1
 		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --key-type AES128 --pan 4111111111111111 --encrypt-pinblock 441234AAAAAAAAAA2F69ADDE2E9E7ACE
 	)
@@ -642,6 +660,15 @@ if(TARGET dukpt-tool AND BUILD_TESTING)
 	add_test(NAME dukpt_tool_aes128_pin_test6
 		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600845FED --pan 4111111111111111 --pinblock-format 4 --encrypt-pin 1234
 		# NOTE: this test only check for pass/fail because PIN block format 4 results in an unpredictable encrypted PIN block
+	)
+
+	add_test(NAME dukpt_tool_aes128_pin_test7
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --pan 4111111111111112 --decrypt-pin A912150391AB65A67E52883D81CE2D15
+		# NOTE: this test will fail because the PAN is incorrect
+	)
+	set_tests_properties(dukpt_tool_aes128_pin_test7
+		PROPERTIES
+			WILL_FAIL True
 	)
 
 	add_test(NAME dukpt_tool_tdes_data_test1
