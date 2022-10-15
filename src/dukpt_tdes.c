@@ -33,6 +33,11 @@
 #include <stdint.h>
 #include <string.h>
 
+const char* dukpt_tdes_lib_version_string(void)
+{
+	return DUKPT_LIB_VERSION_STRING;
+}
+
 int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik)
 {
 	int r;

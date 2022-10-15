@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt
-	VERSION 0.2.2
+	VERSION 0.2.3
 	DESCRIPTION "DUKPT libraries and tools"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C
@@ -83,7 +83,7 @@ else()
 		message(STATUS "Could NOT find Qt5 Widgets: skipping dukpt-ui build")
 	endif()
 endif()
-find_package(tr31 0.4.3 QUIET)
+find_package(tr31 0.4.4 QUIET)
 if(NOT tr31_FOUND)
 	if(BUILD_DUKPT_UI)
 		message(FATAL_ERROR "Could NOT find tr31; required to build dukpt-ui")

@@ -25,6 +25,9 @@ if(NOT HAVE_ARPA_INET_H AND NOT HAVE_WINSOCK_H)
 	message(FATAL_ERROR "Failed to find either arpa/inet.h or winsock.h")
 endif()
 
+# Build DUKPT tool by default
+option(BUILD_DUKPT_TOOL "Build dukpt-tool" ON)
+
 # Check for argp or allow the FETCH_ARGP option to download and build a local
 # copy of libargp for monolithic builds on platforms without package managers
 # like MacOS and Windows.
@@ -36,24 +39,24 @@ else()
 	find_package(argp)
 endif()
 if(NOT argp_FOUND)
-	message(FATAL_ERROR "Could NOT find argp on target system. Enable FETCH_ARGP to download and build libargp.")
+	if(BUILD_DUKPT_TOOL)
+		message(FATAL_ERROR "Could NOT find argp. Enable FETCH_ARGP to download and build libargp. This is required to build dukpt-tool")
+	endif()
 endif()
 
 # Check for tr31 but don't be verbose if it cannot be found
-# The DUKPT_CONFIG_PACKAGE_DEPENDENCIES variable is set for the parent scope to
-# facilitate the generation of CMake package configuration files.
-# The DUKPT_PKGCONFIG_REQ_PRIV and DUKPT_PKGCONFIG_LIBS_PRIV variables are
-# set for the parent scope to facilitate the generation of pkgconfig files.
-set(TR31_MIN_VERSION 0.4.3)
+set(TR31_MIN_VERSION 0.4.4)
 find_package(tr31 ${TR31_MIN_VERSION} QUIET)
-if(tr31_FOUND)
-	find_package(tr31 ${TR31_MIN_VERSION} REQUIRED)
-	string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(tr31 ${TR31_MIN_VERSION})\n")
-	set(DUKPT_CONFIG_PACKAGE_DEPENDENCIES ${DUKPT_CONFIG_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
-	string(APPEND DUKPT_PKGCONFIG_REQ_PRIV "libtr31 >= ${TR31_MIN_VERSION}" PARENT_SCOPE)
-	string(APPEND DUKPT_PKGCONFIG_LIBS_PRIV "-ltr31" PARENT_SCOPE)
-else()
-	message(STATUS "Could NOT find tr31")
+if(BUILD_DUKPT_TOOL)
+	if(tr31_FOUND)
+		find_package(tr31 ${TR31_MIN_VERSION} REQUIRED)
+		# The DUKPT_CONFIG_PACKAGE_DEPENDENCIES variable is set for the parent scope
+		# to facilitate the generation of CMake package configuration files.
+		string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(tr31 ${TR31_MIN_VERSION})\n")
+		set(DUKPT_CONFIG_PACKAGE_DEPENDENCIES ${DUKPT_CONFIG_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
+	else()
+		message(STATUS "Could NOT find tr31")
+	endif()
 endif()
 
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
@@ -96,17 +99,9 @@ target_include_directories(dukpt_aes INTERFACE
 	$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
 target_link_libraries(dukpt_aes PRIVATE crypto_aes crypto_hmac crypto_mem crypto_rand pinblock)
-
-# DUKPT command line tool
-add_executable(dukpt-tool dukpt-tool.c)
-if(TARGET libargp::argp)
-	target_link_libraries(dukpt-tool PRIVATE libargp::argp)
+if(HAVE_WINSOCK_H AND NOT HAVE_ARPA_INET_H)
+	target_link_libraries(dukpt_aes PRIVATE ws2_32)
 endif()
-if(tr31_FOUND)
-	target_compile_definitions(dukpt-tool PRIVATE DUKPT_TOOL_USE_TR31)
-	target_link_libraries(dukpt-tool PRIVATE tr31::tr31)
-endif()
-target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
 
 install(
 	TARGETS
@@ -118,7 +113,6 @@ install(
 		pinblock
 		dukpt_tdes
 		dukpt_aes
-		dukpt-tool
 	EXPORT dukptTargets # For use by install(EXPORT) command
 	PUBLIC_HEADER
 		DESTINATION "include/${PROJECT_NAME}"
@@ -132,7 +126,40 @@ install(
 		COMPONENT dukpt_development
 )
 
-if(DUKPT_IS_TOP_LEVEL AND BUILD_TESTING)
+# DUKPT command line tool
+if(BUILD_DUKPT_TOOL)
+	add_executable(dukpt-tool dukpt-tool.c)
+	if(TARGET libargp::argp)
+		target_link_libraries(dukpt-tool PRIVATE libargp::argp)
+	endif()
+	if(tr31_FOUND)
+		target_compile_definitions(dukpt-tool PRIVATE DUKPT_TOOL_USE_TR31)
+		target_link_libraries(dukpt-tool PRIVATE tr31::tr31)
+	endif()
+	target_link_libraries(dukpt-tool PRIVATE dukpt_tdes dukpt_aes)
+
+	install(
+		TARGETS
+			dukpt-tool
+		EXPORT dukptTargets # For use by install(EXPORT) command
+		RUNTIME
+			COMPONENT dukpt_runtime
+	)
+
+	# Copy tr31 DLL to build tree for dukpt-tool and tests on Windows
+	# NOTE: This does NOT install the tr31 DLL
+	get_target_property(tr31_TYPE tr31::tr31 TYPE)
+	if(tr31_TYPE STREQUAL "SHARED_LIBRARY" AND WIN32) # If tr31 library is a DLL
+		add_custom_command(TARGET dukpt-tool POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+				$<TARGET_FILE:tr31::tr31>
+				$<TARGET_FILE_DIR:dukpt-tool>
+			COMMENT "Copying tr31 DLL..."
+		)
+	endif()
+endif()
+
+if(TARGET dukpt-tool AND BUILD_TESTING)
 	add_test(NAME dukpt_tool_tdes_test1
 		COMMAND dukpt-tool --bdk=0123456789ABCDEFFEDCBA9876543210 --ksn=FFFF9876543210E00000 --derive-ik
 	)
@@ -531,6 +558,24 @@ if(DUKPT_IS_TOP_LEVEL AND BUILD_TESTING)
 			WILL_FAIL True
 	)
 
+	add_test(NAME dukpt_tool_tdes_pin_test7
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00001 --pan 4022345678909 --decrypt-pin 1B9C1845EB993A7A
+		# NOTE: this test will fail because the PAN is incorrect
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test7
+		PROPERTIES
+			WILL_FAIL True
+	)
+
+	add_test(NAME dukpt_tool_tdes_pin_test8
+		COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00001 --pan 4022345678909 --decrypt-pin 1B9C1845EB993A7A
+		# NOTE: this test will fail because the PAN is incorrect
+	)
+	set_tests_properties(dukpt_tool_tdes_pin_test8
+		PROPERTIES
+			WILL_FAIL True
+	)
+
 	add_test(NAME dukpt_tool_aes128_pinblock_test1
 		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --key-type AES128 --pan 4111111111111111 --encrypt-pinblock 441234AAAAAAAAAA2F69ADDE2E9E7ACE
 	)
@@ -617,6 +662,15 @@ if(DUKPT_IS_TOP_LEVEL AND BUILD_TESTING)
 	add_test(NAME dukpt_tool_aes128_pin_test6
 		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600845FED --pan 4111111111111111 --pinblock-format 4 --encrypt-pin 1234
 		# NOTE: this test only check for pass/fail because PIN block format 4 results in an unpredictable encrypted PIN block
+	)
+
+	add_test(NAME dukpt_tool_aes128_pin_test7
+		COMMAND dukpt-tool --mode AES --bdk FEDCBA9876543210F1F1F1F1F1F1F1F1 --ksn 123456789012345600000001 --pan 4111111111111112 --decrypt-pin A912150391AB65A67E52883D81CE2D15
+		# NOTE: this test will fail because the PAN is incorrect
+	)
+	set_tests_properties(dukpt_tool_aes128_pin_test7
+		PROPERTIES
+			WILL_FAIL True
 	)
 
 	add_test(NAME dukpt_tool_tdes_data_test1

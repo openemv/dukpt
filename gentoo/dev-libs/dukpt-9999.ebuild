@@ -23,6 +23,7 @@ REQUIRED_USE="
 	^^ ( mbedtls openssl )
 	qt5? ( tr31 )
 "
+RESTRICT="!test? ( test )"
 
 BDEPEND="
 	doc? ( app-doc/doxygen )
@@ -36,7 +37,7 @@ RDEPEND="
 		dev-qt/qtgui:5
 		dev-qt/qtwidgets:5
 	)
-	tr31? ( >=dev-libs/tr31-0.4.3 )
+	tr31? ( >=dev-libs/tr31-0.4.4 )
 "
 DEPEND="
 	${RDEPEND}

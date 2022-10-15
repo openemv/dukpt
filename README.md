@@ -32,9 +32,10 @@ Dependencies
 * [CMake](https://cmake.org/)
 * DUKPT libraries require [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
-* `dukpt-tool` requires `argp` (either via Glibc, a system-provided standalone
-  implementation, or a downloaded implementation;
-  see [MacOS / Windows](#macos--windows))
+* `dukpt-tool` will be built by default and requires `argp` (either via Glibc,
+  a system-provided standalone or a downloaded implementation; see
+  [MacOS / Windows](#macos--windows)). Use the `BUILD_DUKPT_TOOL` option to
+  prevent DUKPT tool from being built and avoid the dependency on `argp`.
 * `dukpt-tool` can _optionally_ use [tr31](https://github.com/openemv/tr31) if
   available at build-time (either install a release build or use `tr31_DIR` to
   find a local build)
@@ -42,6 +43,9 @@ Dependencies
   [tr31](https://github.com/openemv/tr31) are available at build-time. If
   either are not available, `dukpt-ui` will not be built. Use the
   `BUILD_DUKPT_UI` option to ensure that `dukpt-ui` will be built.
+* [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
+  generate API documentation if it is available; see
+  [Documentation](#documentation)
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake

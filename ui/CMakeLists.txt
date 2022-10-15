@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt-ui
-	VERSION 0.2.2
+	VERSION 0.2.3
 	DESCRIPTION "DUKPT User Interface using Qt"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C CXX
@@ -58,7 +58,7 @@ configure_file(
 )
 
 find_package(Qt5 5.12 COMPONENTS Widgets REQUIRED)
-find_package(tr31 0.4.3 REQUIRED)
+find_package(tr31 0.4.4 REQUIRED)
 
 if(Qt5_VERSION VERSION_LESS 5.15)
 	# Qt-5.12 provides these versioned commands

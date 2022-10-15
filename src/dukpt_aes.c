@@ -316,6 +316,11 @@ exit:
 	return r;
 }
 
+const char* dukpt_aes_lib_version_string(void)
+{
+	return DUKPT_LIB_VERSION_STRING;
+}
+
 int dukpt_aes_derive_ik(
 	const void* bdk,
 	size_t bdk_len,
