@@ -86,6 +86,11 @@ MainWindow::MainWindow(QWidget* parent)
 		"<a href='https://github.com/openemv/dukpt'>This program</a> is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation.<br/>"
 		"<a href='https://github.com/openemv/dukpt'>This program</a> is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.<br/>"
 		"See <a href='https://raw.githubusercontent.com/openemv/dukpt/master/LICENSE'>LICENSE</a> file for more details.<br/><br/>"
+		"<a href='https://github.com/openemv/dukpt'>This program</a> uses various libraries including:<br/>"
+		"- <a href='https://github.com/Mbed-TLS/mbedtls'>MbedTLS</a> (licensed under <a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache License v2</a>)<br/>"
+		"- <a href='https://github.com/openemv/tr31'>tr31</a> (licensed under <a href='https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html'>LGPL v2.1</a>)<br/>"
+		"- <a href='https://www.qt.io'>Qt</a> (licensed under <a href='https://www.gnu.org/licenses/lgpl-3.0.html'>LGPL v3</a>)<br/>"
+		"<br/>"
 	);
 
 	// Load previous UI values
