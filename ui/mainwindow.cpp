@@ -54,7 +54,7 @@ MainWindow::MainWindow(QWidget* parent)
 
 	// Setup UI widgets
 	setupUi(this);
-	setWindowTitle(windowTitle().append(QString(" " DUKPT_UI_VERSION_STRING)));
+	setWindowTitle(windowTitle().append(QString(" (" DUKPT_UI_VERSION_STRING ")")));
 	inputKeyEdit->setValidator(keyValidator);
 	ksnEdit->setValidator(ksnValidator);
 	kbpkEdit->setValidator(keyValidator);

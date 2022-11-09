@@ -36,6 +36,32 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
+# Determine version string (use git describe string if possible)
+if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+	find_package(Git)
+
+	if(GIT_FOUND)
+		execute_process(
+			COMMAND ${GIT_EXECUTABLE} describe --always --dirty
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			RESULT_VARIABLE GIT_DESCRIBE_FAILED
+			OUTPUT_VARIABLE GIT_DESCRIBE_STRING
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+
+		if(GIT_DESCRIBE_FAILED)
+			message(WARNING "Failed to obtain git describe string (${GIT_DESCRIBE_FAILED})")
+		else()
+			message(STATUS "Using git describe string \"${GIT_DESCRIBE_STRING}\"")
+			set(DUKPT_VERSION_STRING ${GIT_DESCRIBE_STRING})
+		endif()
+	endif()
+endif()
+if(NOT DUKPT_VERSION_STRING)
+	# Otherwise use project version
+	set(DUKPT_VERSION_STRING ${dukpt_VERSION})
+endif()
+
 # Configure testing before adding subdirectories
 if(DUKPT_IS_TOP_LEVEL)
 	# Configure Valgrind before including CTest module
@@ -213,6 +239,7 @@ endif()
 
 # Configure CPack to generate .tgz package
 set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_VERSION "${DUKPT_VERSION_STRING}")
 set(CPACK_PACKAGE_VENDOR "OpenEMV")
 set(CPACK_PACKAGE_CONTACT "lynch.leon@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
@@ -305,23 +332,23 @@ if(WIN32 AND TARGET dukpt-ui)
 	# Only package runtime components
 	set(CPACK_COMPONENTS_ALL dukpt_runtime dukpt_ui_runtime dukpt_development)
 	# Set display name used by Control Panel
-	set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_VERSION}")
+	set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION}")
 	# Set name used by installer application
-	set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
+	set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 	# Set project URL
 	set(CPACK_NSIS_URL_INFO_ABOUT "${CMAKE_PROJECT_HOMEPAGE_URL}")
 	# Install into vendor/package-version directory
 	set(CPACK_NSIS_INSTALL_ROOT "C:\\\\${CPACK_PACKAGE_VENDOR}")
-	set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}")
+	set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 	# Set display name used by Start Menu
 	set(CPACK_PACKAGE_EXECUTABLES "dukpt-ui" "Dukpt UI")
 	# Set desktop link to dukpt-ui
 	set(CPACK_CREATE_DESKTOP_LINKS dukpt-ui)
 	# Set package file name based on architecture
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}-win64-setup)
+		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-win64-setup)
 	elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CMAKE_PROJECT_VERSION}-win32-setup)
+		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-win32-setup)
 	endif()
 endif()
 

@@ -52,6 +52,9 @@ include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults f
 
 # Generate config file for internal use only
 # This file should NOT be installed or used by an installed header
+if(NOT DUKPT_VERSION_STRING)
+	set(DUKPT_VERSION_STRING ${dukpt-ui_VERSION})
+endif()
 configure_file(
 	dukpt_ui_config.h.in
 	dukpt_ui_config.h
