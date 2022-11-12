@@ -1,7 +1,7 @@
 ##############################################################################
 # Copyright (c) 2022 Leon Lynch
 #
-# This file is licensed under the terms of the LGPL v2.1 license.
+# This file is licensed under the terms of the GPL v3 license.
 # See LICENSE file.
 ##############################################################################
 
@@ -103,15 +103,19 @@ if(APPLE AND BUILD_MACOSX_BUNDLE)
 		COMPONENT dukpt_ui_bundle
 	)
 
-	# Install README and LICENSE into bundle for MacOS
-	if(EXISTS ${CMAKE_SOURCE_DIR}/README.md AND EXISTS ${CMAKE_SOURCE_DIR}/LICENSE)
+	# Install README and LICENSE.gpl into bundle for MacOS
+	if(EXISTS ${CMAKE_SOURCE_DIR}/README.md)
 		install(FILES
 			${CMAKE_SOURCE_DIR}/README.md
-			${CMAKE_SOURCE_DIR}/LICENSE
 			COMPONENT dukpt_ui_bundle
 			DESTINATION $<TARGET_BUNDLE_CONTENT_DIR:dukpt-ui>/doc/
 		)
 	endif()
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.gpl
+		COMPONENT dukpt_ui_bundle
+		DESTINATION $<TARGET_BUNDLE_CONTENT_DIR:dukpt-ui>/doc/
+	)
 
 	# Install dukpt-tool into bundle for MacOS
 	if(TARGET dukpt-tool)
@@ -166,6 +170,13 @@ if(WIN32)
 		message(STATUS "Required system libraries: ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}")
 	endif()
 endif()
+
+# Install LICENSE.gpl file to UI runtime component
+install(FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.gpl
+	TYPE DOC
+	COMPONENT dukpt_ui_runtime
+)
 
 install(
 	TARGETS

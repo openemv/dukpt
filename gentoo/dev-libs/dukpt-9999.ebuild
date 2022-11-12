@@ -15,7 +15,7 @@ else
 	SRC_URI="https://github.com/openemv/dukpt/releases/download/${PV}/${P}-src.tar.gz -> ${P}.tar.gz"
 fi
 
-LICENSE="LGPL-2.1"
+LICENSE="LGPL-2.1+ GPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
 IUSE="+mbedtls openssl qt5 +tr31 doc test"
@@ -65,4 +65,4 @@ src_test() {
 	cmake_src_test
 }
 
-DOCS=( README.md LICENSE )
+DOCS=( README.md LICENSE ui/LICENSE.gpl )

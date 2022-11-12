@@ -4,19 +4,18 @@
  *
  * Copyright (c) 2022 Leon Lynch
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program. If not, see
- * <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "mainwindow.h"
@@ -83,9 +82,9 @@ MainWindow::MainWindow(QWidget* parent)
 	// Display copyright, license and disclaimer notice
 	outputText->appendHtml(
 		"Copyright &copy; 2021, 2022 <a href='https://github.com/leonlynch'>Leon Lynch</a><br/><br/>"
-		"<a href='https://github.com/openemv/dukpt'>This program</a> is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation.<br/>"
+		"<a href='https://github.com/openemv/dukpt'>This program</a> is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.<br/>"
 		"<a href='https://github.com/openemv/dukpt'>This program</a> is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.<br/>"
-		"See <a href='https://raw.githubusercontent.com/openemv/dukpt/master/LICENSE'>LICENSE</a> file for more details.<br/><br/>"
+		"See <a href='https://raw.githubusercontent.com/openemv/dukpt/master/ui/LICENSE.gpl'>LICENSE.gpl</a> file for more details.<br/><br/>"
 		"<a href='https://github.com/openemv/dukpt'>This program</a> uses various libraries including:<br/>"
 		"- <a href='https://github.com/Mbed-TLS/mbedtls'>MbedTLS</a> (licensed under <a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache License v2</a>)<br/>"
 		"- <a href='https://github.com/openemv/tr31'>tr31</a> (licensed under <a href='https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html'>LGPL v2.1</a>)<br/>"

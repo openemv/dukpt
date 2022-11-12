@@ -320,8 +320,12 @@ endif()
 # Generate DragNDrop package for MacOS if dukpt-ui is available
 if(APPLE AND TARGET dukpt-ui AND BUILD_MACOSX_BUNDLE)
 	set(CPACK_GENERATOR "DragNDrop") # Skip TGZ generator when building MacOS bundle
+	# Only package dukpt-ui bundle (which includes ancillary files for MacOS)
 	set(CPACK_COMPONENTS_ALL dukpt_ui_bundle)
+	# Use dukpt-ui license file
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/ui/LICENSE.gpl")
 	set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE ON)
+	# Use script to setup DMG interface
 	set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/macos/dukpt_dmg_setup.scpt")
 	set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/macos/openemv_dmg_bg.tif")
 endif()
@@ -329,8 +333,10 @@ endif()
 # Generate NSIS package for Windows if dukpt-ui is available
 if(WIN32 AND TARGET dukpt-ui)
 	list(APPEND CPACK_GENERATOR "NSIS")
-	# Only package runtime components
+	# Only package runtime and development components
 	set(CPACK_COMPONENTS_ALL dukpt_runtime dukpt_ui_runtime dukpt_development)
+	# Use dukpt-ui license file
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/ui/LICENSE.gpl")
 	# Set display name used by Control Panel
 	set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION}")
 	# Set name used by installer application
