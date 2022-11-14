@@ -67,14 +67,16 @@ if(Qt5_VERSION VERSION_LESS 5.15)
 	# Qt-5.12 provides these versioned commands
 	qt5_wrap_ui(UI_SRCS mainwindow.ui)
 	qt5_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+	qt5_add_resources(QRC_SRCS icons.qrc)
 	add_library(Qt::Widgets ALIAS Qt5::Widgets)
 else()
 	# Qt-5.15 and Qt-6 provide these version-less commands
 	qt_wrap_ui(UI_SRCS mainwindow.ui)
 	qt_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+	qt_add_resources(QRC_SRCS icons.qrc)
 endif()
 
-add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS})
+add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS} ${QRC_SRCS})
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
 
@@ -90,8 +92,13 @@ if(APPLE AND BUILD_MACOSX_BUNDLE)
 			MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION}
 			MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2021, 2022 Leon Lynch"
 			MACOSX_BUNDLE_GUI_IDENTIFIER org.openemv.${CMAKE_PROJECT_NAME}
+			MACOSX_BUNDLE_ICON_FILE "openemv_dukpt.icns"
+			RESOURCE icons/openemv_dukpt.icns
 			OUTPUT_NAME Dukpt
 	)
+
+	# Add application icon for MacOS
+	target_sources(dukpt-ui PRIVATE icons/openemv_dukpt.icns)
 
 	# Install dukpt-ui symlink into bundle for MacOS
 	install(CODE
@@ -138,6 +145,9 @@ if(WIN32)
 		PROPERTIES
 			WIN32_EXECUTABLE TRUE
 	)
+
+	# Add application icon for Windows
+	target_sources(dukpt-ui PRIVATE icon.rc)
 
 	# Deploy Qt for Windows
 	include(DeployQt)

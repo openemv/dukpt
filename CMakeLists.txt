@@ -337,6 +337,11 @@ if(WIN32 AND TARGET dukpt-ui)
 	set(CPACK_COMPONENTS_ALL dukpt_runtime dukpt_ui_runtime dukpt_development)
 	# Use dukpt-ui license file
 	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/ui/LICENSE.gpl")
+	# Set installer branding icon
+	set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.bmp") # CMake's own installer escapes the last slash due to a bug in NSI
+	# Set installer and uninstaller application icons
+	set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer escapes the last slash due to a bug in NSI
+	set(CPACK_NSIS_MUI_UNIICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer escapes the last slash due to a bug in NSI
 	# Set display name used by Control Panel
 	set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION}")
 	# Set name used by installer application

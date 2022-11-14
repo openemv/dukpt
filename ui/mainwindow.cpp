@@ -53,6 +53,7 @@ MainWindow::MainWindow(QWidget* parent)
 
 	// Setup UI widgets
 	setupUi(this);
+	setWindowIcon(QIcon(":icons/openemv_dukpt_512x512.png"));
 	setWindowTitle(windowTitle().append(QString(" (" DUKPT_UI_VERSION_STRING ")")));
 	inputKeyEdit->setValidator(keyValidator);
 	ksnEdit->setValidator(ksnValidator);

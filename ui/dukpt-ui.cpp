@@ -28,6 +28,7 @@ int main(int argc, char** argv)
 	app.setOrganizationName("OpenEMV");
 	app.setOrganizationDomain("openemv.org");
 	app.setApplicationName("dukpt-ui");
+	app.setWindowIcon(QIcon(":icons/openemv_dukpt_512x512.png"));
 
 	MainWindow mainwindow;
 	mainwindow.show();
