@@ -352,7 +352,7 @@ if(WIN32 AND TARGET dukpt-ui)
 	set(CPACK_NSIS_INSTALL_ROOT "C:\\\\${CPACK_PACKAGE_VENDOR}")
 	set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 	# Set display name used by Start Menu
-	set(CPACK_PACKAGE_EXECUTABLES "dukpt-ui" "Dukpt UI")
+	set(CPACK_PACKAGE_EXECUTABLES "dukpt-ui" "Dukpt")
 	# Set desktop link to dukpt-ui
 	set(CPACK_CREATE_DESKTOP_LINKS dukpt-ui)
 	# Set package file name based on architecture

@@ -188,6 +188,33 @@ install(FILES
 	COMPONENT dukpt_ui_runtime
 )
 
+if(NOT APPLE AND NOT WIN32)
+	# Install icon file to UI runtime component for Linux
+	set(DUKPT_INSTALL_ICONSDIR ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps CACHE STRING "Installation location for dukpt-ui icon files")
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/icons/openemv_dukpt_512x512.png
+		DESTINATION ${DUKPT_INSTALL_ICONSDIR}
+		COMPONENT dukpt_ui_runtime
+		RENAME dukpt-ui.png
+	)
+
+	# Install desktop entry file to UI runtime component for Linux
+	set(DUKPT_INSTALL_DESKTOPENTRYDIR ${CMAKE_INSTALL_DATADIR}/applications CACHE STRING "Installation location for dukpt-ui desktop entry files")
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/dukpt-ui.desktop
+		DESTINATION ${DUKPT_INSTALL_DESKTOPENTRYDIR}
+		COMPONENT dukpt_ui_runtime
+	)
+
+	# Install appstream file to UI runtime component for Linux
+	set(DUKPT_INSTALL_APPSTREAMDIR ${CMAKE_INSTALL_DATADIR}/metainfo CACHE STRING "Installation location for dukpt-ui appstream files")
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/dukpt-ui.appdata.xml
+		DESTINATION ${DUKPT_INSTALL_APPSTREAMDIR}
+		COMPONENT dukpt_ui_runtime
+	)
+endif()
+
 install(
 	TARGETS
 		dukpt-ui

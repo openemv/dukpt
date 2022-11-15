@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component type="desktop">
+	<id>org.openemv.dukpt</id>
+	<metadata_license>CC0-1.0</metadata_license>
+	<project_license>GPL-3.0</project_license>
+	<name>Dukpt</name>
+	<summary>DUKPT User Interface</summary>
+	<description>
+		<p>
+			Dukpt is a graphical user interface to perform various DUKPT (Derived Unique Key Per Transaction) actions, including:
+		</p>
+		<ul>
+			<li>Key derivation using DUKPT</li>
+			<li>TR-31 key export of DUKPT keys</li>
+			<li>Data encryption/decryption using DUKPT</li>
+			<li>PIN encryption/decryption using DUKPT</li>
+			<li>MAC generation/verificatin using DUKPT</li>
+		</ul>
+	</description>
+	<launchable type="desktop-id">dukpt-ui.desktop</launchable>
+	<url type="homepage">https://github.com/openemv/dukpt</url>
+	<url type="bugtracker">https://github.com/openemv/dukpt/issues</url>
+	<provides>
+		<id>dukpt-ui.desktop</id>
+		<binary>dukpt-ui</binary>
+	</provides>
+</component>

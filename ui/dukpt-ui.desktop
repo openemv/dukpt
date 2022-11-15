@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Dukpt
+Comment=DUKPT User Interface
+Exec=dukpt-ui
+Icon=dukpt-ui
+Categories=Development;Qt
+Terminal=false
