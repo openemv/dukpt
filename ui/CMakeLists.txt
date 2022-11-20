@@ -225,3 +225,31 @@ install(
 		COMPONENT dukpt_ui_bundle
 		DESTINATION . # Install to root of MacOS bundle
 )
+
+# Sign bundle using the specified identity
+option(SIGN_MACOSX_BUNDLE "Sign MacOS bundle using the specified identity (use - for ad-hoc signing)")
+if(APPLE AND BUILD_MACOSX_BUNDLE AND SIGN_MACOSX_BUNDLE)
+	find_program(CODESIGN_EXECUTABLE codesign)
+	if(NOT CODESIGN_EXECUTABLE)
+		message(FATAL_ERROR "codesign not found")
+	endif()
+
+	# When using install(CODE) instead of CPACK_PRE_BUILD_SCRIPTS to sign
+	# the bundle, it must always be the last install() command to ensure
+	# that all of the bundle files are already present
+	install(CODE
+		"
+		if(TARGET dukpt-tool)
+			message(STATUS \"Using identity '${SIGN_MACOSX_BUNDLE}' to sign binary at \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>/Contents/dukpt-tool\")
+			execute_process(COMMAND ${CODESIGN_EXECUTABLE} --sign \"${SIGN_MACOSX_BUNDLE}\" --deep \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>/Contents/dukpt-tool\")
+			execute_process(COMMAND ${CODESIGN_EXECUTABLE} --display --verbose --verbose=4 \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>/Contents/dukpt-tool\")
+			execute_process(COMMAND ${CODESIGN_EXECUTABLE} --verify --verbose --deep \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>/Contents/dukpt-tool\")
+		endif()
+		message(STATUS \"Using identity '${SIGN_MACOSX_BUNDLE}' to sign bundle at \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>\")
+		execute_process(COMMAND ${CODESIGN_EXECUTABLE} --sign \"${SIGN_MACOSX_BUNDLE}\" --deep \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>\")
+		execute_process(COMMAND ${CODESIGN_EXECUTABLE} --display --verbose --verbose=4 \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>\")
+		execute_process(COMMAND ${CODESIGN_EXECUTABLE} --verify --verbose --deep \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/\$<TARGET_BUNDLE_DIR_NAME:dukpt-ui>\")
+		"
+		COMPONENT dukpt_ui_bundle
+	)
+endif()
