@@ -91,8 +91,15 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Prepare keychain
+      env:
+        OPENEMV_MACOS_CERT_BASE64: ${{ secrets.OPENEMV_MACOS_CERT_BASE64 }}
+        OPENEMV_MACOS_CERT_PWD: ${{ secrets.OPENEMV_MACOS_CERT_PWD }}
+        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      run: scripts/prepare_macos_keychain.sh
+
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DQt5_DIR=${{ env.QT5_DIR }} -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES -DSIGN_MACOSX_BUNDLE=-
+      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DQt5_DIR=${{ env.QT5_DIR }} -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES -DSIGN_MACOSX_BUNDLE=openemv.org
 
     - name: Build
       run: cmake --build build
@@ -102,6 +109,10 @@ jobs:
 
     - name: Package
       run: cmake --build build --target package
+
+    - name: Clean up keychain
+      if: ${{ always() }}
+      run: scripts/cleanup_macos_keychain.sh
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
