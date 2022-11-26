@@ -18,12 +18,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug" }
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Release" }
-          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Debug" }
-          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Release" }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Release", deps: "none" }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug", deps: "tr31" }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Release", deps: "tr31" }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Debug", deps: "tr31" }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Release", deps: "tr31" }
 
-    name: ${{ matrix.name }} build (static/${{ matrix.build_type }})
+    name: ${{ matrix.name }} build (static/${{ matrix.build_type }}/${{ matrix.deps }})
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -34,6 +35,7 @@ jobs:
     - run: git describe --always --dirty
 
     - name: Build TR-31 dependency
+      if: contains(matrix.deps, 'tr31')
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz

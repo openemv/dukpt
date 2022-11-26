@@ -20,12 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES" }
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO" }
-          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO" }
-          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES" }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none" }
+          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31" }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31" }
+          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31" }
+          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31" }
 
-    name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }})
+    name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }}/${{ matrix.deps }})
 
     defaults:
       run:
@@ -51,6 +52,7 @@ jobs:
           mingw-w64-${{matrix.env}}-github-cli
 
     - name: Build TR-31 dependency
+      if: contains(matrix.deps, 'tr31')
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
