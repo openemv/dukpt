@@ -77,11 +77,12 @@ To run the tests using CMake, do:
 cmake --build build --target test
 ```
 
-If the CMake generator was `Unix Makefiles` (default on Linux), the tests can
-can be run from within the build directory (`build` in the above
-[Build](#build) steps) using:
+Alternatively, [ctest](https://cmake.org/cmake/help/latest/manual/ctest.1.html)
+can be used directly from within the build directory (`build` in the above
+[Build](#build) steps) which also allows actions such as `MemCheck` to be
+performed or the number of jobs to be set, for example:
 ```
-make test
+ctest -T MemCheck -j 10
 ```
 
 Documentation
@@ -95,15 +96,8 @@ To generate the documentation using CMake, do:
 cmake --build build --target docs
 ```
 
-If the CMake generator was `Unix Makefiles` (default on Linux), the
-documentation can be generated from within the build directory (`build` in
-the above [Build](#build) steps) using:
-```
-make docs
-```
-
 Alternatively, the `BUILD_DOCS` option can be specified when generating the
-build system by adding `-DBUILD_DOCS=ON`.
+build system by adding `-DBUILD_DOCS=YES`.
 
 Packaging
 ---------
@@ -117,12 +111,9 @@ To generate the packages using CMake, do:
 cmake --build build --target package
 ```
 
-If the CMake generator was `Unix Makefiles` (default on Linux), the packages
-can be generated from within the build directory (`build` in the above
-[Build](#build) steps) using:
-```
-make package
-```
+Alternatively, [cpack](https://cmake.org/cmake/help/latest/manual/cpack.1.html)
+can be used directly from within the build directory (`build` in the above
+[Build](#build) steps).
 
 This is an example of how monolithic release packages can be built from
 scratch on Ubuntu or Fedora:
@@ -195,7 +186,6 @@ Roadmap
 -------
 
 * Implement transaction-originating algorithms (ANSI X9.24-3:2017, 6.5)
-* Add CPack packaging for Windows and MacOS
 * Test on various ARM architectures
 
 License
