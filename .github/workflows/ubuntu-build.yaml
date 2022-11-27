@@ -18,10 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Ubuntu 20.04", os: ubuntu-20.04, ubuntu_release_name: "focal" }
-          - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy" }
+          - { name: "Ubuntu 20.04", os: ubuntu-20.04, ubuntu_release_name: "focal", deps: "none", build_dukpt_ui: NO }
+          - { name: "Ubuntu 20.04", os: ubuntu-20.04, ubuntu_release_name: "focal", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy", deps: "tr31/qt", build_dukpt_ui: YES }
 
-    name: ${{ matrix.name }} build (static/debug)
+    name: ${{ matrix.name }} build (static/debug/${{ matrix.deps }})
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -31,6 +32,7 @@ jobs:
         sudo apt-get install -y libmbedtls-dev qtbase5-dev
 
     - name: Install TR-31 release
+      if: contains(matrix.deps, 'tr31')
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         unzip tr31-${{ env.TR31_VERSION }}-${{ matrix.os }}.zip
@@ -45,7 +47,7 @@ jobs:
     - run: git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE="Debug" -DBUILD_DUKPT_UI=YES
+      run: cmake -B build -DCMAKE_BUILD_TYPE="Debug" -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
       run: cmake --build build

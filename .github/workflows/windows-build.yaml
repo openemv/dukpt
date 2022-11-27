@@ -20,12 +20,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES" }
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO" }
-          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO" }
-          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES" }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none", build_dukpt_ui: NO }
+          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", build_dukpt_ui: YES }
 
-    name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }})
+    name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }}/${{ matrix.deps }})
 
     defaults:
       run:
@@ -53,6 +54,7 @@ jobs:
           mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Build TR-31 dependency
+      if: contains(matrix.deps, 'tr31')
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
@@ -71,7 +73,7 @@ jobs:
         git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -Dtr31_DIR=${{ env.TR31_DIR }}
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }} -Dtr31_DIR=${{ env.TR31_DIR }}
 
     - name: Build
       run: cmake --build build

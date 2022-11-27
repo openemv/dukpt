@@ -18,18 +18,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug" }
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Debug" }
-          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Debug" }
-          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64", build_type: "Debug" }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Release", deps: "none", build_dukpt_ui: NO }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug", deps: "tr31", build_dukpt_ui: NO }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Release", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Release", deps: "tr31", build_dukpt_ui: NO }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64", build_type: "Debug", deps: "tr31/qt", build_dukpt_ui: YES }
 
-    name: ${{ matrix.name }} (${{ matrix.osx_arch }}) build (static/${{ matrix.build_type }})
+    name: ${{ matrix.name }} (${{ matrix.osx_arch }}) build (static/${{ matrix.build_type }}/${{ matrix.deps }})
     runs-on: ${{ matrix.os }}
 
     steps:
     - name: Install dependencies
       # Homebrew doesn't support universal binaries so only install Qt for x86_64 builds
-      if: ${{ matrix.osx_arch == 'x86_64' }}
+      if: contains(matrix.deps, 'qt')
       run: |
         brew install qt@5
         echo "QT5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5" >> $GITHUB_ENV
@@ -40,6 +41,7 @@ jobs:
         submodules: recursive
 
     - name: Build TR-31 dependency
+      if: contains(matrix.deps, 'tr31')
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
@@ -52,7 +54,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DQt5_DIR=${{ env.QT5_DIR }}
+      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DQt5_DIR=${{ env.QT5_DIR }} -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
       run: cmake --build build

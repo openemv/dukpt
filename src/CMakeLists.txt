@@ -146,16 +146,18 @@ if(BUILD_DUKPT_TOOL)
 			COMPONENT dukpt_runtime
 	)
 
-	# Copy tr31 DLL to build tree for dukpt-tool and tests on Windows
-	# NOTE: This does NOT install the tr31 DLL
-	get_target_property(tr31_TYPE tr31::tr31 TYPE)
-	if(tr31_TYPE STREQUAL "SHARED_LIBRARY" AND WIN32) # If tr31 library is a DLL
-		add_custom_command(TARGET dukpt-tool POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				$<TARGET_FILE:tr31::tr31>
-				$<TARGET_FILE_DIR:dukpt-tool>
-			COMMENT "Copying tr31 DLL..."
-		)
+	if(WIN32 AND tr31_FOUND)
+		# Copy tr31 DLL to build tree for dukpt-tool and tests on Windows
+		# NOTE: This does NOT install the tr31 DLL
+		get_target_property(tr31_TYPE tr31::tr31 TYPE)
+		if(tr31_TYPE STREQUAL "SHARED_LIBRARY") # If tr31 library is a DLL
+			add_custom_command(TARGET dukpt-tool POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy_if_different
+					$<TARGET_FILE:tr31::tr31>
+					$<TARGET_FILE_DIR:dukpt-tool>
+				COMMENT "Copying tr31 DLL..."
+			)
+		endif()
 	endif()
 endif()
 
