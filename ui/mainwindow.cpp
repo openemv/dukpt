@@ -21,6 +21,7 @@
 #include "mainwindow.h"
 #include "validators.h"
 #include "dukpt_ui_config.h"
+#include "scoped_struct.h"
 
 #include "dukpt_tdes.h"
 #include "dukpt_aes.h"
@@ -1614,13 +1615,21 @@ bool MainWindow::prepareIv()
 
 QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 {
+	using scoped_tr31_ctx = scoped_struct<tr31_ctx_t, tr31_release>;
+	using scoped_tr31_key = scoped_struct<tr31_key_t, tr31_key_release>;
+
 	int r;
 	std::uint8_t tr31_version;
 	struct tr31_key_t key;
-	struct tr31_ctx_t tr31_ctx;
+	scoped_tr31_ctx tr31_ctx;
 	unsigned int kbpk_algorithm;
-	struct tr31_key_t kbpk_obj;
+	scoped_tr31_key kbpk_obj;
 	char key_block[1024];
+
+	if (kbpk.empty()) {
+		logError("TR-31: Key export requires valid Key Block Protection Key");
+		return QString();
+	}
 
 	// Populate key attributes for ANSI X9.24 Initial Key
 	// See ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
@@ -1650,10 +1659,11 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 		case DUKPT_UI_OUTPUT_FORMAT_TR31_D: tr31_version = TR31_VERSION_D; break;
 		case DUKPT_UI_OUTPUT_FORMAT_TR31_E: tr31_version = TR31_VERSION_E; break;
 		default:
-			logError("Unknown input key type");
+			logError("Unknown output format");
 			return QString();
 	}
-	r = tr31_init(tr31_version, &key, &tr31_ctx);
+
+	r = tr31_init(tr31_version, &key, tr31_ctx.get());
 	if (r) {
 		logError(QString::asprintf("tr31_init() failed; r=%d\n", r));
 		return QString();
@@ -1674,7 +1684,7 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 			// the user to add either 8 or 10 byte KSNs, depending on their
 			// needs.
 			r = tr31_opt_block_add(
-				&tr31_ctx,
+				tr31_ctx.get(),
 				TR31_OPT_BLOCK_KS,
 				iksn,
 				ksn.size()
@@ -1689,7 +1699,7 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 			// initial key ID and not the whole KSN.
 			// See TR-31:2018, A.5.6, table 11
 			r = tr31_opt_block_add(
-				&tr31_ctx,
+				tr31_ctx.get(),
 				TR31_OPT_BLOCK_IK,
 				ksn.data(),
 				DUKPT_AES_IK_ID_LEN
@@ -1703,7 +1713,7 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 
 	// Populate optional block KC
 	if (tr31WithKc) {
-		r = tr31_opt_block_add_KC(&tr31_ctx);
+		r = tr31_opt_block_add_KC(tr31_ctx.get());
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 			return QString();
@@ -1712,7 +1722,7 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 
 	// Populate optional block KP
 	if (tr31WithKp) {
-		r = tr31_opt_block_add_KP(&tr31_ctx);
+		r = tr31_opt_block_add_KP(tr31_ctx.get());
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 			return QString();
@@ -1731,7 +1741,30 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 			break;
 
 		default:
-			logError(QString::asprintf("%s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_VERSION)));
+			logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_VERSION)));
+			return QString();
+	}
+
+	// Validate key block protection key length
+	switch (kbpk_algorithm) {
+		case TR31_KEY_ALGORITHM_TDES:
+			// Only allow TDES2 and TDES3 key lengths
+			if (kbpk.size() != 16 && kbpk.size() != 24) {
+				logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KBPK_LENGTH)));
+				return QString();
+			}
+			break;
+
+		case TR31_KEY_ALGORITHM_AES:
+			// Only allow AES128, AES192, and AES256 key lengths
+			if (kbpk.size() != 16 && kbpk.size() != 24 && kbpk.size() != 32) {
+				logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KBPK_LENGTH)));
+				return QString();
+			}
+			break;
+
+		default:
+			logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KBPK_ALGORITHM)));
 			return QString();
 	}
 
@@ -1744,7 +1777,7 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 		TR31_KEY_EXPORT_NONE,
 		kbpk.data(),
 		kbpk.size(),
-		&kbpk_obj
+		kbpk_obj.get()
 	);
 	if (r) {
 		logError(QString::asprintf("TR-31 KBPK error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
@@ -1752,15 +1785,11 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 	}
 
 	// Export TR-31 key block
-	r = tr31_export(&tr31_ctx, &kbpk_obj, key_block, sizeof(key_block));
+	r = tr31_export(tr31_ctx.get(), kbpk_obj.get(), key_block, sizeof(key_block));
 	if (r) {
 		logError(QString::asprintf("TR-31 export error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 		return QString();
 	}
-
-	// Cleanup
-	tr31_key_release(&kbpk_obj);
-	tr31_release(&tr31_ctx);
 
 	return key_block;
 }
