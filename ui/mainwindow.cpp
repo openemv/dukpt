@@ -783,6 +783,10 @@ void MainWindow::on_pinActionComboBox_currentIndexChanged(int index)
 static std::vector<std::uint8_t> HexStringToVector(const QString& s)
 {
 	QByteArray data;
+	if (s.length() % 2 == 1) {
+		// Invalid hex string
+		return {};
+	}
 	data = QByteArray::fromHex(s.toUtf8());
 	return std::vector<std::uint8_t>(data.constData(), data.constData() + data.size());
 }
@@ -1287,7 +1291,7 @@ int MainWindow::advanceKSN()
 				DUKPT_AES_IK_ID_LEN, DUKPT_AES_KSN_LEN,
 				DUKPT_AES_IK_ID_LEN * 2, DUKPT_AES_KSN_LEN * 2
 			));
-			return {};
+			return -1;
 		}
 
 		ksn.resize(DUKPT_AES_KSN_LEN);
