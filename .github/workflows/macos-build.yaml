@@ -18,16 +18,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Release", deps: "none" }
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug", deps: "tr31" }
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Release", deps: "tr31" }
-          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Debug", deps: "tr31" }
-          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Release", deps: "tr31" }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Release", deps: "none", fetch_deps: YES }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug", deps: "tr31", fetch_deps: YES }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Release", deps: "tr31", fetch_deps: NO }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64", build_type: "Debug", deps: "tr31", fetch_deps: NO }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64;arm64", build_type: "Release", deps: "tr31", fetch_deps: YES }
 
-    name: ${{ matrix.name }} build (static/${{ matrix.build_type }}/${{ matrix.deps }})
+    name: ${{ matrix.name }} (${{ matrix.osx_arch }}) build (static/${{ matrix.build_type }}/${{ matrix.deps }})
     runs-on: ${{ matrix.os }}
 
     steps:
+    - name: Install dependencies
+      # Homebrew doesn't support universal binaries so only install dependencies for x86_64 builds
+      if: ${{ matrix.fetch_deps == 'NO' }}
+      run: |
+        brew install mbedtls@2
+        brew install argp-standalone
+        echo "MbedTLS_ROOT=$(brew --prefix mbedtls@2)" >> $GITHUB_ENV
+
     - name: Checkout
       uses: actions/checkout@v3
       with:
@@ -40,7 +48,7 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DBUILD_TR31_TOOL=NO
+        cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DBUILD_TR31_TOOL=NO
         cmake --build build
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         cd ..
@@ -48,7 +56,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }}
+      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DFETCH_ARGP=${{ matrix.fetch_deps }} -DMbedTLS_ROOT=${{ env.MbedTLS_ROOT }} -Dtr31_DIR=${{ env.TR31_DIR }}
 
     - name: Build
       run: cmake --build build
