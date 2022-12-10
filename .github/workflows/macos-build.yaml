@@ -51,12 +51,13 @@ jobs:
         cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DBUILD_TR31_TOOL=NO
         cmake --build build
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
+        echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
         cd ..
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DFETCH_ARGP=${{ matrix.fetch_deps }} -DMbedTLS_ROOT=${{ env.MbedTLS_ROOT }} -Dtr31_DIR=${{ env.TR31_DIR }}
+      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DFETCH_ARGP=${{ matrix.fetch_deps }} -DMbedTLS_ROOT=${{ env.MbedTLS_ROOT }} -Dtr31_DIR=${{ env.TR31_DIR }} -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }}
 
     - name: Build
       run: cmake --build build
