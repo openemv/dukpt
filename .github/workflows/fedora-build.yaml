@@ -10,7 +10,7 @@ name: Fedora build
 on: [push]
 
 env:
-  TR31_VERSION: 0.4.4
+  TR31_VERSION: 0.4.5
 
 jobs:
   build-fedora-debug:
@@ -35,7 +35,7 @@ jobs:
       if: contains(matrix.deps, 'tr31')
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
-        sudo dnf -y install tr31-${{ env.TR31_VERSION }}-1.fc36.x86_64.rpm
+        sudo dnf -y install tr31-${{ env.TR31_VERSION }}-1.fc${{ matrix.fedora_version }}.x86_64.rpm
         echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,7 +82,7 @@ jobs:
     - name: Install TR-31 release
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
-        sudo dnf -y install tr31-${{ env.TR31_VERSION }}-1.fc36.x86_64.rpm
+        sudo dnf -y install tr31-${{ env.TR31_VERSION }}-1.fc${{ matrix.fedora_version }}.x86_64.rpm
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

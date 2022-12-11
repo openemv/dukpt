@@ -10,7 +10,7 @@ name: MacOS build
 on: [push]
 
 env:
-  TR31_VERSION: 0.4.4
+  TR31_VERSION: 0.4.5
 
 jobs:
   build-macos-debug:
@@ -28,7 +28,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Install dependencies
+    - name: Install MbedTLS and argp-standalone using brew
       # Homebrew doesn't support universal binaries so only install dependencies for x86_64 builds
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
@@ -36,14 +36,22 @@ jobs:
         brew install argp-standalone
         echo "MbedTLS_ROOT=$(brew --prefix mbedtls@2)" >> $GITHUB_ENV
 
+    - name: Install TR-31 using brew
+      if: ${{ contains(matrix.deps, 'tr31') && matrix.fetch_deps == 'NO' }}
+      run: |
+        brew install openemv/tap/tr31
+        echo "MbedTLS_ROOT=$(brew --prefix mbedtls@2)" >> $GITHUB_ENV
+        echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
+
     - name: Checkout
       uses: actions/checkout@v3
       with:
         submodules: recursive
     - run: git describe --always --dirty
 
-    - name: Build TR-31 dependency
-      if: contains(matrix.deps, 'tr31')
+    - name: Build TR-31 from source
+      # This step must be after the checkout action step to avoid being overwritten
+      if: ${{ contains(matrix.deps, 'tr31') && matrix.fetch_deps == 'YES' }}
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
