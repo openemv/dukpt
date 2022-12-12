@@ -45,7 +45,7 @@ if(NOT argp_FOUND)
 endif()
 
 # Check for tr31 but don't be verbose if it cannot be found
-set(TR31_MIN_VERSION 0.4.4)
+set(TR31_MIN_VERSION 0.4.5)
 find_package(tr31 ${TR31_MIN_VERSION} QUIET)
 if(BUILD_DUKPT_TOOL)
 	if(tr31_FOUND)

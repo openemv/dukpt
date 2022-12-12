@@ -37,7 +37,7 @@ RDEPEND="
 		dev-qt/qtgui:5
 		dev-qt/qtwidgets:5
 	)
-	tr31? ( >=dev-libs/tr31-0.4.4 )
+	tr31? ( >=dev-libs/tr31-0.4.5 )
 "
 DEPEND="
 	${RDEPEND}

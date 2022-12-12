@@ -10,7 +10,7 @@ name: Ubuntu build
 on: [push]
 
 env:
-  TR31_VERSION: 0.4.4
+  TR31_VERSION: 0.4.5
 
 jobs:
   build-ubuntu-debug:
@@ -26,10 +26,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Install dependencies
+    - name: Install MbedTLS
       run: |
         sudo apt-get update
-        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+        sudo apt-get install -y libmbedtls-dev
+
+    - name: Install Qt5
+      if: contains(matrix.deps, 'qt')
+      run: sudo apt-get install -y qtbase5-dev
 
     - name: Install TR-31 release
       if: contains(matrix.deps, 'tr31')
@@ -37,6 +41,7 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         unzip tr31-${{ env.TR31_VERSION }}-${{ matrix.os }}.zip
         sudo dpkg -i tr31_${{ env.TR31_VERSION }}-0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1_amd64.deb
+        echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -47,7 +52,7 @@ jobs:
     - run: git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE="Debug" -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
+      run: cmake -B build -DCMAKE_BUILD_TYPE="Debug" -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
       run: cmake --build build
