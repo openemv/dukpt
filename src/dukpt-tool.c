@@ -251,15 +251,19 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				size_t arg_len = strlen(arg);
 
 				if (arg_len < 2) {
-					argp_error(state, "Argument value must consist of at least 1 bytes (thus 2 hex digits)");
+					argp_error(state, "Argument value must consist of at least 1 byte (thus 2 hex digits)");
 				}
 
-				buf_len = arg_len / 2;
+				// Ensure that the buffer has enough space for odd length hex strings
+				buf_len = (arg_len + 1) / 2;
 				buf = malloc(buf_len);
 
 				r = parse_hex(arg, buf, &buf_len);
-				if (r) {
+				if (r < 0) {
 					argp_error(state, "Argument value must consist of hex digits");
+				}
+				if (r > 0) {
+					argp_error(state, "Argument value must have even number of hex digits");
 				}
 
 				break;
@@ -610,6 +614,10 @@ static int parse_hex(const char* hex, void* buf, size_t* buf_len)
 
 			str[str_idx++] = *hex;
 			++hex;
+		}
+		if (str_idx != 2) {
+			// Uneven number of hex digits
+			return 1;
 		}
 		str[2] = 0;
 
