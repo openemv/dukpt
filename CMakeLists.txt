@@ -33,6 +33,9 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	add_compile_options($<$<CONFIG:Debug>:-ggdb>)
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb>)
 endif()
+if(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+	add_compile_options(-Wall)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
@@ -237,7 +240,7 @@ if(Doxygen_FOUND)
 	endif()
 endif()
 
-# Configure CPack to generate .tgz package
+# Configure CPack to generate .tar.gz package
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_PACKAGE_VERSION "${DUKPT_VERSION_STRING}")
 set(CPACK_PACKAGE_VENDOR "OpenEMV")
@@ -264,6 +267,7 @@ endif()
 # invoking CMake
 #set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 
+# Generate Debian/Ubuntu packages if dpkg is available
 find_package(dpkg) # Optional for building Debian/Ubuntu packages
 if(dpkg_FOUND)
 	# Configure CPack to generate .deb package
@@ -293,6 +297,7 @@ if(dpkg_FOUND)
 	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/src/) # dpkg-shlibdeps cannot find dependencies that aren't installed, so it needs some help
 endif()
 
+# Generate RedHat/Fedora packages if rpmbuild is available
 find_package(rpmbuild) # Optional for building RedHat/Fedora packages
 if(rpmbuild_FOUND)
 	list(APPEND CPACK_GENERATOR "RPM")

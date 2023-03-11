@@ -33,6 +33,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	add_compile_options($<$<CONFIG:Debug>:-ggdb>)
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb>)
 endif()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+	add_compile_options(-Wall)
+endif()
 
 if(DUKPT_UI_IS_TOP_LEVEL)
 	# If this is the top-level project, it will need CMake modules provided by

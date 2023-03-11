@@ -25,6 +25,27 @@ implement the usage of the various working keys to ensure that the derivation
 data used for the working key derivation match the usage of the derived
 working key.
 
+Installation
+------------
+
+* For Ubuntu 20.04 LTS (Focal) or Ubuntu 22.04 LTS (Jammy), install the
+  appropriate [release package](https://github.com/openemv/dukpt/releases)
+* For Fedora 36 or Fedora 37, install the appropriate
+  [release package](https://github.com/openemv/dukpt/releases)
+* For Gentoo, use  the
+  [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the
+  keywords and useflags as needed, and install using
+  `emerge --verbose --ask dukpt`
+* For MacOS with [Homebrew](https://brew.sh/), use the
+  [OpenEMV tap](https://github.com/openemv/homebrew-tap) and install using
+  `brew install openemv/tap/dukpt`. After installation, the `Dukpt` application
+  can be made available in Launchpad via a symlink using
+  `ln -s $(brew --prefix dukpt)/Dukpt.app /Applications/`.
+* For Windows, use [MSYS2](https://www.msys2.org/) and follow the build
+  instructions below
+* For other platforms, architectures or configurations, follow the build
+  instructions below
+
 Dependencies
 ------------
 
@@ -82,11 +103,10 @@ cmake --build build --target test
 ```
 
 Alternatively, [ctest](https://cmake.org/cmake/help/latest/manual/ctest.1.html)
-can be used directly from within the build directory (`build` in the above
-[Build](#build) steps) which also allows actions such as `MemCheck` to be
+can be used directly which also allows actions such as `MemCheck` to be
 performed or the number of jobs to be set, for example:
 ```
-ctest -T MemCheck -j 10
+ctest --test-dir build -T MemCheck -j 10
 ```
 
 Documentation
