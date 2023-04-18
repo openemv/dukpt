@@ -5,6 +5,9 @@
 		<email>lynch.leon@gmail.com</email>
 		<name>Leon Lynch</name>
 	</maintainer>
+	<upstream>
+		<remote-id type="github">openemv/dukpt</remote-id>
+	</upstream>
 
 	<use>
 		<flag name="mbedtls">Use MbedTLS as the crypto library</flag>
