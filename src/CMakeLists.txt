@@ -75,7 +75,7 @@ set_target_properties(dukpt_tdes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_tdes.h
 		VERSION ${CMAKE_PROJECT_VERSION}
-		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}
+		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
 )
 target_include_directories(dukpt_tdes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated config file
 target_include_directories(dukpt_tdes INTERFACE
@@ -91,7 +91,7 @@ set_target_properties(dukpt_aes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_aes.h
 		VERSION ${CMAKE_PROJECT_VERSION}
-		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}.${CMAKE_PROJECT_VERSION_MINOR}
+		SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR}
 )
 target_include_directories(dukpt_aes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated config file
 target_include_directories(dukpt_aes INTERFACE
