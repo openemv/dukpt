@@ -10,7 +10,7 @@ name: Fedora build
 on: [push]
 
 env:
-  TR31_VERSION: 0.4.5
+  TR31_VERSION: 0.4.6
 
 jobs:
   build-fedora-debug:
@@ -21,6 +21,7 @@ jobs:
           - { name: "Fedora 36", fedora_version: 36, deps: "none", build_dukpt_ui: NO }
           - { name: "Fedora 36", fedora_version: 36, deps: "tr31/qt", build_dukpt_ui: YES }
           - { name: "Fedora 37", fedora_version: 37, deps: "tr31/qt", build_dukpt_ui: YES }
+          - { name: "Fedora 38", fedora_version: 38, deps: "tr31/qt", build_dukpt_ui: YES }
 
     name: ${{ matrix.name }} build (static/debug/${{ matrix.deps }})
     runs-on: ubuntu-latest
@@ -72,6 +73,7 @@ jobs:
         include:
           - { name: "Fedora 36", fedora_version: 36 }
           - { name: "Fedora 37", fedora_version: 37 }
+          - { name: "Fedora 38", fedora_version: 38 }
 
     name: ${{ matrix.name }} release
     runs-on: ubuntu-latest
