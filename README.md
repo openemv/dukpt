@@ -30,7 +30,7 @@ Installation
 
 * For Ubuntu 20.04 LTS (Focal) or Ubuntu 22.04 LTS (Jammy), install the
   appropriate [release package](https://github.com/openemv/dukpt/releases)
-* For Fedora 36 or Fedora 37, install the appropriate
+* For Fedora 36, Fedora 37 or Fedora 38, install the appropriate
   [release package](https://github.com/openemv/dukpt/releases)
 * For Gentoo, use  the
   [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the
@@ -38,7 +38,9 @@ Installation
   `emerge --verbose --ask dukpt`
 * For MacOS with [Homebrew](https://brew.sh/), use the
   [OpenEMV tap](https://github.com/openemv/homebrew-tap) and install using
-  `brew install openemv/tap/dukpt`
+  `brew install openemv/tap/dukpt`. After installation, the `Dukpt` application
+  can be made available in Launchpad via a symlink using
+  `ln -s $(brew --prefix dukpt)/Dukpt.app /Applications/`.
 * For Windows, use [MSYS2](https://www.msys2.org/) and follow the build
   instructions below
 * For other platforms, architectures or configurations, follow the build
@@ -51,13 +53,17 @@ Dependencies
 * [CMake](https://cmake.org/)
 * DUKPT libraries require [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
-* DUKPT tool will be built by default and requires `argp` (either via Glibc, a
-  system-provided standalone or a downloaded implementation; see
+* `dukpt-tool` will be built by default and requires `argp` (either via Glibc,
+  a system-provided standalone or a downloaded implementation; see
   [MacOS / Windows](#macos--windows)). Use the `BUILD_DUKPT_TOOL` option to
   prevent DUKPT tool from being built and avoid the dependency on `argp`.
-* DUKPT tool can _optionally_ use [tr31](https://github.com/openemv/tr31) if
+* `dukpt-tool` can _optionally_ use [tr31](https://github.com/openemv/tr31) if
   available at build-time (either install a release build or use `tr31_DIR` to
   find a local build)
+* `dukpt-ui` can _optionally_ be built if both [Qt5](https://www.qt.io/) and
+  [tr31](https://github.com/openemv/tr31) are available at build-time. If
+  either are not available, `dukpt-ui` will not be built. Use the
+  `BUILD_DUKPT_UI` option to ensure that `dukpt-ui` will be built.
 * [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
   generate API documentation if it is available; see
   [Documentation](#documentation)
@@ -160,6 +166,20 @@ cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_BUILD_TYPE="RelW
 cmake --build build
 ```
 
+Note that it may also be necessary to use the `Qt5_DIR` option to specify the
+Qt installation to be used. If the Qt installation does not provide universal
+binaries, it will not be possible to build `dukpt-ui` as a universal binary.
+
+On MacOS, a bundle can also be built using the `BUILD_MACOSX_BUNDLE` option and
+packaged as a DMG installer. Assuming `tr31_DIR` and `Qt5_DIR` are already
+appropriately set, this is an example of how a self-contained, static, native
+bundle and isntaller can be built from scratch for MacOS:
+```
+rm -Rf build &&
+cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES &&
+cmake --build build --target package
+```
+
 Usage
 -----
 
@@ -211,4 +231,6 @@ License
 
 Copyright (c) 2021, 2022, 2023 [Leon Lynch](https://github.com/leonlynch).
 
-This project is licensed under the terms of the LGPL v2.1 license. See LICENSE file.
+This project is licensed under the terms of the LGPL v2.1 license with the
+exception of `dukpt-ui` which is licensed under the terms of the GPL v3 license
+See LICENSE and LICENSE.gpl files.

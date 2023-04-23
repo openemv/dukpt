@@ -20,11 +20,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none" }
-          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31" }
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31" }
-          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31" }
-          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31" }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none", build_dukpt_ui: NO }
+          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", build_dukpt_ui: YES }
 
     name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }}/${{ matrix.deps }})
 
@@ -50,6 +50,8 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-ninja
           mingw-w64-${{matrix.env}}-github-cli
+          mingw-w64-${{matrix.env}}-qt5-base
+          mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Build TR-31 dependency
       if: contains(matrix.deps, 'tr31')
@@ -72,10 +74,94 @@ jobs:
         git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }}
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
       run: cmake --build build
 
     - name: Test
       run: ctest --test-dir build --output-on-failure
+
+  build-windows-msys2-release:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { sys: mingw64, env: x86_64, build_type: "RelWithDebInfo" }
+
+    name: Windows MSYS2 ${{matrix.sys}} build (release)
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: Setup MSYS2 ${{matrix.sys}}
+      uses: msys2/setup-msys2@v2
+      with:
+        release: false
+        msystem: ${{matrix.sys}}
+        install: >-
+          base-devel
+          git
+          mingw-w64-${{matrix.env}}-toolchain
+          mingw-w64-${{matrix.env}}-cmake
+          mingw-w64-${{matrix.env}}-ninja
+          mingw-w64-${{matrix.env}}-github-cli
+          mingw-w64-${{matrix.env}}-nsis
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: 5.15.*
+        host: windows
+        target: desktop
+        arch: win64_mingw81
+        archives: qtbase qttools
+
+    - name: Build TR-31 dependency
+      run: |
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
+        cd tr31-${{ env.TR31_VERSION }}
+        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=YES -DFETCH_MBEDTLS=YES -DBUILD_TR31_TOOL=NO
+        cmake --build build
+        echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
+        cd ..
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # MSYS2 Git assumes CRLF by default
+    - name: Configure Git
+      run: |
+        git config --global core.autocrlf true
+        echo "GIT_DESCRIBE=$(git describe --always --dirty)" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=YES -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -Dtr31_DIR=${{ env.TR31_DIR }}
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure
+
+    - name: Package
+      run: cmake --build build --target package
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: dukpt-${{ env.GIT_DESCRIBE }}-windows
+        path: |
+            build/dukpt-*.tar.gz
+            build/dukpt-*.exe
+        if-no-files-found: error

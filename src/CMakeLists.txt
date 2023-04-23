@@ -70,6 +70,7 @@ configure_file(
 
 # TDES DUKPT library
 add_library(dukpt_tdes dukpt_tdes.c)
+add_library(dukpt::dukpt_tdes ALIAS dukpt_tdes)
 set_target_properties(dukpt_tdes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_tdes.h
@@ -85,6 +86,7 @@ target_link_libraries(dukpt_tdes PRIVATE crypto_tdes crypto_mem crypto_rand pinb
 
 # AES DUKPT library
 add_library(dukpt_aes dukpt_aes.c)
+add_library(dukpt::dukpt_aes ALIAS dukpt_aes)
 set_target_properties(dukpt_aes
 	PROPERTIES
 		PUBLIC_HEADER dukpt_aes.h

@@ -100,6 +100,31 @@ endif()
 add_subdirectory(src)
 add_subdirectory(test)
 
+# If Qt::Widgets and tr31 are available, build dukpt-ui
+option(BUILD_DUKPT_UI "Build dukpt-ui")
+find_package(Qt5 5.12 COMPONENTS Widgets QUIET)
+if(Qt5Widgets_FOUND)
+	message(STATUS "Found Qt5 Widgets: found suitable version \"${Qt5_VERSION}\"")
+else()
+	if(BUILD_DUKPT_UI)
+		message(FATAL_ERROR "Could NOT find Qt5 Widgets; required to build dukpt-ui")
+	else()
+		message(STATUS "Could NOT find Qt5 Widgets: skipping dukpt-ui build")
+	endif()
+endif()
+find_package(tr31 0.4.5 QUIET)
+if(NOT tr31_FOUND)
+	if(BUILD_DUKPT_UI)
+		message(FATAL_ERROR "Could NOT find tr31; required to build dukpt-ui")
+	else()
+		message(STATUS "Could NOT find tr31: skipping dukpt-ui build")
+	endif()
+endif()
+if(Qt5Widgets_FOUND AND tr31_FOUND)
+	message(STATUS "Adding dukpt-ui to build")
+	add_subdirectory(ui)
+endif()
+
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # Install README and LICENSE files to runtime component
@@ -225,9 +250,18 @@ set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 
 # Configure generic component packaging attributes
-set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DESCRIPTION "Development files for DUKPT libraries")
-set(CPACK_COMPONENT_DUKPT_DOCS_DESCRIPTION "Documentation for DUKPT libraries")
-set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DEPENDS dukpt_runtime)
+set(CPACK_COMPONENT_DUKPT_RUNTIME_DISPLAY_NAME "DUKPT tool and libraries")
+set(CPACK_COMPONENT_DUKPT_RUNTIME_DESCRIPTION "DUKPT command line tool (dukpt-tool) and runtime libraries (dukpt_tdes and dukpt_aes)")
+set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DISPLAY_NAME "DUKPT development files")
+set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DESCRIPTION "Development files (headers, pkgconfig files, CMake config files, etc) for DUKPT libraries")
+set(CPACK_COMPONENT_DUKPT_DOCS_DISPLAY_NAME "Documentation for DUKPT libraries")
+set(CPACK_COMPONENT_DUKPT_DOCS_DESCRIPTION ${CPACK_COMPONENT_DUKPT_DOCS_DISPLAY_NAME})
+set(CPACK_COMPONENT_DUKPT_UI_RUNTIME_DISPLAY_NAME "DUKPT UI")
+set(CPACK_COMPONENT_DUKPT_UI_RUNTIME_DESCRIPTION "DUKPT graphical user interface (dukpt-ui)")
+if(BUILD_SHARED_LIBS)
+	set(CPACK_COMPONENT_DUKPT_DEVELOPMENT_DEPENDS dukpt_runtime)
+	set(CPACK_COMPONENT_DUKPT_UI_RUNTIME_DEPENDS dukpt_runtime)
+endif()
 
 # NOTE: for monolithic packages, uncomment the line below or specify it when
 # invoking CMake
@@ -248,16 +282,19 @@ if(dpkg_FOUND)
 	set(CPACK_DEBIAN_DUKPT_RUNTIME_PACKAGE_NAME "dukpt-runtime")
 	set(CPACK_DEBIAN_DUKPT_DEVELOPMENT_PACKAGE_NAME "dukpt-dev")
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_NAME "dukpt-doc")
+	set(CPACK_DEBIAN_DUKPT_UI_RUNTIME_PACKAGE_NAME "dukpt-ui")
 	# Assign package architecture to documentation component
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_ARCHITECTURE "all")
 	# Assign package sections to components
 	set(CPACK_DEBIAN_DUKPT_RUNTIME_PACKAGE_SECTION "utils")
 	set(CPACK_DEBIAN_DUKPT_DEVELOPMENT_PACKAGE_SECTION "devel")
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_SECTION "doc")
+	set(CPACK_DEBIAN_DUKPT_UI_RUNTIME_PACKAGE_SECTION "x11")
 	# Assign package suggestions
 	set(CPACK_DEBIAN_DUKPT_DOCS_PACKAGE_SUGGESTS "dukpt-dev")
 	# Generate package dependency list
 	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+	set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/src/) # dpkg-shlibdeps cannot find dependencies that aren't installed, so it needs some help
 endif()
 
 # Generate RedHat/Fedora packages if rpmbuild is available
@@ -277,11 +314,58 @@ if(rpmbuild_FOUND)
 	set(CPACK_RPM_DUKPT_RUNTIME_PACKAGE_NAME "dukpt-runtime")
 	set(CPACK_RPM_DUKPT_DEVELOPMENT_PACKAGE_NAME "dukpt-devel")
 	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_NAME "dukpt-doc")
+	set(CPACK_RPM_DUKPT_UI_RUNTIME_PACKAGE_NAME "dukpt-ui")
 	# Assign package architecture to documentation component
 	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_ARCHITECTURE "noarch")
 	# Assign package suggestions
 	set(CPACK_RPM_DUKPT_DOCS_PACKAGE_SUGGESTS "dukpt-devel")
 	# NOTE: RPM generator automatically detects dependencies
+endif()
+
+# Generate DragNDrop package for MacOS if dukpt-ui is available
+if(APPLE AND TARGET dukpt-ui AND BUILD_MACOSX_BUNDLE)
+	set(CPACK_GENERATOR "DragNDrop") # Skip TGZ generator when building MacOS bundle
+	# Only package dukpt-ui bundle (which includes ancillary files for MacOS)
+	set(CPACK_COMPONENTS_ALL dukpt_ui_bundle)
+	# Use dukpt-ui license file
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/ui/LICENSE.gpl")
+	set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE ON)
+	# Use script to setup DMG interface
+	set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/macos/dukpt_dmg_setup.scpt")
+	set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_CURRENT_SOURCE_DIR}/macos/openemv_dmg_bg.tif")
+endif()
+
+# Generate NSIS package for Windows if dukpt-ui is available
+if(WIN32 AND TARGET dukpt-ui)
+	list(APPEND CPACK_GENERATOR "NSIS")
+	# Only package runtime and development components
+	set(CPACK_COMPONENTS_ALL dukpt_runtime dukpt_ui_runtime dukpt_development)
+	# Use dukpt-ui license file
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/ui/LICENSE.gpl")
+	# Set installer branding icon
+	set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.bmp") # CMake's own installer escapes the last slash due to a bug in NSI
+	# Set installer and uninstaller application icons
+	set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer escapes the last slash due to a bug in NSI
+	set(CPACK_NSIS_MUI_UNIICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer escapes the last slash due to a bug in NSI
+	# Set display name used by Control Panel
+	set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION}")
+	# Set name used by installer application
+	set(CPACK_NSIS_PACKAGE_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
+	# Set project URL
+	set(CPACK_NSIS_URL_INFO_ABOUT "${CMAKE_PROJECT_HOMEPAGE_URL}")
+	# Install into vendor/package-version directory
+	set(CPACK_NSIS_INSTALL_ROOT "C:\\\\${CPACK_PACKAGE_VENDOR}")
+	set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
+	# Set display name used by Start Menu
+	set(CPACK_PACKAGE_EXECUTABLES "dukpt-ui" "Dukpt")
+	# Set desktop link to dukpt-ui
+	set(CPACK_CREATE_DESKTOP_LINKS dukpt-ui)
+	# Set package file name based on architecture
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-win64-setup)
+	elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+		set(CPACK_PACKAGE_FILE_NAME ${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-win32-setup)
+	endif()
 endif()
 
 include(CPack)
