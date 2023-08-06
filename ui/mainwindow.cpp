@@ -1687,9 +1687,9 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 			// Add optional block using the provided length. This allows
 			// the user to add either 8 or 10 byte KSNs, depending on their
 			// needs.
-			r = tr31_opt_block_add(
+			// See ANSI X9.143:2021, 6.3.6.8, table 16
+			r = tr31_opt_block_add_KS(
 				tr31_ctx.get(),
-				TR31_OPT_BLOCK_KS,
 				iksn,
 				ksn.size()
 			);
@@ -1701,10 +1701,9 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 		} else if (mode == DUKPT_UI_MODE_AES) {
 			// Add optional block. For AES DUKPT, this will always be the
 			// initial key ID and not the whole KSN.
-			// See TR-31:2018, A.5.6, table 11
-			r = tr31_opt_block_add(
+			// See ANSI X9.143:2021, 6.3.6.6, table 14
+			r = tr31_opt_block_add_IK(
 				tr31_ctx.get(),
-				TR31_OPT_BLOCK_IK,
 				ksn.data(),
 				DUKPT_AES_IK_ID_LEN
 			);

@@ -10,7 +10,7 @@ name: Fedora build
 on: [push]
 
 env:
-  TR31_VERSION: 0.4.6
+  TR31_VERSION: 0.5.1
 
 jobs:
   build-fedora-debug:

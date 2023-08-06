@@ -1,4 +1,4 @@
-# Copyright 1999-2022 Gentoo Authors
+# Copyright 1999-2023 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
@@ -31,13 +31,13 @@ BDEPEND="
 
 RDEPEND="
 	mbedtls? ( net-libs/mbedtls )
-	openssl? ( dev-libs/openssl:0/1.1 )
+	openssl? ( dev-libs/openssl )
 	qt5? (
 		dev-qt/qtcore:5
 		dev-qt/qtgui:5
 		dev-qt/qtwidgets:5
 	)
-	tr31? ( >=dev-libs/tr31-0.4.5 )
+	tr31? ( >=dev-libs/tr31-0.5.1 )
 "
 DEPEND="
 	${RDEPEND}

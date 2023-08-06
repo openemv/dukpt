@@ -784,7 +784,7 @@ static int output_tr31(const void* buf, size_t length)
 
 	// Populate key attributes for ANSI X9.24 Initial Key
 	// See ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
-	key.usage = TR31_KEY_USAGE_DUKPT_IPEK;
+	key.usage = TR31_KEY_USAGE_DUKPT_IK;
 	key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
 	key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 	key.exportability = TR31_KEY_EXPORT_NONE;
@@ -815,9 +815,9 @@ static int output_tr31(const void* buf, size_t length)
 			// Add optional block using the provided length. This allows
 			// the user to add either 8 or 10 byte KSNs, depending on their
 			// needs.
-			r = tr31_opt_block_add(
+			// See ANSI X9.143:2021, 6.3.6.8, table 16
+			r = tr31_opt_block_add_KS(
 				&tr31_ctx,
-				TR31_OPT_BLOCK_KS,
 				iksn,
 				ksn_len
 			);
@@ -829,10 +829,9 @@ static int output_tr31(const void* buf, size_t length)
 		} else if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES) {
 			// Add optional block. For AES DUKPT, this will always be the
 			// initial key ID and not the whole KSN.
-			// See TR-31:2018, A.5.6, table 11
-			r = tr31_opt_block_add(
+			// See ANSI X9.143:2021, 6.3.6.6, table 14
+			r = tr31_opt_block_add_IK(
 				&tr31_ctx,
-				TR31_OPT_BLOCK_IK,
 				ksn,
 				DUKPT_AES_IK_ID_LEN
 			);
@@ -861,7 +860,17 @@ static int output_tr31(const void* buf, size_t length)
 		}
 	}
 
-	// Determine key block protection key algorithm from keyblock format version
+	// Let key block format version E omit key length obfuscation and use zeros
+	// for optional block PB. This behaviour is neither mandated nor prohibited
+	// by ISO 20038 but the result is that format version E will have
+	// deterministic output due to the absence of random padding. By contrast,
+	// ANSI X9.143 requires that the other format version apply random key
+	// length obfuscation.
+	if (tr31_version == TR31_VERSION_E) {
+		tr31_ctx.export_flags = TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION | TR31_EXPORT_ZERO_OPT_BLOCK_PB;
+	}
+
+	// Determine key block protection key algorithm from key block format version
 	switch (tr31_version) {
 		case TR31_VERSION_B:
 			kbpk_algorithm = TR31_KEY_ALGORITHM_TDES;

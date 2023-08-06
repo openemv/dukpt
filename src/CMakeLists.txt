@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright (c) 2021, 2022 Leon Lynch
+# Copyright (c) 2021, 2022, 2023 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -45,7 +45,7 @@ if(NOT argp_FOUND)
 endif()
 
 # Check for tr31 but don't be verbose if it cannot be found
-set(TR31_MIN_VERSION 0.4.5)
+set(TR31_MIN_VERSION 0.5.1)
 find_package(tr31 ${TR31_MIN_VERSION} QUIET)
 if(BUILD_DUKPT_TOOL)
 	if(tr31_FOUND)
