@@ -32,15 +32,14 @@ jobs:
       # Homebrew doesn't support universal binaries so only install dependencies for x86_64 builds
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
-        brew install mbedtls@2
+        brew install mbedtls
         brew install argp-standalone
-        echo "MbedTLS_ROOT=$(brew --prefix mbedtls@2)" >> $GITHUB_ENV
+        echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
 
     - name: Install TR-31 using brew
       if: ${{ contains(matrix.deps, 'tr31') && matrix.fetch_deps == 'NO' }}
       run: |
         brew install openemv/tap/tr31
-        echo "MbedTLS_ROOT=$(brew --prefix mbedtls@2)" >> $GITHUB_ENV
         echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
 
     - name: Install Qt5 using brew
@@ -62,7 +61,7 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DBUILD_TR31_TOOL=NO
+        cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DBUILD_TR31_TOOL=NO
         cmake --build build
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
@@ -71,7 +70,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DFETCH_ARGP=${{ matrix.fetch_deps }} -DMbedTLS_ROOT=${{ env.MbedTLS_ROOT }} -Dtr31_DIR=${{ env.TR31_DIR }} -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} -DQt5_DIR=${{ env.QT5_DIR }} -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
+      run: cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DFETCH_ARGP=${{ matrix.fetch_deps }} -Dtr31_DIR=${{ env.TR31_DIR }} -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} -DQt5_DIR=${{ env.QT5_DIR }} -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
       run: cmake --build build
