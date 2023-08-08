@@ -864,7 +864,7 @@ static int output_tr31(const void* buf, size_t length)
 	// for optional block PB. This behaviour is neither mandated nor prohibited
 	// by ISO 20038 but the result is that format version E will have
 	// deterministic output due to the absence of random padding. By contrast,
-	// ANSI X9.143 requires that the other format version apply random key
+	// ANSI X9.143 requires that the other format versions apply random key
 	// length obfuscation.
 	if (tr31_version == TR31_VERSION_E) {
 		tr31_ctx.export_flags = TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION | TR31_EXPORT_ZERO_OPT_BLOCK_PB;

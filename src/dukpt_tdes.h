@@ -31,7 +31,8 @@
 __BEGIN_DECLS
 
 #define DUKPT_TDES_KEY_LEN (16) ///< Key length for TDES DUKPT
-#define DUKPT_TDES_KSN_LEN (10) ///< Key Serial Number length for TDES DUKPT
+#define DUKPT_TDES_KSI_LEN (5) ///< Key Set Identifier (KSI) length for TDES DUKPT
+#define DUKPT_TDES_KSN_LEN (DUKPT_TDES_KSI_LEN + 5) ///< Key Serial Number (KSN) length for TDES DUKPT
 #define DUKPT_TDES_TC_BITS (21) ///< Number of Transaction Counter (TC) bits in Key Serial Number
 #define DUKPT_TDES_TC_MAX  (0x1FF800) ///< Maximum transaction counter value for TDES DUKPT
 #define DUKPT_TDES_PINBLOCK_LEN (8) ///< PIN block length for TDES DUKPT. See ISO 9564-1:2017 9.3 formats 0, 1, 3.

@@ -2,7 +2,7 @@
  * @file mainwindow.h
  * @brief Main window of DUKPT User Interface
  *
- * Copyright (c) 2022 Leon Lynch
+ * Copyright (c) 2022, 2023 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -228,8 +228,8 @@ private:
 	bool validateTxnData(const std::vector<std::uint8_t>& txnData);
 	bool prepareIv();
 
-	// TR-31 helper function
-	QString outputTr31InitialKey(const std::vector<std::uint8_t>& ik);
+	// TR-31 helper functions
+	QString exportTr31(unsigned int key_usage, const std::vector<std::uint8_t>& keyData);
 
 	// Encrypt/decrypt helper functions
 	std::vector<std::uint8_t> encryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& pin);

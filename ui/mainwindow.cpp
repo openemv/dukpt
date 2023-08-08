@@ -2,7 +2,7 @@
  * @file mainwindow.cpp
  * @brief Main window of DUKPT User Interface
  *
- * Copyright (c) 2022 Leon Lynch
+ * Copyright (c) 2022, 2023 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -875,7 +875,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 			}
 
 			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B) {
-				QString keyBlock = outputTr31InitialKey(ik);
+				QString keyBlock = exportTr31(TR31_KEY_USAGE_DUKPT_IK, ik);
 				if (keyBlock.isEmpty()) {
 					logFailure("Action failed");
 					return;
@@ -928,7 +928,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_D ||
 				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_E
 			) {
-				QString keyBlock = outputTr31InitialKey(ik);
+				QString keyBlock = exportTr31(TR31_KEY_USAGE_DUKPT_IK, ik);
 				if (keyBlock.isEmpty()) {
 					logFailure("Action failed");
 					return;
@@ -1617,7 +1617,7 @@ bool MainWindow::prepareIv()
 	return false;
 }
 
-QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
+QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::uint8_t>& keyData)
 {
 	using scoped_tr31_ctx = scoped_struct<tr31_ctx_t, tr31_release>;
 	using scoped_tr31_key = scoped_struct<tr31_key_t, tr31_key_release>;
@@ -1635,12 +1635,29 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 		return QString();
 	}
 
-	// Populate key attributes for ANSI X9.24 Initial Key
-	// See ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
-	key.usage = TR31_KEY_USAGE_DUKPT_IK;
-	key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
-	key.key_version = TR31_KEY_VERSION_IS_UNUSED;
-	key.exportability = TR31_KEY_EXPORT_NONE;
+	// Populate key attributes based on key usage
+	switch (key_usage) {
+		case TR31_KEY_USAGE_BDK:
+			// Populate key attributes for ANSI X9.24 Base Derivation Key
+			key.usage = TR31_KEY_USAGE_BDK;
+			key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
+			key.key_version = TR31_KEY_VERSION_IS_UNUSED;
+			key.exportability = TR31_KEY_EXPORT_TRUSTED;
+			break;
+
+		case TR31_KEY_USAGE_DUKPT_IK:
+			// Populate key attributes for ANSI X9.24 Initial Key
+			// See ANSI X9.24-3:2017, 6.5.3 "Update Initial Key"
+			key.usage = TR31_KEY_USAGE_DUKPT_IK;
+			key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
+			key.key_version = TR31_KEY_VERSION_IS_UNUSED;
+			key.exportability = TR31_KEY_EXPORT_NONE;
+			break;
+
+		default:
+			logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KEY_USAGE)));
+			return QString();
+	}
 
 	// Populate key algorithm
 	if (mode == DUKPT_UI_MODE_TDES) {
@@ -1654,8 +1671,8 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 
 	// Populate key data
 	// Avoid tr31_key_set_data() here to avoid tr31_key_release() later
-	key.length = ik.size();
-	key.data = const_cast<std::uint8_t*>(ik.data());
+	key.length = keyData.size();
+	key.data = const_cast<std::uint8_t*>(keyData.data());
 
 	// Populate TR-31 context object
 	switch (outputFormat) {
@@ -1684,29 +1701,70 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 			iksn[8] = 0;
 			iksn[9] = 0;
 
-			// Add optional block using the provided length. This allows
-			// the user to add either 8 or 10 byte KSNs, depending on their
-			// needs.
-			// See ANSI X9.143:2021, 6.3.6.8, table 16
-			r = tr31_opt_block_add_KS(
-				tr31_ctx.get(),
-				iksn,
-				ksn.size()
-			);
+			switch (key_usage) {
+				case TR31_KEY_USAGE_BDK:
+					// Add optional block BI. For TDES DUKPT, this will always
+					// be the Key Set Identifier (KSI) of 5 bytes.
+					// See ANSI X9.143:2021, 6.3.6.2, table 9
+					r = tr31_opt_block_add_BI(
+						tr31_ctx.get(),
+						TR31_OPT_BLOCK_BI_TDES_DUKPT,
+						iksn,
+						DUKPT_TDES_KSI_LEN
+					);
+					break;
+
+				case TR31_KEY_USAGE_DUKPT_IK:
+					// Add optional block KS using the provided length. This
+					// allows the user to add either 8 or 10 byte KSNs,
+					// depending on their needs.
+					// See ANSI X9.143:2021, 6.3.6.8, table 16
+					r = tr31_opt_block_add_KS(
+						tr31_ctx.get(),
+						iksn,
+						ksn.size()
+					);
+					break;
+
+				default:
+					logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KEY_USAGE)));
+					return QString();
+			}
 			if (r) {
 				logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 				return QString();
 			}
 
 		} else if (mode == DUKPT_UI_MODE_AES) {
-			// Add optional block. For AES DUKPT, this will always be the
-			// initial key ID and not the whole KSN.
-			// See ANSI X9.143:2021, 6.3.6.6, table 14
-			r = tr31_opt_block_add_IK(
-				tr31_ctx.get(),
-				ksn.data(),
-				DUKPT_AES_IK_ID_LEN
-			);
+
+			switch (key_usage) {
+				case TR31_KEY_USAGE_BDK:
+					// Add optional block BI. For AES DUKPT, this will always
+					// be the Base Derivation Key ID (BDK ID) of 4 bytes.
+					// See ANSI X9.143:2021, 6.3.6.2, table 9
+					r = tr31_opt_block_add_BI(
+						tr31_ctx.get(),
+						TR31_OPT_BLOCK_BI_AES_DUKPT,
+						ksn.data(),
+						DUKPT_AES_BDK_ID_LEN
+					);
+					break;
+
+				case TR31_KEY_USAGE_DUKPT_IK:
+					// Add optional blockKS. For AES DUKPT, this will always be
+					// the Initial Key ID of 8 bytes and not the whole KSN.
+					// See ANSI X9.143:2021, 6.3.6.6, table 14
+					r = tr31_opt_block_add_IK(
+						tr31_ctx.get(),
+						ksn.data(),
+						DUKPT_AES_IK_ID_LEN
+					);
+					break;
+
+				default:
+					logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KEY_USAGE)));
+					return QString();
+			}
 			if (r) {
 				logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 				return QString();
@@ -1732,7 +1790,7 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 		}
 	}
 
-	// Determine key block protection key algorithm from keyblock format version
+	// Determine key block protection key algorithm from key block format version
 	switch (tr31_version) {
 		case TR31_VERSION_B:
 			kbpk_algorithm = TR31_KEY_ALGORITHM_TDES;
@@ -1785,6 +1843,17 @@ QString MainWindow::outputTr31InitialKey(const std::vector<std::uint8_t>& ik)
 	if (r) {
 		logError(QString::asprintf("TR-31 KBPK error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 		return QString();
+	}
+
+	// Let key block format version E omit key length obfuscation and use zeros
+	// for optional block PB. This behaviour is neither mandated nor prohibited
+	// by ISO 20038 but the result is that format version E will have
+	// deterministic output due to the absence of random padding. By contrast,
+	// ANSI X9.143 requires that the other format versions apply random key
+	// length obfuscation.
+	// This matches the behaviour of dukpt-tool.
+	if (tr31_version == TR31_VERSION_E) {
+		tr31_ctx->export_flags = TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION | TR31_EXPORT_ZERO_OPT_BLOCK_PB;
 	}
 
 	// Export TR-31 key block
