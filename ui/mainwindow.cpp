@@ -862,6 +862,9 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 			logVector("BDK: ", inputKey);
 		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
 			logVector("IK: ", inputKey);
+		} else {
+			logFailure("Unknown input key type");
+			return;
 		}
 		logVector("KSN: ", ksn);
 
@@ -882,8 +885,11 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 				}
 				keyBlock.prepend("TR-31: ");
 				logInfo(std::move(keyBlock));
-			} else {
+			} else if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_HEX) {
 				logVector("IK: ", ik);
+			} else {
+				logFailure("Invalid output format");
+				return;
 			}
 
 			logSuccess("Key derivation successful");
@@ -913,6 +919,9 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 			logVector("BDK: ", inputKey);
 		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
 			logVector("IK: ", inputKey);
+		} else {
+			logFailure("Unknown input key type");
+			return;
 		}
 		logVector("KSN: ", ksn);
 
@@ -935,8 +944,11 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 				}
 				keyBlock.prepend("TR-31: ");
 				logInfo(std::move(keyBlock));
-			} else {
+			} else if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_HEX) {
 				logVector("IK: ", ik);
+			} else {
+				logFailure("Invalid output format");
+				return;
 			}
 
 			logSuccess("Key derivation successful");
@@ -1005,6 +1017,9 @@ void MainWindow::on_encryptDecryptPushButton_clicked()
 			logVector("BDK: ", inputKey);
 		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
 			logVector("IK: ", inputKey);
+		} else {
+			logFailure("Unknown input key type");
+			return;
 		}
 		logVector("KSN: ", ksn);
 
@@ -1020,6 +1035,9 @@ void MainWindow::on_encryptDecryptPushButton_clicked()
 			logVector("BDK: ", inputKey);
 		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
 			logVector("IK: ", inputKey);
+		} else {
+			logFailure("Unknown input key type");
+			return;
 		}
 		logVector("KSN: ", ksn);
 
@@ -1157,6 +1175,9 @@ void MainWindow::on_macPushButton_clicked()
 			logVector("BDK: ", inputKey);
 		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
 			logVector("IK: ", inputKey);
+		} else {
+			logFailure("Unknown input key type");
+			return;
 		}
 		logVector("KSN: ", ksn);
 
@@ -1200,6 +1221,9 @@ void MainWindow::on_macPushButton_clicked()
 			logVector("BDK: ", inputKey);
 		} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
 			logVector("IK: ", inputKey);
+		} else {
+			logFailure("Unknown input key type");
+			return;
 		}
 		logVector("KSN: ", ksn);
 
