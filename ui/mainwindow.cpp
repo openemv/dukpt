@@ -244,6 +244,7 @@ MainWindow::dukpt_ui_derivation_action_t MainWindow::getDerivationAction() const
 
 	data = derivationActionComboBox->currentData().toUInt();
 	switch (data) {
+		case DUKPT_UI_DERIVATION_ACTION_NONE:
 		case DUKPT_UI_DERIVATION_ACTION_IK:
 		case DUKPT_UI_DERIVATION_ACTION_TXN:
 		case DUKPT_UI_DERIVATION_ACTION_UPDATE:
@@ -277,10 +278,13 @@ void MainWindow::updateDerivationActions(dukpt_ui_mode_t mode, dukpt_ui_input_ke
 	derivationActionComboBox->clear();
 	switch (inputKeyType) {
 		case DUKPT_UI_INPUT_KEY_TYPE_BDK:
+			derivationActionComboBox->addItem("None (output only)", DUKPT_UI_DERIVATION_ACTION_NONE);
 			derivationActionComboBox->addItem("Derive Initial Key (IK/IPEK)", DUKPT_UI_DERIVATION_ACTION_IK);
-			// Intentional fallthrough; use [[fallthrough]] in future
+			derivationActionComboBox->addItem("Derive Transaction Key", DUKPT_UI_DERIVATION_ACTION_TXN);
+			break;
 
 		case DUKPT_UI_INPUT_KEY_TYPE_IK:
+			derivationActionComboBox->addItem("None (output only)", DUKPT_UI_DERIVATION_ACTION_NONE);
 			derivationActionComboBox->addItem("Derive Transaction Key", DUKPT_UI_DERIVATION_ACTION_TXN);
 			break;
 
@@ -504,9 +508,13 @@ void MainWindow::updateOutputFormats(dukpt_ui_mode_t mode)
 
 	// Build output format list based on mode
 	outputFormatComboBox->clear();
-	outputFormatComboBox->addItem("ASCII-HEX", DUKPT_UI_OUTPUT_FORMAT_HEX);
 	derivationAction = getDerivationAction();
-	if (derivationAction == DUKPT_UI_DERIVATION_ACTION_IK) {
+	if (derivationAction > DUKPT_UI_DERIVATION_ACTION_NONE) {
+		outputFormatComboBox->addItem("ASCII-HEX", DUKPT_UI_OUTPUT_FORMAT_HEX);
+	}
+	if (derivationAction == DUKPT_UI_DERIVATION_ACTION_NONE ||
+		derivationAction == DUKPT_UI_DERIVATION_ACTION_IK
+	) {
 		if (mode == DUKPT_UI_MODE_TDES) {
 			outputFormatComboBox->addItem("TR-31 format version B", DUKPT_UI_OUTPUT_FORMAT_TR31_B);
 		} else if (mode == DUKPT_UI_MODE_AES) {
@@ -868,6 +876,15 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 		}
 		logVector("KSN: ", ksn);
 
+		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_NONE) {
+			if (!outputTr31InputKey()) {
+				logFailure("Action failed");
+				return;
+			}
+			logSuccess("Key export successful");
+			return;
+		}
+
 		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_IK) {
 			std::vector<std::uint8_t> ik;
 
@@ -924,6 +941,15 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 			return;
 		}
 		logVector("KSN: ", ksn);
+
+		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_NONE) {
+			if (!outputTr31InputKey()) {
+				logFailure("Action failed");
+				return;
+			}
+			logSuccess("Key export successful");
+			return;
+		}
 
 		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_IK) {
 			std::vector<std::uint8_t> ik;
@@ -1638,6 +1664,48 @@ bool MainWindow::prepareIv()
 		return true;
 	}
 
+	return false;
+}
+
+bool MainWindow::outputTr31InputKey()
+{
+	unsigned int key_usage;
+
+	if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_BDK) {
+		key_usage = TR31_KEY_USAGE_BDK;
+	} else if (inputKeyType == DUKPT_UI_INPUT_KEY_TYPE_IK) {
+		key_usage = TR31_KEY_USAGE_DUKPT_IK;
+	} else {
+		logError("TR-31: Unknown input key type");
+		return false;
+	}
+
+	// TDES mode should only allow TR-31 format version B
+	// AES mode should only allow TR-31 format version D and E
+	if (
+		(
+			mode == DUKPT_UI_MODE_TDES &&
+			outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B
+		) ||
+		(
+			mode == DUKPT_UI_MODE_AES &&
+			(
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_D ||
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_E
+			)
+		)
+	) {
+		QString keyBlock = exportTr31(key_usage, inputKey);
+		if (keyBlock.isEmpty()) {
+			// exportTr31() will print error message
+			return false;
+		}
+		keyBlock.prepend("TR-31: ");
+		logInfo(std::move(keyBlock));
+		return true;
+	}
+
+	logError("TR-31: Invalid output format");
 	return false;
 }
 

@@ -70,7 +70,8 @@ private: // helper enums and helper functions for inputs
 
 	enum dukpt_ui_derivation_action_t {
 		DUKPT_UI_DERIVATION_ACTION_UNKNOWN = -1,
-		DUKPT_UI_DERIVATION_ACTION_IK = 1,
+		DUKPT_UI_DERIVATION_ACTION_NONE = 1,
+		DUKPT_UI_DERIVATION_ACTION_IK,
 		DUKPT_UI_DERIVATION_ACTION_TXN,
 		DUKPT_UI_DERIVATION_ACTION_UPDATE,
 	};
@@ -229,6 +230,7 @@ private:
 	bool prepareIv();
 
 	// TR-31 helper functions
+	bool outputTr31InputKey();
 	QString exportTr31(unsigned int key_usage, const std::vector<std::uint8_t>& keyData);
 
 	// Encrypt/decrypt helper functions
