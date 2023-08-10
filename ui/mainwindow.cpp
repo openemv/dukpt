@@ -752,6 +752,7 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 		tr31KsnCheckBox->setEnabled(true);
 		tr31KcCheckBox->setEnabled(true);
 		tr31KpCheckBox->setEnabled(true);
+		tr31LbCheckBox->setEnabled(true);
 	} else {
 		kbpkEdit->clear();
 		kbpkEdit->setEnabled(false);
@@ -761,7 +762,11 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 		tr31KcCheckBox->setEnabled(false);
 		tr31KpCheckBox->setCheckState(Qt::Unchecked);
 		tr31KpCheckBox->setEnabled(false);
+		tr31LbCheckBox->setCheckState(Qt::Unchecked);
+		tr31LbCheckBox->setEnabled(false);
 	}
+
+	on_tr31LbCheckBox_stateChanged(tr31LbCheckBox->checkState());
 }
 
 void MainWindow::on_pinActionComboBox_currentIndexChanged(int index)
@@ -819,6 +824,16 @@ static std::vector<std::uint8_t> PanStringToVector(QString pan)
 	return HexStringToVector(pan);
 }
 
+void MainWindow::on_tr31LbCheckBox_stateChanged(int state)
+{
+	if (tr31LbCheckBox->isChecked()) {
+		tr31LbEdit->setEnabled(true);
+	} else {
+		tr31LbEdit->clear();
+		tr31LbEdit->setEnabled(false);
+	}
+}
+
 void MainWindow::on_ksnAdvancePushButton_clicked()
 {
 	int r;
@@ -863,6 +878,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 	tr31WithKsn = tr31KsnCheckBox->isChecked();
 	tr31WithKc = tr31KcCheckBox->isChecked();
 	tr31WithKp = tr31KpCheckBox->isChecked();
+	tr31WithLb = tr31LbCheckBox->isChecked();
 
 	if (mode == DUKPT_UI_MODE_TDES) {
 		logInfo("TDES mode");
@@ -1876,6 +1892,16 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	// Populate optional block KP
 	if (tr31WithKp) {
 		r = tr31_opt_block_add_KP(tr31_ctx.get());
+		if (r) {
+			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+			return QString();
+		}
+	}
+
+	// Populate optional block LB
+	if (tr31WithLb) {
+		QString label = tr31LbEdit->text();
+		r = tr31_opt_block_add_LB(tr31_ctx.get(), label.toStdString().c_str());
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 			return QString();
