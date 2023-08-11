@@ -228,7 +228,7 @@
              <item>
               <widget class="QPushButton" name="keyDerivationPushButton">
                <property name="text">
-                <string>Derive</string>
+                <string>Compute</string>
                </property>
               </widget>
              </item>
