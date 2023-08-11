@@ -177,9 +177,11 @@ private slots: // connect-by-name helper functions for combo boxes
 
 private slots: // connect-by-name helper functions for check boxes
 	void on_tr31LbCheckBox_stateChanged(int state);
+	void on_tr31TsCheckBox_stateChanged(int state);
 
 private slots: // connect-by-name helper functions for push buttons
 	void on_ksnAdvancePushButton_clicked();
+	void on_tr31TsNowPushButton_clicked();
 	void on_keyDerivationPushButton_clicked();
 	void on_encryptDecryptPushButton_clicked();
 	void on_macPushButton_clicked();
@@ -200,6 +202,7 @@ private:
 	bool tr31WithKc;
 	bool tr31WithKp;
 	bool tr31WithLb;
+	bool tr31WithTs;
 
 	// Encrypt/decrypt state populated when encrypt/decrypt button is clicked
 	dukpt_ui_key_type_t encryptDecryptKeyType;

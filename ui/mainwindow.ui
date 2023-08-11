@@ -107,13 +107,6 @@
             <layout class="QVBoxLayout" name="keyDerivationVerticalLayout">
              <item>
               <layout class="QGridLayout" name="keyDerivationGridLayout">
-               <item row="7" column="2">
-                <widget class="QCheckBox" name="tr31LbCheckBox">
-                 <property name="text">
-                  <string>User defined label in key block header</string>
-                 </property>
-                </widget>
-               </item>
                <item row="8" column="2">
                 <widget class="QLineEdit" name="tr31LbEdit">
                  <property name="whatsThis">
@@ -121,17 +114,13 @@
                  </property>
                 </widget>
                </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="derivationActionLabel">
-                 <property name="text">
-                  <string>Derivation Action</string>
-                 </property>
-                </widget>
+               <item row="2" column="2">
+                <widget class="QComboBox" name="outputFormatComboBox"/>
                </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="kbpkLabel">
+               <item row="1" column="0">
+                <widget class="QLabel" name="derivedKeyTypeLabel">
                  <property name="text">
-                  <string>Key Block Protection Key</string>
+                  <string>Derived Key Type</string>
                  </property>
                 </widget>
                </item>
@@ -142,31 +131,29 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="outputFormatLabel">
+               <item row="0" column="0">
+                <widget class="QLabel" name="derivationActionLabel">
                  <property name="text">
-                  <string>Output Format</string>
+                  <string>Derivation Action</string>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="derivedKeyTypeLabel">
+               <item row="9" column="2">
+                <widget class="QCheckBox" name="tr31TsCheckBox">
                  <property name="text">
-                  <string>Derived Key Type</string>
+                  <string>Time Stamp in key block header</string>
                  </property>
                 </widget>
-               </item>
-               <item row="0" column="2">
-                <widget class="QComboBox" name="derivationActionComboBox"/>
                </item>
                <item row="1" column="2">
                 <widget class="QComboBox" name="derivedKeyTypeComboBox"/>
                </item>
-               <item row="2" column="2">
-                <widget class="QComboBox" name="outputFormatComboBox"/>
-               </item>
-               <item row="3" column="2">
-                <widget class="QLineEdit" name="kbpkEdit"/>
+               <item row="6" column="2">
+                <widget class="QCheckBox" name="tr31KpCheckBox">
+                 <property name="text">
+                  <string>KCV of KBPK in key block header</string>
+                 </property>
+                </widget>
                </item>
                <item row="4" column="0">
                 <widget class="QLabel" name="keyblockAttributesLabel">
@@ -175,6 +162,12 @@
                  </property>
                 </widget>
                </item>
+               <item row="0" column="2">
+                <widget class="QComboBox" name="derivationActionComboBox"/>
+               </item>
+               <item row="3" column="2">
+                <widget class="QLineEdit" name="kbpkEdit"/>
+               </item>
                <item row="4" column="2">
                 <widget class="QCheckBox" name="tr31KsnCheckBox">
                  <property name="text">
@@ -182,12 +175,40 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="2">
-                <widget class="QCheckBox" name="tr31KpCheckBox">
+               <item row="3" column="0">
+                <widget class="QLabel" name="kbpkLabel">
                  <property name="text">
-                  <string>KCV of KBPK in key block header</string>
+                  <string>Key Block Protection Key</string>
                  </property>
                 </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="outputFormatLabel">
+                 <property name="text">
+                  <string>Output Format</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="2">
+                <widget class="QCheckBox" name="tr31LbCheckBox">
+                 <property name="text">
+                  <string>User defined label in key block header</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="10" column="2">
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <widget class="QDateTimeEdit" name="tr31TsDateTimeEdit"/>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="tr31TsNowPushButton">
+                   <property name="text">
+                    <string>Now</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </item>

@@ -753,6 +753,7 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 		tr31KcCheckBox->setEnabled(true);
 		tr31KpCheckBox->setEnabled(true);
 		tr31LbCheckBox->setEnabled(true);
+		tr31TsCheckBox->setEnabled(true);
 	} else {
 		kbpkEdit->clear();
 		kbpkEdit->setEnabled(false);
@@ -764,9 +765,12 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 		tr31KpCheckBox->setEnabled(false);
 		tr31LbCheckBox->setCheckState(Qt::Unchecked);
 		tr31LbCheckBox->setEnabled(false);
+		tr31TsCheckBox->setCheckState(Qt::Unchecked);
+		tr31TsCheckBox->setEnabled(false);
 	}
 
 	on_tr31LbCheckBox_stateChanged(tr31LbCheckBox->checkState());
+	on_tr31TsCheckBox_stateChanged(tr31TsCheckBox->checkState());
 }
 
 void MainWindow::on_pinActionComboBox_currentIndexChanged(int index)
@@ -834,6 +838,17 @@ void MainWindow::on_tr31LbCheckBox_stateChanged(int state)
 	}
 }
 
+void MainWindow::on_tr31TsCheckBox_stateChanged(int state)
+{
+	if (tr31TsCheckBox->isChecked()) {
+		tr31TsDateTimeEdit->setEnabled(true);
+		tr31TsNowPushButton->setEnabled(true);
+	} else {
+		tr31TsDateTimeEdit->setEnabled(false);
+		tr31TsNowPushButton->setEnabled(false);
+	}
+}
+
 void MainWindow::on_ksnAdvancePushButton_clicked()
 {
 	int r;
@@ -864,6 +879,11 @@ void MainWindow::on_ksnAdvancePushButton_clicked()
 	logSuccess("KSN advance successful");
 }
 
+void MainWindow::on_tr31TsNowPushButton_clicked()
+{
+	tr31TsDateTimeEdit->setDateTime(QDateTime::currentDateTime());
+}
+
 void MainWindow::on_keyDerivationPushButton_clicked()
 {
 	// Current state
@@ -879,6 +899,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 	tr31WithKc = tr31KcCheckBox->isChecked();
 	tr31WithKp = tr31KpCheckBox->isChecked();
 	tr31WithLb = tr31LbCheckBox->isChecked();
+	tr31WithTs = tr31TsCheckBox->isChecked();
 
 	if (mode == DUKPT_UI_MODE_TDES) {
 		logInfo("TDES mode");
@@ -1902,6 +1923,24 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	if (tr31WithLb) {
 		QString label = tr31LbEdit->text();
 		r = tr31_opt_block_add_LB(tr31_ctx.get(), label.toStdString().c_str());
+		if (r) {
+			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+			return QString();
+		}
+	}
+
+	// Populate optional block TS
+	if (tr31WithTs) {
+		// Render date/time to ISO 8601 format and reduce it to the more
+		// compact form without the 'T', '-' and ':' characters. This shortens
+		// the resulting key block and avoids conflicts with text protocols
+		// that might use some of these characters as delimiters
+		QString ts = tr31TsDateTimeEdit->dateTime().toUTC().toString(Qt::ISODate);
+		ts.remove('T');
+		ts.remove('-');
+		ts.remove(':');
+
+		r = tr31_opt_block_add_TS(tr31_ctx.get(), ts.toStdString().c_str());
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 			return QString();
