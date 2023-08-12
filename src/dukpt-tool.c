@@ -577,24 +577,27 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				if (dukpt_tool_action != DUKPT_TOOL_ACTION_DERIVE_IK) {
 					argp_error(state, "TR-31 output (--output-tr31) is only allowed for initial key derivation (--derive-ik/derive-ipek)");
 				}
+				if (!tr31_version) {
+					argp_error(state, "TR-31 output (--output-tr31) requires TR-31 format version (--output-tr31-format-version)");
+				}
 			} else {
 				if (tr31_version) {
 					argp_error(state, "TR-31 format version (--output-tr31-format-version) is only allowed for TR-31 output (--output-tr31)");
 				}
 				if (tr31_with_ksn) {
-					argp_error(state, "TR-31 with KSN (--output-tr31-with-ksn) is only allowed for TR-31 output (--output-tr31)");
+					argp_error(state, "TR-31 with optional block IK or KS (--output-tr31-with-ksn) is only allowed for TR-31 output (--output-tr31)");
 				}
 				if (tr31_with_kc) {
-					argp_error(state, "TR-31 with KC (--output-tr31-with-kc) is only allowed for TR-31 output (--output-tr31)");
+					argp_error(state, "TR-31 with optional block KC (--output-tr31-with-kc) is only allowed for TR-31 output (--output-tr31)");
 				}
 				if (tr31_with_kp) {
-					argp_error(state, "TR-31 with KP (--output-tr31-with-kp) is only allowed for TR-31 output (--output-tr31)");
+					argp_error(state, "TR-31 with optional block KP (--output-tr31-with-kp) is only allowed for TR-31 output (--output-tr31)");
 				}
 				if (tr31_with_lb) {
-					argp_error(state, "TR-31 with LB (--output-tr31-with-lb) is only allowed for TR-31 output (--output-tr31)");
+					argp_error(state, "TR-31 with optional block LB (--output-tr31-with-lb) is only allowed for TR-31 output (--output-tr31)");
 				}
 				if (tr31_with_ts) {
-					argp_error(state, "TR-31 with TS (--output-tr31-with-ts) is only allowed for TR-31 output (--output-tr31)");
+					argp_error(state, "TR-31 with optional block TS (--output-tr31-with-ts) is only allowed for TR-31 output (--output-tr31)");
 				}
 			}
 #endif
@@ -819,7 +822,7 @@ static int output_tr31(const void* buf, size_t length)
 	// Populate TR-31 context object
 	r = tr31_init(tr31_version, &key, &tr31_ctx);
 	if (r) {
-		fprintf(stderr, "tr31_init() failed; r=%d\n", r);
+		fprintf(stderr, "TR-31 context error %d: %s\n", r, tr31_get_error_string(r));
 		return 1;
 	}
 
@@ -844,7 +847,7 @@ static int output_tr31(const void* buf, size_t length)
 				ksn_len
 			);
 			if (r) {
-				fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+				fprintf(stderr, "TR-31 optional block KS error %d: %s\n", r, tr31_get_error_string(r));
 				return 1;
 			}
 
@@ -858,7 +861,7 @@ static int output_tr31(const void* buf, size_t length)
 				DUKPT_AES_IK_ID_LEN
 			);
 			if (r) {
-				fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+				fprintf(stderr, "TR-31 optional block IK error %d: %s\n", r, tr31_get_error_string(r));
 				return 1;
 			}
 		}
@@ -868,7 +871,7 @@ static int output_tr31(const void* buf, size_t length)
 	if (tr31_with_kc) {
 		r = tr31_opt_block_add_KC(&tr31_ctx);
 		if (r) {
-			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			fprintf(stderr, "TR-31 optional block KC error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}
@@ -877,7 +880,7 @@ static int output_tr31(const void* buf, size_t length)
 	if (tr31_with_kp) {
 		r = tr31_opt_block_add_KP(&tr31_ctx);
 		if (r) {
-			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			fprintf(stderr, "TR-31 optional block KP error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}
@@ -886,7 +889,7 @@ static int output_tr31(const void* buf, size_t length)
 	if (tr31_with_lb) {
 		r = tr31_opt_block_add_LB(&tr31_ctx, tr31_with_lb);
 		if (r) {
-			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			fprintf(stderr, "TR-31 optional block LB error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}
@@ -915,7 +918,7 @@ static int output_tr31(const void* buf, size_t length)
 
 		r = tr31_opt_block_add_TS(&tr31_ctx, iso8601_now);
 		if (r) {
-			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			fprintf(stderr, "TR-31 optional block TS error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}
