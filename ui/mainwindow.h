@@ -152,6 +152,19 @@ private: // helper enums and helper functions for inputs
 	void logVector(QString&& str, const std::vector<std::uint8_t>& v);
 	void logDigitVector(QString&& str, std::vector<std::uint8_t> v);
 
+	struct Tr31Settings {
+		std::vector<std::uint8_t> kbpk;
+		bool tr31WithKsn;
+		bool tr31WithKc;
+		bool tr31WithKp;
+		bool tr31WithLb;
+		QString label;
+		bool tr31WithTs;
+
+		void capture(const MainWindow* mw);
+		void restore(MainWindow* mw) const;
+	};
+
 private slots: // connect-by-name helper functions for validation
 	void updateValidationStyleSheet(QLineEdit* edit);
 	void updateValidationStyleSheet(const QValidator* validator, QPlainTextEdit* edit);
@@ -197,12 +210,6 @@ private:
 	dukpt_ui_derivation_action_t derivationAction;
 	dukpt_ui_key_type_t derivedKeyType;
 	dukpt_ui_output_format_t outputFormat;
-	std::vector<std::uint8_t> kbpk;
-	bool tr31WithKsn;
-	bool tr31WithKc;
-	bool tr31WithKp;
-	bool tr31WithLb;
-	bool tr31WithTs;
 
 	// Encrypt/decrypt state populated when encrypt/decrypt button is clicked
 	dukpt_ui_key_type_t encryptDecryptKeyType;
@@ -237,8 +244,8 @@ private:
 	bool prepareIv();
 
 	// TR-31 helper functions
-	bool outputTr31InputKey();
-	QString exportTr31(unsigned int key_usage, const std::vector<std::uint8_t>& keyData);
+	bool outputTr31InputKey(const Tr31Settings& settings);
+	QString exportTr31(unsigned int key_usage, const std::vector<std::uint8_t>& keyData, const Tr31Settings& settings);
 
 	// Encrypt/decrypt helper functions
 	std::vector<std::uint8_t> encryptPin(const std::vector<std::uint8_t>& txnKey, const std::vector<std::uint8_t>& pin);

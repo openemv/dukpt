@@ -501,10 +501,15 @@ void MainWindow::selectOutputFormat(dukpt_ui_output_format_t outputFormat)
 void MainWindow::updateOutputFormats(dukpt_ui_mode_t mode)
 {
 	dukpt_ui_output_format_t outputFormat;
+	Tr31Settings tr31Settings;
 	dukpt_ui_derivation_action_t derivationAction;
 
 	// Remember current output format
 	outputFormat = getOutputFormat();
+
+	// Remember state that may be unnecessarily cleared when the output format
+	// list is updated
+	tr31Settings.capture(this);
 
 	// Build output format list based on mode
 	outputFormatComboBox->clear();
@@ -529,6 +534,9 @@ void MainWindow::updateOutputFormats(dukpt_ui_mode_t mode)
 
 	// Restore current output format (if possible)
 	selectOutputFormat(outputFormat);
+
+	// Restore other state
+	tr31Settings.restore(this);
 }
 
 MainWindow::dukpt_ui_pin_action_t MainWindow::getPinAction() const
@@ -660,6 +668,40 @@ void MainWindow::logDigitVector(QString&& str, std::vector<std::uint8_t> v)
 		}
 	}
 	log(DUKPT_LOG_INFO, qUtf8Printable(str));
+}
+
+static std::vector<std::uint8_t> HexStringToVector(const QString& s)
+{
+	QByteArray data;
+	if (s.length() % 2 == 1) {
+		// Invalid hex string
+		return {};
+	}
+	data = QByteArray::fromHex(s.toUtf8());
+	return std::vector<std::uint8_t>(data.constData(), data.constData() + data.size());
+}
+
+void MainWindow::Tr31Settings::capture(const MainWindow* mw)
+{
+	kbpk = HexStringToVector(mw->kbpkEdit->text());
+	tr31WithKsn = mw->tr31KsnCheckBox->isChecked();
+	tr31WithKc = mw->tr31KcCheckBox->isChecked();
+	tr31WithKp = mw->tr31KpCheckBox->isChecked();
+	tr31WithLb = mw->tr31LbCheckBox->isChecked();
+	label = mw->tr31LbEdit->text();
+	tr31WithTs = mw->tr31TsCheckBox->isChecked();
+}
+
+void MainWindow::Tr31Settings::restore(MainWindow* mw) const
+{
+	QByteArray kbpkData(reinterpret_cast<const char*>(kbpk.data()), kbpk.size());
+	mw->kbpkEdit->setText(kbpkData.toHex().toUpper());
+	mw->tr31KsnCheckBox->setCheckState(tr31WithKsn ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	mw->tr31KcCheckBox->setCheckState(tr31WithKc ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	mw->tr31KpCheckBox->setCheckState(tr31WithKp ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	mw->tr31LbCheckBox->setCheckState(tr31WithLb ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
+	mw->tr31LbEdit->setText(label);
+	mw->tr31TsCheckBox->setCheckState(tr31WithTs ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
 }
 
 void MainWindow::updateValidationStyleSheet(QLineEdit* edit)
@@ -797,17 +839,6 @@ void MainWindow::on_pinActionComboBox_currentIndexChanged(int index)
 	on_pinEdit_textChanged(pinEdit->text());
 }
 
-static std::vector<std::uint8_t> HexStringToVector(const QString& s)
-{
-	QByteArray data;
-	if (s.length() % 2 == 1) {
-		// Invalid hex string
-		return {};
-	}
-	data = QByteArray::fromHex(s.toUtf8());
-	return std::vector<std::uint8_t>(data.constData(), data.constData() + data.size());
-}
-
 static std::vector<std::uint8_t> PinStringToVector(const QString& s)
 {
 	QByteArray data;
@@ -886,6 +917,8 @@ void MainWindow::on_tr31TsNowPushButton_clicked()
 
 void MainWindow::on_keyDerivationPushButton_clicked()
 {
+	Tr31Settings tr31Settings;
+
 	// Current state
 	mode = getMode();
 	inputKeyType = getInputKeyType();
@@ -894,12 +927,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 	derivationAction = getDerivationAction();
 	derivedKeyType = getDerivedKeyType();
 	outputFormat = getOutputFormat();
-	kbpk = HexStringToVector(kbpkEdit->text());
-	tr31WithKsn = tr31KsnCheckBox->isChecked();
-	tr31WithKc = tr31KcCheckBox->isChecked();
-	tr31WithKp = tr31KpCheckBox->isChecked();
-	tr31WithLb = tr31LbCheckBox->isChecked();
-	tr31WithTs = tr31TsCheckBox->isChecked();
+	tr31Settings.capture(this);
 
 	if (mode == DUKPT_UI_MODE_TDES) {
 		logInfo("TDES mode");
@@ -914,7 +942,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 		logVector("KSN: ", ksn);
 
 		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_NONE) {
-			if (!outputTr31InputKey()) {
+			if (!outputTr31InputKey(tr31Settings)) {
 				logFailure("Action failed");
 				return;
 			}
@@ -932,7 +960,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 			}
 
 			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B) {
-				QString keyBlock = exportTr31(TR31_KEY_USAGE_DUKPT_IK, ik);
+				QString keyBlock = exportTr31(TR31_KEY_USAGE_DUKPT_IK, ik, tr31Settings);
 				if (keyBlock.isEmpty()) {
 					logFailure("Action failed");
 					return;
@@ -980,7 +1008,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 		logVector("KSN: ", ksn);
 
 		if (derivationAction == DUKPT_UI_DERIVATION_ACTION_NONE) {
-			if (!outputTr31InputKey()) {
+			if (!outputTr31InputKey(tr31Settings)) {
 				logFailure("Action failed");
 				return;
 			}
@@ -1000,7 +1028,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_D ||
 				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_E
 			) {
-				QString keyBlock = exportTr31(TR31_KEY_USAGE_DUKPT_IK, ik);
+				QString keyBlock = exportTr31(TR31_KEY_USAGE_DUKPT_IK, ik, tr31Settings);
 				if (keyBlock.isEmpty()) {
 					logFailure("Action failed");
 					return;
@@ -1704,7 +1732,7 @@ bool MainWindow::prepareIv()
 	return false;
 }
 
-bool MainWindow::outputTr31InputKey()
+bool MainWindow::outputTr31InputKey(const Tr31Settings& settings)
 {
 	unsigned int key_usage;
 
@@ -1732,7 +1760,7 @@ bool MainWindow::outputTr31InputKey()
 			)
 		)
 	) {
-		QString keyBlock = exportTr31(key_usage, inputKey);
+		QString keyBlock = exportTr31(key_usage, inputKey, settings);
 		if (keyBlock.isEmpty()) {
 			// exportTr31() will print error message
 			return false;
@@ -1746,7 +1774,11 @@ bool MainWindow::outputTr31InputKey()
 	return false;
 }
 
-QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::uint8_t>& keyData)
+QString MainWindow::exportTr31(
+	unsigned int key_usage,
+	const std::vector<std::uint8_t>& keyData,
+	const Tr31Settings& settings
+)
 {
 	using scoped_tr31_ctx = scoped_struct<tr31_ctx_t, tr31_release>;
 	using scoped_tr31_key = scoped_struct<tr31_key_t, tr31_key_release>;
@@ -1759,10 +1791,11 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	scoped_tr31_key kbpk_obj;
 	char key_block[1024];
 
-	if (kbpk.empty()) {
+	if (settings.kbpk.empty()) {
 		logError("TR-31: Key export requires valid Key Block Protection Key");
 		return QString();
 	}
+	const std::vector<std::uint8_t>& kbpk = settings.kbpk; // For easy use later
 
 	// Populate key attributes based on key usage
 	switch (key_usage) {
@@ -1820,7 +1853,7 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	}
 
 	// Populate optional blocks for KSN
-	if (tr31WithKsn) {
+	if (settings.tr31WithKsn) {
 		if (mode == DUKPT_UI_MODE_TDES) {
 			uint8_t iksn[DUKPT_TDES_KSN_LEN];
 
@@ -1902,7 +1935,7 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	}
 
 	// Populate optional block KC
-	if (tr31WithKc) {
+	if (settings.tr31WithKc) {
 		r = tr31_opt_block_add_KC(tr31_ctx.get());
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
@@ -1911,7 +1944,7 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	}
 
 	// Populate optional block KP
-	if (tr31WithKp) {
+	if (settings.tr31WithKp) {
 		r = tr31_opt_block_add_KP(tr31_ctx.get());
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
@@ -1920,7 +1953,7 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	}
 
 	// Populate optional block LB
-	if (tr31WithLb) {
+	if (settings.tr31WithLb) {
 		QString label = tr31LbEdit->text();
 		r = tr31_opt_block_add_LB(tr31_ctx.get(), label.toStdString().c_str());
 		if (r) {
@@ -1930,7 +1963,7 @@ QString MainWindow::exportTr31(unsigned int key_usage, const std::vector<std::ui
 	}
 
 	// Populate optional block TS
-	if (tr31WithTs) {
+	if (settings.tr31WithTs) {
 		// Render date/time to ISO 8601 format and reduce it to the more
 		// compact form without the 'T', '-' and ':' characters. This shortens
 		// the resulting key block and avoids conflicts with text protocols
