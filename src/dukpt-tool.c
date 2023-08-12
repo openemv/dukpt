@@ -33,6 +33,8 @@
 #include <string.h>
 #include <argp.h>
 
+#include <time.h> // for time, gmtime and strftime
+
 // Globals
 static uint8_t* bdk = NULL;
 static size_t bdk_len = 0;
@@ -63,6 +65,7 @@ static bool tr31_with_ksn = false;
 static bool tr31_with_kc = false;
 static bool tr31_with_kp = false;
 static const char* tr31_with_lb = NULL;
+static bool tr31_with_ts = false;
 #endif
 
 static bool found_stdin_arg = false;
@@ -142,6 +145,7 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC,
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP,
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_LB,
+	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_TS,
 #endif
 	DUKPT_TOOL_OPTION_VERSION
 };
@@ -187,6 +191,7 @@ static struct argp_option argp_options[] = {
 	{ "output-tr31-with-kc", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC, NULL, 0, "Output TR-31 key block with KCV of wrapped key in header. This uses optional block KC." },
 	{ "output-tr31-with-kp", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP, NULL, 0, "Output TR-31 key block with KCV of key block protection key in header. This uses optional block KP." },
 	{ "output-tr31-with-lb", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_LB, "Label", 0, "Output TR-31 key block with user defined label in header. This uses optional block LB." },
+	{ "output-tr31-with-ts", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_TS, NULL, 0, "Output TR-31 key block with current time stamp in header. This uses optional block TS." },
 #endif
 
 	{ "version", DUKPT_TOOL_OPTION_VERSION, NULL, 0, "Display DUKPT library version" },
@@ -480,6 +485,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_LB:
 			tr31_with_lb = arg;
 			return 0;
+
+		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_TS:
+			tr31_with_ts = true;
+			return 0;
 #endif
 
 		case DUKPT_TOOL_OPTION_VERSION: {
@@ -583,6 +592,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				}
 				if (tr31_with_lb) {
 					argp_error(state, "TR-31 with LB (--output-tr31-with-lb) is only allowed for TR-31 output (--output-tr31)");
+				}
+				if (tr31_with_ts) {
+					argp_error(state, "TR-31 with TS (--output-tr31-with-ts) is only allowed for TR-31 output (--output-tr31)");
 				}
 			}
 #endif
@@ -873,6 +885,35 @@ static int output_tr31(const void* buf, size_t length)
 	// Populate optional block LB
 	if (tr31_with_lb) {
 		r = tr31_opt_block_add_LB(&tr31_ctx, tr31_with_lb);
+		if (r) {
+			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	if (tr31_with_ts) {
+		char iso8601_now[16]; // YYYYMMDDhhmmssZ + \0
+		time_t lt; // Calendar/Unix/POSIX time in local time
+		struct tm* ztm; // Time structure in UTC
+		size_t ret;
+
+		lt = time(NULL);
+		if (lt == (time_t)-1) {
+			fprintf(stderr, "Failed to obtain current date/time: %s\n", strerror(errno));
+			return 1;
+		}
+		ztm = gmtime(&lt);
+		if (ztm == NULL) {
+			fprintf(stderr, "Failed to convert current date/time to UTC\n");
+			return 1;
+		}
+		ret = strftime(iso8601_now, sizeof(iso8601_now), "%Y%m%d%H%M%SZ", ztm);
+		if (!ret) {
+			fprintf(stderr, "Failed to convert current date/time to ISO 8601\n");
+			return 1;
+		}
+
+		r = tr31_opt_block_add_TS(&tr31_ctx, iso8601_now);
 		if (r) {
 			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;

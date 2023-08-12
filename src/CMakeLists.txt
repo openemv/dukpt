@@ -59,6 +59,13 @@ if(BUILD_DUKPT_TOOL)
 	endif()
 endif()
 
+# Check for time.h required by dukpt-tool
+include(CheckIncludeFile)
+CHECK_INCLUDE_FILE(time.h HAVE_TIME_H)
+if(BUILD_DUKPT_TOOL AND NOT HAVE_TIME_H)
+	message(FATAL_ERROR "Could NOT find time.h. This is required to build dukpt-tool")
+endif()
+
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # Generate config file for internal use only
@@ -906,6 +913,14 @@ if(TARGET dukpt-tool AND BUILD_TESTING)
 		set_tests_properties(dukpt_tool_tr31_test5
 			PROPERTIES
 				PASS_REGULAR_EXPRESSION "^E0164B1TX00N0500KS18FFFF9876543210E00000KC0C00AF8C07KP10019E357FBF09LB12My Amazing BDKPB0A000000868583E2BB787B0F03FE529ABF0F9906CB5E996AB87B09C41B041D5219DD386F96F7"
+		)
+
+		add_test(NAME dukpt_tool_tr31_test6
+			COMMAND dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00000 --derive-ik --output-tr31 3235362D62697420414553207772617070696E67202849534F20323030333829 --output-tr31-format-version E --output-tr31-with-ksn --output-tr31-with-kc --output-tr31-with-kp --output-tr31-with-lb "My Amazing BDK" --output-tr31-with-ts
+		)
+		set_tests_properties(dukpt_tool_tr31_test6
+			PROPERTIES
+				PASS_REGULAR_EXPRESSION "^E0180B1TX00N0600KS18FFFF9876543210E00000KC0C00AF8C07KP10019E357FBF09LB12My Amazing BDKTS13..............ZPB07000" # Only match header due to time stamp
 		)
 	endif()
 endif()
