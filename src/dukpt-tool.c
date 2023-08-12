@@ -62,6 +62,7 @@ static enum tr31_version_t tr31_version = 0;
 static bool tr31_with_ksn = false;
 static bool tr31_with_kc = false;
 static bool tr31_with_kp = false;
+static const char* tr31_with_lb = NULL;
 #endif
 
 static bool found_stdin_arg = false;
@@ -140,6 +141,7 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN,
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC,
 	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP,
+	DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_LB,
 #endif
 	DUKPT_TOOL_OPTION_VERSION
 };
@@ -184,6 +186,7 @@ static struct argp_option argp_options[] = {
 	{ "output-tr31-with-ksn", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KSN, NULL, 0, "Output TR-31 key block with KSN in header. Format version B uses optional block KS. Format version D en E use optional block IK." },
 	{ "output-tr31-with-kc", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KC, NULL, 0, "Output TR-31 key block with KCV of wrapped key in header. This uses optional block KC." },
 	{ "output-tr31-with-kp", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP, NULL, 0, "Output TR-31 key block with KCV of key block protection key in header. This uses optional block KP." },
+	{ "output-tr31-with-lb", DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_LB, "Label", 0, "Output TR-31 key block with user defined label in header. This uses optional block LB." },
 #endif
 
 	{ "version", DUKPT_TOOL_OPTION_VERSION, NULL, 0, "Display DUKPT library version" },
@@ -473,6 +476,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_KP:
 			tr31_with_kp = true;
 			return 0;
+
+		case DUKPT_TOOL_OPTION_OUTPUT_TR31_WITH_LB:
+			tr31_with_lb = arg;
+			return 0;
 #endif
 
 		case DUKPT_TOOL_OPTION_VERSION: {
@@ -573,6 +580,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				}
 				if (tr31_with_kp) {
 					argp_error(state, "TR-31 with KP (--output-tr31-with-kp) is only allowed for TR-31 output (--output-tr31)");
+				}
+				if (tr31_with_lb) {
+					argp_error(state, "TR-31 with LB (--output-tr31-with-lb) is only allowed for TR-31 output (--output-tr31)");
 				}
 			}
 #endif
@@ -854,6 +864,15 @@ static int output_tr31(const void* buf, size_t length)
 	// Populate optional block KP
 	if (tr31_with_kp) {
 		r = tr31_opt_block_add_KP(&tr31_ctx);
+		if (r) {
+			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	// Populate optional block LB
+	if (tr31_with_lb) {
+		r = tr31_opt_block_add_LB(&tr31_ctx, tr31_with_lb);
 		if (r) {
 			fprintf(stderr, "TR-31 optional block error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
