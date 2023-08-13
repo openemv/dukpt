@@ -826,44 +826,19 @@ static int output_tr31(const void* buf, size_t length)
 		return 1;
 	}
 
-	// Populate optional blocks for KSN
-	if (tr31_with_ksn) {
-		if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES) {
-			uint8_t iksn[DUKPT_TDES_KSN_LEN];
-
-			// Sanitise Initial Key Serial Number (IKSN)
-			memcpy(iksn, ksn, DUKPT_TDES_KSN_LEN - 2);
-			iksn[7] &= 0xE0;
-			iksn[8] = 0;
-			iksn[9] = 0;
-
-			// Add optional block using the provided length. This allows
-			// the user to add either 8 or 10 byte KSNs, depending on their
-			// needs.
-			// See ANSI X9.143:2021, 6.3.6.8, table 16
-			r = tr31_opt_block_add_KS(
-				&tr31_ctx,
-				iksn,
-				ksn_len
-			);
-			if (r) {
-				fprintf(stderr, "TR-31 optional block KS error %d: %s\n", r, tr31_get_error_string(r));
-				return 1;
-			}
-
-		} else if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES) {
-			// Add optional block. For AES DUKPT, this will always be the
-			// initial key ID and not the whole KSN.
-			// See ANSI X9.143:2021, 6.3.6.6, table 14
-			r = tr31_opt_block_add_IK(
-				&tr31_ctx,
-				ksn,
-				DUKPT_AES_IK_ID_LEN
-			);
-			if (r) {
-				fprintf(stderr, "TR-31 optional block IK error %d: %s\n", r, tr31_get_error_string(r));
-				return 1;
-			}
+	// Populate optional blocks for IK
+	if (tr31_with_ksn && dukpt_tool_mode == DUKPT_TOOL_MODE_AES) {
+		// Add optional block. For AES DUKPT, this will always be the
+		// initial key ID and not the whole KSN.
+		// See ANSI X9.143:2021, 6.3.6.6, table 14
+		r = tr31_opt_block_add_IK(
+			&tr31_ctx,
+			ksn,
+			DUKPT_AES_IK_ID_LEN
+		);
+		if (r) {
+			fprintf(stderr, "TR-31 optional block IK error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
 		}
 	}
 
@@ -881,6 +856,31 @@ static int output_tr31(const void* buf, size_t length)
 		r = tr31_opt_block_add_KP(&tr31_ctx);
 		if (r) {
 			fprintf(stderr, "TR-31 optional block KP error %d: %s\n", r, tr31_get_error_string(r));
+			return 1;
+		}
+	}
+
+	// Populate optional block KS
+	if (tr31_with_ksn && dukpt_tool_mode == DUKPT_TOOL_MODE_TDES) {
+		uint8_t iksn[DUKPT_TDES_KSN_LEN];
+
+		// Sanitise Initial Key Serial Number (IKSN)
+		memcpy(iksn, ksn, DUKPT_TDES_KSN_LEN - 2);
+		iksn[7] &= 0xE0;
+		iksn[8] = 0;
+		iksn[9] = 0;
+
+		// Add optional block using the provided length. This allows
+		// the user to add either 8 or 10 byte KSNs, depending on their
+		// needs.
+		// See ANSI X9.143:2021, 6.3.6.8, table 16
+		r = tr31_opt_block_add_KS(
+			&tr31_ctx,
+			iksn,
+			ksn_len
+		);
+		if (r) {
+			fprintf(stderr, "TR-31 optional block KS error %d: %s\n", r, tr31_get_error_string(r));
 			return 1;
 		}
 	}
