@@ -91,7 +91,7 @@ static int dukpt_tdes_derive_key(const uint8_t* ksn_reg, uint8_t* key_reg, uint8
 {
 	int r;
 
-	// See ANSI X9.24-1:2009 A.1 Key Management
+	// See ANSI X9.24-1:2009 A.1.2 Key Management
 	uint8_t crypto_reg1[DES_BLOCK_SIZE];
 	uint8_t crypto_reg2[DES_BLOCK_SIZE];
 
@@ -185,7 +185,7 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 {
 	int r;
 
-	// See ANSI X9.24-1:2009 A.1 Key Management
+	// See ANSI X9.24-1:2009 A.1.2 Key Management
 	// See ANSI X9.24-3:2017 C.2.3 Key Management
 	uint8_t key_reg[DUKPT_TDES_KEY_LEN];
 	uint8_t ksn_reg[DUKPT_TDES_KSN_LEN];
@@ -196,7 +196,7 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 	// however be implemented by using various parts of the algorithms
 	// described in ANSI X9.24-1:2009 A.2 or ANSI X9.24-3:2017 C.3.
 
-	// These algorithm are described in terms of various registers and this
+	// These algorithms are described in terms of various registers and this
 	// implementation follows the same style
 
 	// A recursive description of the process would be that the key associated
@@ -206,17 +206,17 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 	// associated key is the IK.
 
 	// An iterative description of the process would be that one starts with
-	// the IK and IKSN, thus no transaction bits are set, and then derives
-	// each subsequent key from the previous key according to the transaction
-	// counter bits. For each bit set in the transaction counter, starting at
-	// the most most significant bit set, the corresponding bit is set in the
-	// KSN and the next key is derived from the previous key and this KSN.
-	// This continues until the last key is derived when the KSN contains all
-	// the set bits of the transaction counter.
+	// the IK and IKSN, thus no transaction counter bits are set, and then
+	// derives each subsequent key from the previous key according to the
+	// transaction counter bits. For each bit set in the transaction counter,
+	// starting at the most significant bit set, the corresponding bit is set
+	// in the KSN and the next key is derived from the previous key and this
+	// KSN. This continues until the last key is derived when the KSN contains
+	// all the set bits of the transaction counter.
 
 	// Start with Initial Key (IK) and Initial Key Serial Number (IKSN)
 	memcpy(key_reg, ik, sizeof(key_reg));
-	memcpy(ksn_reg, ksn, DUKPT_TDES_KSN_LEN);
+	memcpy(ksn_reg, ksn, DUKPT_TDES_KSN_LEN - 2);
 	ksn_reg[7] &= 0xE0;
 	ksn_reg[8] = 0;
 	ksn_reg[9] = 0;
@@ -323,7 +323,7 @@ int dukpt_tdes_ksn_advance(uint8_t* ksn)
 
 		// Advance to next possible transaction counter
 		// If the least significant bit is not set, simply incrementing by one
-		// still yield an invalid transaction counter. And if more than one of
+		// still yields an invalid transaction counter. And if more than one of
 		// the lowest bits are not set, it would require many iterations to
 		// reach the next valid transaction counter. A better approach is to
 		// add the least significant set bit which will either yield the same

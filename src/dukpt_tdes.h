@@ -46,7 +46,7 @@ __BEGIN_DECLS
 const char* dukpt_tdes_lib_version_string(void);
 
 /**
- * Derive Initial Key (IK) from Base Derivative Key (BDK) and Key Serial Number (KSN)
+ * Derive Initial Key (IK) from Base Derivative Key (BDK) and Initial Key Serial Number (KSN)
  *
  * @note This function should only be used by the receiving or key generating
  *       Tamper-Resistant Security Module (TRSM)

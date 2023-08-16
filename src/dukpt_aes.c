@@ -411,10 +411,10 @@ int dukpt_aes_derive_txn_key(
 	// the IK and IKSN, thus no transaction bits are set, and then derives
 	// each subsequent key from the previous key according to the transaction
 	// counter bits. For each bit set in the transaction counter, starting at
-	// the most most significant bit set, the corresponding bit is set in the
-	// KSN and the next key is derived from the previous key and this KSN.
-	// This continues until the last key is derived when the KSN contains all
-	// the set bits of the transaction counter.
+	// the most significant bit set, the corresponding bit is set in the KSN
+	// and the next key is derived from the previous key and this KSN. This
+	// continues until the last key is derived when the KSN contains all the
+	// set bits of the transaction counter.
 
 	// Start with Initial Key (IK) and current Transaction Counter
 	memcpy(txn_key, ik, ik_len);
@@ -532,7 +532,7 @@ int dukpt_aes_ksn_advance(uint8_t* ksn)
 
 		// Advance to next possible transaction counter
 		// If the least significant bit is not set, simply incrementing by one
-		// still yield an invalid transaction counter. And if more than one of
+		// still yields an invalid transaction counter. And if more than one of
 		// the lowest bits are not set, it would require many iterations to
 		// reach the next valid transaction counter. A better approach is to
 		// add the least significant set bit which will either yield the same
