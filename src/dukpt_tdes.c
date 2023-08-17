@@ -3,7 +3,7 @@
  * @brief ANSI X9.24-1:2009 TDES DUKPT implementation
  *        (equivalent to ANSI X9.24-3:2017 Annex C)
  *
- * Copyright (c) 2021, 2022 Leon Lynch
+ * Copyright (c) 2021, 2022, 2023 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -255,6 +255,203 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 
 	// Output key
 	memcpy(txn_key, key_reg, sizeof(key_reg));
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// Ensure that output key is unusable on error
+	crypto_rand(txn_key, DUKPT_TDES_KEY_LEN);
+exit:
+	// Cleanup
+	crypto_cleanse(key_reg, sizeof(key_reg));
+
+	return r;
+}
+
+int dukpt_tdes_state_init(const void* ik, const uint8_t* iksn, struct dukpt_tdes_state_t* state)
+{
+	int r;
+
+	// See ANSI X9.24-1:2009 A.1.2 Key Management
+	// See ANSI X9.24-3:2017 C.2.3 Key Management
+	uint8_t key_reg[DUKPT_TDES_KEY_LEN];
+	uint8_t ksn_reg[DUKPT_TDES_KSN_LEN];
+	uint8_t shift_reg[3];
+
+	// See ANSI X9.24-1:2009 A.2 Processing Algorithms "Load Initial Key"
+	// See ANSI X9.24-3:2017 C.3.1
+	// These algorithms are described in terms of various registers and this
+	// implementation follows the same style. However, these algorithms are
+	// also described in terms of a goto style program flow while this
+	// implementation follows an iterative approach.
+
+	// Each future key corresponds with a specific transaction counter bit in
+	// the KSN. For each possible bit in the transaction counter, the
+	// corresponding bit is set in the KSN, and the future key is then derived
+	// from the IK and this KSN.
+
+	// Sanitise Initial Key Serial Number (IKSN) and populate in DUKPT state
+	memcpy(ksn_reg, iksn, DUKPT_TDES_KSN_LEN - 2);
+	ksn_reg[7] &= 0xE0;
+	ksn_reg[8] = 0;
+	ksn_reg[9] = 0;
+	memcpy(state->ksn, ksn_reg, DUKPT_TDES_KSN_LEN);
+
+	// For each shift register bit, starting at the highest bit:
+	// Set the corresponding bit in the KSN register and derive the
+	// corresponding future key from the KSN register and the IK
+	for (unsigned int shift_bit = DUKPT_TDES_TC_BITS; shift_bit > 0; --shift_bit) {
+		// Set appropriate bit in shift register
+		uint8_t shift_reg_idx = (shift_bit-1) >> 3; // Upper bits indicate byte index
+		uint8_t shift_reg_val = 0x1 << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
+		memset(shift_reg, 0, sizeof(shift_reg));
+		shift_reg[shift_reg_idx] = shift_reg_val;
+
+		// Set shift bit in KSN register
+		for (uint8_t i = 0; i < sizeof(shift_reg); ++i) {
+			ksn_reg[sizeof(ksn_reg) - 1 - i] = state->ksn[sizeof(ksn_reg) - 1 - i] | shift_reg[i];
+		}
+
+		// Derive future key
+		// It is necessary to copy the IK to the key register because the
+		// key register is modified during key derivation
+		memcpy(key_reg, ik, DUKPT_TDES_KEY_LEN);
+		r = dukpt_tdes_derive_key(ksn_reg, key_reg, state->key[shift_bit-1]);
+		if (r) {
+			goto error;
+		}
+
+		// This future key is now valid
+		state->valid[shift_bit-1] = 1;
+	}
+
+	// Advance to first transaction
+	r = dukpt_tdes_ksn_advance(state->ksn);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// Ensure that DUKPT state is unusable
+	crypto_rand(state, sizeof(*state));
+exit:
+	// Cleanup
+	crypto_cleanse(key_reg, sizeof(key_reg));
+
+	return r;
+}
+
+int dukpt_tdes_state_next_txn_key(struct dukpt_tdes_state_t* state, void* txn_key)
+{
+	int r;
+
+	// See ANSI X9.24-1:2009 A.1.2 Key Management
+	// See ANSI X9.24-3:2017 C.2.3 Key Management
+	uint8_t key_reg[DUKPT_TDES_KEY_LEN];
+	uint8_t ksn_reg[DUKPT_TDES_KSN_LEN];
+	uint8_t shift_reg[3];
+	unsigned int shift_bit;
+	uint8_t current_key;
+
+	// See ANSI X9.24-1:2009 A.2 Processing Algorithms "Request PIN Entry 1"
+	// See ANSI X9.24-3:2017 C.3.2 "Request PIN Entry 1"
+	// These algorithms are described in terms of various registers and this
+	// implementation follows the same style. However, these algorithms are
+	// also described in terms of a goto style program flow while this
+	// implementation follows an iterative approach.
+
+	// If the transaction counter is valid, the future key corresponding with
+	// the least significant bit set in the transaction counter is the current
+	// transaction key. After the future key state has been advanced, this
+	// future key is destroyed and invalidated.
+
+	// Note that both ANSI X9.24-1:2009 A.2 and ANSI X9.24-3:2017 C.3.2 allow
+	// the algorithm to continue if the current future key is invalid while
+	// this implementation assumes that the future key storage is reliable and
+	// will indicate failure if the current future key is invalid.
+
+	// When advancing the future key state, all future keys corresponding to
+	// transaction counter bits lower than the least significant bit set in the
+	// current transaction counter, are replaced. For each of this subset of
+	// transaction counter bits, starting with the most significant bit in the
+	// subset, the corresponding bit is set in the KSN and the corresponding
+	// future key is then derived from the current transaction key and this
+	// KSN.
+
+	memset(key_reg, 0, sizeof(key_reg));
+	memcpy(ksn_reg, state->ksn, DUKPT_TDES_KSN_LEN);
+	memset(shift_reg, 0, sizeof(shift_reg));
+
+	// Set shift register bit to least significant transaction counter bit
+	// See ANSI X9.24-1:2009 A.2 Processing Algorithms "Set Bit"
+	// See ANSI X9.24-3:2017 C.3.5 "Set Bit"
+	for (shift_bit = 0; shift_bit < DUKPT_TDES_TC_BITS; ++shift_bit) {
+		uint8_t shift_reg_idx = (shift_bit >> 3);
+		uint8_t shift_reg_val = 0x1 << (shift_bit & 0x7);
+
+		if ((state->ksn[DUKPT_TDES_KSN_LEN - 1 - shift_reg_idx] & shift_reg_val)) {
+			// Least significant transaction counter bit found
+			break;
+		}
+	}
+
+	// Transaction counter exhausted
+	if (shift_bit == DUKPT_TDES_TC_BITS) {
+		r = 3; // Distinguish from dukpt_tdes_ksn_advance() return values
+		goto error;
+	}
+
+	// Ensure that current key is valid
+	current_key = shift_bit;
+	if (!state->valid[current_key]) {
+		r = 4; // Distinguish from dukpt_tdes_ksn_advance() return values
+		goto error;
+	}
+
+	// For each shift register bit lower than the current shift register bit:
+	// Set the corresponding bit in the KSN register and derive the
+	// corresponding future key from the KSN register and the current key
+	for (; shift_bit > 0; --shift_bit) {
+		// Set appropriate bit in shift register
+		uint8_t shift_reg_idx = (shift_bit-1) >> 3; // Upper bits indicate byte index
+		uint8_t shift_reg_val = 0x1 << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
+		memset(shift_reg, 0, sizeof(shift_reg));
+		shift_reg[shift_reg_idx] = shift_reg_val;
+
+		// Set shift bit in KSN register
+		for (uint8_t i = 0; i < sizeof(shift_reg); ++i) {
+			ksn_reg[sizeof(ksn_reg) - 1 - i] = state->ksn[sizeof(ksn_reg) - 1 - i] | shift_reg[i];
+		}
+
+		// Derive future key
+		// It is necessary to copy the current key to the key register because the
+		// key register is modified during key derivation
+		memcpy(key_reg, state->key[current_key], sizeof(key_reg));
+		r = dukpt_tdes_derive_key(ksn_reg, key_reg, state->key[shift_bit-1]);
+		if (r) {
+			goto error;
+		}
+
+		// This future key is now valid
+		state->valid[shift_bit-1] = 1;
+	}
+
+	// Copy current key to transaction key output and destroy current key
+	memcpy(txn_key, state->key[current_key], DUKPT_TDES_KEY_LEN);
+	memset(state->key[current_key], 0, DUKPT_TDES_KEY_LEN);
+	state->valid[current_key] = 0;
+
+	// Advance to next transaction
+	r = dukpt_tdes_ksn_advance(state->ksn);
+	if (r) {
+		goto error;
+	}
 
 	// Success
 	r = 0;

@@ -3,7 +3,7 @@
  * @brief ANSI X9.24-1:2009 TDES DUKPT implementation
  *        (equivalent to ANSI X9.24-3:2017 Annex C)
  *
- * Copyright (c) 2021, 2022 Leon Lynch
+ * Copyright (c) 2021, 2022, 2023 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,6 +40,18 @@ __BEGIN_DECLS
 #define DUKPT_TDES_BLOCK_LEN (8) ///< Transaction data block length for TDES DUKPT
 
 /**
+ * TDES DUKPT state
+ *
+ * @note This structure should only be used by the transaction originating
+ *       Tamper-Resistant Security Module (TRSM)
+ */
+struct dukpt_tdes_state_t {
+	uint8_t ksn[DUKPT_TDES_KSN_LEN]; ///< Current Key Serial Number (KSN)
+	uint8_t key[DUKPT_TDES_TC_BITS][DUKPT_TDES_KEY_LEN]; ///< Future keys
+	uint8_t valid[DUKPT_TDES_TC_BITS]; ///< Validity of each future key
+};
+
+/**
  * Retrieve DUKPT library version string
  * @return Pointer to null-terminated string. Do not free.
  */
@@ -70,6 +82,32 @@ int dukpt_tdes_derive_ik(const void* bdk, const uint8_t* iksn, void* ik);
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key);
+
+/**
+ * Initialise DUKPT state from Initial Key (IK) and Initial Key Serial Number (KSN)
+ *
+ * @note This function should only be used by the transaction originating
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param ik Initial Key of length @ref DUKPT_TDES_KEY_LEN
+ * @param iksn Initial Key Serial Number of length @ref DUKPT_TDES_KSN_LEN
+ * @param state DUKPT state object output
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_tdes_state_init(const void* ik, const uint8_t* iksn, struct dukpt_tdes_state_t* state);
+
+/**
+ * Derive next DUKPT transaction key and advance DUKPT state
+ *
+ * @note This function should only be used by the transaction originating
+ *       Tamper-Resistant Security Module (TRSM)
+ *
+ * @param state DUKPT state object
+ * @param txn_key DUKPT transaction key output of length @ref DUKPT_TDES_KEY_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid DUKPT state or exhausted transaction counter.
+ */
+int dukpt_tdes_state_next_txn_key(struct dukpt_tdes_state_t* state, void* txn_key);
 
 /**
  * Advance Key Serial Number (KSN) to next transaction
