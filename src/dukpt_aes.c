@@ -481,6 +481,324 @@ exit:
 	return r;
 }
 
+static inline void* dukpt_aes_state_idk_ptr(void* key_ptr, size_t key_len, unsigned int key_idx)
+{
+	return key_ptr + (key_len * key_idx);
+}
+
+int dukpt_aes_state_init(
+	const void* ik,
+	size_t ik_len,
+	const uint8_t* ikid,
+	void* state,
+	size_t state_len
+)
+{
+	int r;
+	enum dukpt_aes_key_type_t key_type;
+	uint8_t* ksn;
+	uint8_t* key;
+	uint8_t* valid;
+	struct dukpt_aes_derivation_data_t derivation_data;
+
+	// See ANSI X9.24-3:2017 6.1 and 6.5
+	// These algorithms are described in terms of pseudocode and this
+	// implementation attempts to reflect similar abstractions. However, this
+	// implementation also associates the intended cipher strength (expressed
+	// as the AES key length) with the size of the DUKPT state object. This is
+	// based on the assumption that any caller of these functions would already
+	// have to manage the storage of the DUKPT state object and would therefore
+	// have its length readily available instead of having to store an
+	// additional key length field.
+
+	// Each intermediate derivation key corresponds with a specific transaction
+	// counter bit in the KSN. For each possible bit in the transaction
+	// counter, the corresponding bit is set in the KSN, and the intermediate
+	// derivation key is then derived from the IK and this KSN.
+
+	// Determine key type from key length
+	// Only AES may be used for derivation
+	// See ANSI X9.24-3:2017 6.3.1
+	r = dukpt_aes_get_derivation_key_type(ik_len, &key_type);
+	if (r) {
+		goto error;
+	}
+
+	// Validate DUKPT state object length by key type and set pointer helpers
+	switch (key_type) {
+		case DUKPT_AES_KEY_TYPE_AES128: {
+			if (state_len != sizeof(struct dukpt_aes128_state_t)) {
+				// Invalid DUKPT state length
+				r = 2;
+				goto error;
+			}
+			struct dukpt_aes128_state_t* state_obj = state;
+			ksn = state_obj->ksn;
+			key = state_obj->key;
+			valid = state_obj->valid;
+			break;
+		}
+
+		case DUKPT_AES_KEY_TYPE_AES192: {
+			if (state_len != sizeof(struct dukpt_aes192_state_t)) {
+				// Invalid DUKPT state length
+				r = 2;
+				goto error;
+			}
+			struct dukpt_aes192_state_t* state_obj = state;
+			ksn = state_obj->ksn;
+			key = state_obj->key;
+			valid = state_obj->valid;
+			break;
+		}
+
+		case DUKPT_AES_KEY_TYPE_AES256: {
+			if (state_len != sizeof(struct dukpt_aes256_state_t)) {
+				// Invalid DUKPT state length
+				r = 2;
+				goto error;
+			}
+			struct dukpt_aes256_state_t* state_obj = state;
+			ksn = state_obj->ksn;
+			key = state_obj->key;
+			valid = state_obj->valid;
+			break;
+		}
+
+		default:
+			// Invalid key type
+			r = 3;
+			goto error;
+	}
+
+	// Populate Initial Key Serial Number (IKSN) in DUKPT state
+	memcpy(ksn, ikid, DUKPT_AES_IK_ID_LEN);
+	memset(ksn + DUKPT_AES_IK_ID_LEN, 0, DUKPT_AES_TC_LEN);
+
+	// For each shift register bit, starting at the highest bit:
+	// Set the corresponding bit in the transaction counter and derive the
+	// corresponding intermediate derivation key from the Initial Key ID,
+	// transaction counter and IK.
+	// ANSI X9.24-3:2017 6.5.3 "Update Derivation Keys"
+	for (unsigned int shift_bit = DUKPT_AES_TC_BITS; shift_bit > 0; --shift_bit) {
+		// Set shift bit in transaction counter
+		uint32_t tc = 0x1 << (shift_bit-1);
+
+		// Create key derivation data
+		r = dukpt_aes_create_derivation_data(
+			DUKPT_AES_KEY_USAGE_KEY_DERIVATION,
+			key_type,
+			ikid,
+			tc,
+			&derivation_data
+		);
+		if (r) {
+			goto error;
+		}
+
+		// Derive intermediate derivation key from initial key
+		r = dukpt_aes_derive_key(
+			ik,
+			ik_len,
+			&derivation_data,
+			dukpt_aes_state_idk_ptr(key, ik_len, shift_bit-1)
+		);
+		if (r) {
+			goto error;
+		}
+
+		// This intermediate derivation key is now valid
+		valid[shift_bit-1] = 1;
+	}
+
+	// Advance to first transaction
+	r = dukpt_aes_ksn_advance(ksn);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// Ensure that DUKPT state is unusable
+	crypto_rand(state, state_len);
+exit:
+	// Cleanup
+	crypto_cleanse(&derivation_data, sizeof(derivation_data));
+
+	return r;
+}
+
+int dukpt_aes_state_next_txn_key(void* state, size_t state_len, void* txn_key)
+{
+	int r;
+	enum dukpt_aes_key_type_t key_type;
+	size_t key_len;
+	uint8_t* ksn;
+	uint8_t* key;
+	uint8_t* valid;
+	uint32_t tc;
+	unsigned int shift_bit;
+	uint8_t current_key;
+	struct dukpt_aes_derivation_data_t derivation_data;
+
+	// See ANSI X9.24-3:2017 6.1 and 6.5
+	// These algorithms are described in terms of pseudocode and this
+	// implementation attempts to reflect similar abstractions. However, this
+	// implementation also associates the intended cipher strength (expressed
+	// as the AES key length) with the size of the DUKPT state object. This is
+	// based on the assumption that any caller of these functions would already
+	// have to manage the storage of the DUKPT state object and would therefore
+	// have its length readily available instead of having to store an
+	// additional key length field.
+
+	// If the transaction counter is valid, the intermediate derivation key
+	// corresponding with the least significant bit set in the transaction
+	// counter is the current transaction key. After the intermediate
+	// derivation key state has been advanced, this intermediate derivation key
+	// is destroyed and invalidated.
+
+	// Note that ANSI X9.24-3:2017 6.5.3 "Generate Working Keys" allows the
+	// algorithm to continue if the current intermediate derivation key is
+	// invalid while this implementation assumes that the intermediate
+	// derivation key storage is reliable and will indicate failure if the
+	// current intermediate derivation key is invalid.
+
+	// When advancing the intermediate derivation key state, all intermediate
+	// derivation keys corresponding to transaction counter bits lower than the
+	// least significant bit set in the current transaction counter, are
+	// replaced. For each of this subset of transaction counter bits, starting
+	// with the most significant bit in the subset, the corresponding bit is
+	// set in the KSN and the corresponding intermediate derivation key is then
+	// derived from the current transaction key and this KSN.
+
+	// Validate DUKPT state object length, set key type, set key length, and
+	// set pointer helpers
+	switch (state_len) {
+		case sizeof(struct dukpt_aes128_state_t): {
+			key_type = DUKPT_AES_KEY_TYPE_AES128;
+			key_len = DUKPT_AES_KEY_LEN(AES128);
+			struct dukpt_aes128_state_t* state_obj = state;
+			ksn = state_obj->ksn;
+			key = state_obj->key;
+			valid = state_obj->valid;
+			break;
+		}
+
+		case sizeof(struct dukpt_aes192_state_t): {
+			key_type = DUKPT_AES_KEY_TYPE_AES192;
+			key_len = DUKPT_AES_KEY_LEN(AES192);
+			struct dukpt_aes192_state_t* state_obj = state;
+			ksn = state_obj->ksn;
+			key = state_obj->key;
+			valid = state_obj->valid;
+			break;
+		}
+
+		case sizeof(struct dukpt_aes256_state_t): {
+			key_type = DUKPT_AES_KEY_TYPE_AES256;
+			key_len = DUKPT_AES_KEY_LEN(AES256);
+			struct dukpt_aes256_state_t* state_obj = state;
+			ksn = state_obj->ksn;
+			key = state_obj->key;
+			valid = state_obj->valid;
+			break;
+		}
+
+		default:
+			// Invalid DUKPT state object length
+			key_len = DUKPT_AES_KEY_LEN(AES128); // For cleanup
+			r = 3; // Distinguish from dukpt_aes_ksn_advance() return values
+			goto error;
+	}
+
+	// Set shift register bit to least significant transaction counter bit
+	// See ANSI X9.24-3:2017 6.5.3 "Set Shift Register"
+	tc = dukpt_aes_ksn_get_tc(ksn);
+	for (shift_bit = 0; shift_bit < DUKPT_AES_TC_BITS; ++shift_bit) {
+		if (tc & (0x01 << shift_bit)) {
+			// Least significant transaction counter bit found
+			break;
+		}
+	}
+
+	// Transaction counter exhausted
+	if (shift_bit == DUKPT_AES_TC_BITS) {
+		r = 4; // Distinguish from dukpt_aes_ksn_advance() return values
+		goto error;
+	}
+
+	// Ensure that current key is valid
+	current_key = shift_bit;
+	if (!valid[current_key]) {
+		r = 5; // Distinguish from dukpt_aes_ksn_advance() return values
+		goto error;
+	}
+
+	// For each shift register bit lower than the current shift register bit:
+	// Set the corresponding bit in the transaction counter and derive the
+	// corresponding intermediate derivation key from the KSN and current key
+	// ANSI X9.24-3:2017 6.5.3 "Update Derivation Keys"
+	for (; shift_bit > 0; --shift_bit) {
+		uint32_t working_tc;
+
+		// Set shift bit in transaction counter
+		working_tc = tc | (0x1 << (shift_bit-1));
+
+		// Create key derivation data
+		r = dukpt_aes_create_derivation_data(
+			DUKPT_AES_KEY_USAGE_KEY_DERIVATION,
+			key_type,
+			ksn,
+			working_tc,
+			&derivation_data
+		);
+		if (r) {
+			goto error;
+		}
+
+		// Derive intermediate derivation key from current key
+		r = dukpt_aes_derive_key(
+			dukpt_aes_state_idk_ptr(key, key_len, current_key),
+			key_len,
+			&derivation_data,
+			dukpt_aes_state_idk_ptr(key, key_len, shift_bit-1)
+		);
+		if (r) {
+			goto error;
+		}
+
+		// This intermediate derivation key is now valid
+		valid[shift_bit-1] = 1;
+	}
+
+	// Copy current key to transaction key output and destroy current key
+	memcpy(txn_key, dukpt_aes_state_idk_ptr(key, key_len, current_key), key_len);
+	memset(dukpt_aes_state_idk_ptr(key, key_len, current_key), 0, key_len);
+	valid[current_key] = 0;
+
+	// Advance to next transaction
+	r = dukpt_aes_ksn_advance(ksn);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	// Ensure that output key is unusable on error
+	crypto_rand(txn_key, key_len);
+exit:
+	// Cleanup
+	crypto_cleanse(&derivation_data, sizeof(derivation_data));
+
+	return r;
+}
+
 int dukpt_aes_ksn_advance(uint8_t* ksn)
 {
 	uint32_t tc;

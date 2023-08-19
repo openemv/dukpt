@@ -33,6 +33,7 @@ __BEGIN_DECLS
 #define DUKPT_AES_DERIVATION_ID_LEN (4) ///< Derivation ID length for AES DUKPT
 #define DUKPT_AES_IK_ID_LEN (DUKPT_AES_BDK_ID_LEN + DUKPT_AES_DERIVATION_ID_LEN) ///< Initial Key ID length for AES DUKPT
 #define DUKPT_AES_TC_LEN (4) ///< Transaction counter length for AES DUKPT
+#define DUKPT_AES_TC_BITS (32) ///< Number of Transaction Counter (TC) bits in Key Serial Number for AES DUKPT
 #define DUKPT_AES_TC_MAX  (0xFFFF0000) ///< Maximum transaction counter value for AES DUKPT
 #define DUKPT_AES_KSN_LEN (DUKPT_AES_IK_ID_LEN + DUKPT_AES_TC_LEN) ///< Key Serial Number length for AES DUKPT
 #define DUKPT_AES_PINBLOCK_LEN (16) ///< PIN block length for AES DUKPT. See ISO 9564-1:2017 9.4.2, format 4.
@@ -79,6 +80,42 @@ enum dukpt_aes_key_bits_t {
 #define DUKPT_AES_KEY_LEN(key_type) ((DUKPT_AES_KEY_BITS_##key_type) / 8)
 
 /**
+ * DUKPT state for AES-128 Initial Key (IK)
+ *
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ */
+struct dukpt_aes128_state_t {
+	uint8_t ksn[DUKPT_AES_KSN_LEN]; ///< Current Key Serial Number (KSN)
+	uint8_t key[DUKPT_AES_TC_BITS * DUKPT_AES_KEY_LEN(AES128)]; ///< Intermediate derivation keys
+	uint8_t valid[DUKPT_AES_TC_BITS]; ///< Validity of each intermediate derivation key
+};
+
+/**
+ * DUKPT state for AES-192 Initial Key (IK)
+ *
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ */
+struct dukpt_aes192_state_t {
+	uint8_t ksn[DUKPT_AES_KSN_LEN]; ///< Current Key Serial Number (KSN)
+	uint8_t key[DUKPT_AES_TC_BITS * DUKPT_AES_KEY_LEN(AES192)]; ///< Intermediate derivation keys
+	uint8_t valid[DUKPT_AES_TC_BITS]; ///< Validity of each intermediate derivation key
+};
+
+/**
+ * DUKPT state for AES-256 Initial Key (IK)
+ *
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ */
+struct dukpt_aes256_state_t {
+	uint8_t ksn[DUKPT_AES_KSN_LEN]; ///< Current Key Serial Number (KSN)
+	uint8_t key[DUKPT_AES_TC_BITS * DUKPT_AES_KEY_LEN(AES256)]; ///< Intermediate derivation keys
+	uint8_t valid[DUKPT_AES_TC_BITS]; ///< Validity of each intermediate derivation key
+};
+
+/**
  * Retrieve DUKPT library version string
  * @return Pointer to null-terminated string. Do not free.
  */
@@ -123,6 +160,43 @@ int dukpt_aes_derive_txn_key(
 	const uint8_t* ksn,
 	void* txn_key
 );
+
+/**
+ * Initialise DUKPT state from Initial Key (IK) and Initial Key ID
+ *
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param ik Initial Key
+ * @param ik_len Length of Initial Key in bytes
+ * @param ikid Initial Key ID of length @ref DUKPT_AES_IK_ID_LEN
+ * @param state DUKPT state object output
+ * @param state_len Length of DUKPT state object in bytes
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_state_init(
+	const void* ik,
+	size_t ik_len,
+	const uint8_t* ikid,
+	void* state,
+	size_t state_len
+);
+
+/**
+ * Derive next DUKPT transaction key and advance DUKPT state
+ *
+ * @note This function should only be used by the transaction originating
+ *       Secure Cryptographic Device (SCD)
+ *
+ * @param state DUKPT state object
+ * @param state_len Length of DUKPT state object in bytes
+ * @param txn_key DUKPT transaction key output of the same length as @p ik_len
+ *                when @ref dukpt_aes_state_init created this @p state
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid DUKPT state or exhausted transaction counter.
+ */
+int dukpt_aes_state_next_txn_key(void* state, size_t state_len, void* txn_key);
 
 /**
  * Advance Key Serial Number (KSN) to next transaction

@@ -40,6 +40,14 @@ if(BUILD_TESTING)
 	target_link_libraries(dukpt_tdes_state_test dukpt_tdes)
 	add_test(dukpt_tdes_state_test dukpt_tdes_state_test)
 
+	add_executable(dukpt_aes128_state_test dukpt_aes128_state_test.c)
+	target_link_libraries(dukpt_aes128_state_test dukpt_aes)
+	add_test(dukpt_aes128_state_test dukpt_aes128_state_test)
+
+	add_executable(dukpt_aes256_state_test dukpt_aes256_state_test.c)
+	target_link_libraries(dukpt_aes256_state_test dukpt_aes)
+	add_test(dukpt_aes256_state_test dukpt_aes256_state_test)
+
 	if(WIN32)
 		# Ensure that tests can find required DLLs (if any)
 		# Assume that the PATH already contains the compiler runtime DLLs

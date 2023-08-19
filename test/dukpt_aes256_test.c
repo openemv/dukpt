@@ -304,7 +304,7 @@ int main(void)
 
 	// Advance to first KSN
 	memcpy(ksn, ikid, DUKPT_AES_IK_ID_LEN);
-	memset(ksn + DUKPT_AES_IK_ID_LEN, 0, DUKPT_AES_KSN_LEN - DUKPT_AES_IK_ID_LEN);
+	memset(ksn + DUKPT_AES_IK_ID_LEN, 0, DUKPT_AES_TC_LEN);
 	r = dukpt_aes_ksn_advance(ksn);
 	if (r) {
 		fprintf(stderr, "dukpt_aes_ksn_advance() failed; r=%d\n", r);
