@@ -90,6 +90,7 @@ enum dukpt_tool_action_t {
 	DUKPT_TOOL_ACTION_DECRYPT_REQUEST,
 	DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE,
 	DUKPT_TOOL_ACTION_DECRYPT_RESPONSE,
+	DUKPT_TOOL_ACTION_DUMP_STATE,
 };
 static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
 
@@ -137,6 +138,8 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE,
 	DUKPT_TOOL_OPTION_DECRYPT_RESPONSE,
 
+	DUKPT_TOOL_OPTION_DUMP_STATE,
+
 	DUKPT_TOOL_OPTION_OUTPUT_RAW,
 #ifdef DUKPT_TOOL_USE_TR31
 	DUKPT_TOOL_OPTION_OUTPUT_TR31,
@@ -181,6 +184,7 @@ static struct argp_option argp_options[] = {
 	{ "decrypt-request", DUKPT_TOOL_OPTION_DECRYPT_REQUEST, "DATA", 0, "Decrypt transaction request data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "encrypt-response", DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE, "DATA", 0, "Encrypt transaction response data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "decrypt-response", DUKPT_TOOL_OPTION_DECRYPT_RESPONSE, "DATA", 0, "Decrypt transaction response data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "dump-state", DUKPT_TOOL_OPTION_DUMP_STATE, NULL, 0, "Dump internal DUKPT state of transaction originating device TRSM. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 
 	{ NULL, 0, NULL, 0, "Outputs:", 5 },
 	{ "output-raw", DUKPT_TOOL_OPTION_OUTPUT_RAW, NULL, 0, "Output raw bytes instead of hex digits to stdout." },
@@ -447,6 +451,10 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_RESPONSE;
 			return 0;
 
+		case DUKPT_TOOL_OPTION_DUMP_STATE:
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DUMP_STATE;
+			return 0;
+
 		case DUKPT_TOOL_OPTION_OUTPUT_RAW:
 			output_format = DUKPT_TOOL_OUTPUT_FORMAT_RAW;
 			return 0;
@@ -570,6 +578,12 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 						pinblock_format = 4;
 					}
 				}
+			}
+
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_DUMP_STATE &&
+				((!bdk && !ik) || (bdk && ik))
+			) {
+				argp_error(state, "Dumping of internal DUKPT state (--dump-state) requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
 			}
 
 #ifdef DUKPT_TOOL_USE_TR31
@@ -1319,6 +1333,53 @@ static int do_tdes_mode(void)
 			output_buf(txn_data, txn_data_len);
 			return 0;
 		}
+
+		case DUKPT_TOOL_ACTION_DUMP_STATE: {
+			struct dukpt_tdes_state_t state;
+
+			// Ensure that KSN is valid
+			if (!dukpt_tdes_ksn_is_valid(ksn)) {
+				fprintf(stderr, "TDES: KSN is not suitable for transaction originating algorithm\n");
+				return 1;
+			}
+
+			// Ensure that DUKPT initial key is available
+			r = prepare_tdes_ik(true);
+			if (r) {
+				return 1;
+			}
+			txn_key_len = DUKPT_TDES_KEY_LEN;
+			txn_key = malloc(txn_key_len);
+
+			// Do it
+			r = dukpt_tdes_state_init(ik, ksn, &state);
+			if (r) {
+				fprintf(stderr, "dukpt_tdes_state_init() failed; r=%d\n", r);
+				return 1;
+			}
+			while (memcmp(ksn, state.ksn, ksn_len) != 0) {
+				// Advance until the request KSN is reached
+				r = dukpt_tdes_state_next_txn_key(&state, txn_key);
+				if (r) {
+					fprintf(stderr, "dukpt_tdes_state_next_txn_key() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			for (size_t idx = 0; idx < DUKPT_TDES_TC_BITS; ++idx) {
+				printf("%2zu: ", idx + 1);
+				if (state.valid[idx]) {
+					for (size_t i = 0; i < DUKPT_TDES_KEY_LEN; ++i) {
+						printf("%02X", state.key[idx][i]);
+					}
+				} else {
+					printf("-");
+				}
+				printf("\n");
+			}
+
+			return 0;
+		}
 	}
 
 	// This should never happen
@@ -1822,6 +1883,87 @@ static int do_aes_mode(void)
 			}
 
 			output_buf(txn_data, txn_data_len);
+			return 0;
+		}
+
+		case DUKPT_TOOL_ACTION_DUMP_STATE: {
+			struct dukpt_aes128_state_t dukpt_aes128_state;
+			struct dukpt_aes192_state_t dukpt_aes192_state;
+			struct dukpt_aes256_state_t dukpt_aes256_state;
+			void* state;
+			size_t state_len;
+			const uint8_t* key;
+			const uint8_t* valid;
+
+			// Determine DUKPT state object length and set pointer helpers
+			switch (key_type) {
+				case DUKPT_AES_KEY_TYPE_AES128:
+					state = &dukpt_aes128_state;
+					state_len = sizeof(dukpt_aes128_state);
+					key = dukpt_aes128_state.key;
+					valid = dukpt_aes128_state.valid;
+					break;
+
+				case DUKPT_AES_KEY_TYPE_AES192:
+					state = &dukpt_aes192_state;
+					state_len = sizeof(dukpt_aes192_state);
+					key = dukpt_aes192_state.key;
+					valid = dukpt_aes192_state.valid;
+					break;
+
+				case DUKPT_AES_KEY_TYPE_AES256:
+					state = &dukpt_aes256_state;
+					state_len = sizeof(dukpt_aes256_state);
+					key = dukpt_aes256_state.key;
+					valid = dukpt_aes256_state.valid;
+					break;
+
+				default:
+					fprintf(stderr, "Unsupported key type\n");
+					return 1;
+			}
+
+			// Ensure that DUKPT initial key is available
+			r = prepare_aes_ik(true);
+			if (r) {
+				return 1;
+			}
+			txn_key_len = ik_len;
+			txn_key = malloc(txn_key_len);
+
+			// Ensure that KSN is valid
+			if (!dukpt_aes_ksn_is_valid(ksn)) {
+				fprintf(stderr, "AES: KSN is not suitable for transaction originating algorithm\n");
+				return 1;
+			}
+
+			// Do it
+			r = dukpt_aes_state_init(ik, ik_len, ksn, state, state_len);
+			if (r) {
+				fprintf(stderr, "dukpt_aes_state_init() failed; r=%d\n", r);
+				return 1;
+			}
+			while (memcmp(ksn, state, ksn_len) != 0) { // Assume KSN is at the start of the DUKPT state object
+				// Advance until the request KSN is reached
+				r = dukpt_aes_state_next_txn_key(state, state_len, txn_key);
+				if (r) {
+					fprintf(stderr, "dukpt_aes_state_next_txn_key() failed; r=%d\n", r);
+					return 1;
+				}
+			}
+
+			for (size_t idx = 0; idx < DUKPT_AES_TC_LEN * 8; ++idx) {
+				printf("%2zu: ", idx + 1);
+				if (valid[idx]) {
+					for (size_t i = 0; i < ik_len; ++i) {
+						printf("%02X", key[(idx * ik_len) + i]);
+					}
+				} else {
+					printf("-");
+				}
+				printf("\n");
+			}
+
 			return 0;
 		}
 	}
