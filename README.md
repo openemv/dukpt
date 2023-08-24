@@ -67,6 +67,10 @@ Dependencies
 * [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
   generate API documentation if it is available; see
   [Documentation](#documentation)
+* [bash-completion](https://github.com/scop/bash-completion) can _optionally_
+  be used to generate bash completion for `dukpt-tool`
+* [NSIS](https://nsis.sourceforge.io) can _optionally_ be used to generate a
+  Windows installer for this project
 
 This project also makes use of sub-projects that can either be provided as
 git submodules using `git clone --recurse-submodules`, or provided as CMake
@@ -220,10 +224,19 @@ examples from ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
 dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00002 --decrypt-request A2B4E70F846E63D68775B7215EB4563DFD3037244C61CC13 --output-raw | strings
 ```
 
+To output a key block (and if [tr31](https://github.com/openemv/tr31) support
+was enabled at build-time), specify the Key Block Protection Key (KBPK) using
+the `--output-tr31` option and the desired key block format version using the
+`--output-tr31-format-version` option. In addition, a few optional header
+blocks can also be added using options such as `--output-tr31-with-ksn` and
+others. For example:
+```
+dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00000 --derive-ik --output-tr31 1D22BF32387C600AD97F9B97A51311AC --output-tr31-format-version B --output-tr31-with-ksn --output-tr31-with-kc --output-tr31-with-kp --output-tr31-with-ts
+```
+
 Roadmap
 -------
 
-* Implement transaction-originating algorithms (ANSI X9.24-3:2017, 6.5)
 * Test on various ARM architectures
 
 License
