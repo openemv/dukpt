@@ -240,14 +240,14 @@ if(Doxygen_FOUND)
 	endif()
 endif()
 
-# Configure CPack to generate .tar.gz package
-set(CPACK_GENERATOR "TGZ")
+# Configure CPack package details
 set(CPACK_PACKAGE_VERSION "${DUKPT_VERSION_STRING}")
 set(CPACK_PACKAGE_VENDOR "OpenEMV")
 set(CPACK_PACKAGE_CONTACT "lynch.leon@gmail.com")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_VERBATIM_VARIABLES ON)
 
 # Configure generic component packaging attributes
 set(CPACK_COMPONENT_DUKPT_RUNTIME_DISPLAY_NAME "DUKPT tool and libraries")
@@ -266,6 +266,9 @@ endif()
 # NOTE: for monolithic packages, uncomment the line below or specify it when
 # invoking CMake
 #set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
+
+# Always generate at least a .tar.gz package
+set(CPACK_GENERATOR "TGZ")
 
 # Generate Debian/Ubuntu packages if dpkg is available
 find_package(dpkg) # Optional for building Debian/Ubuntu packages
@@ -343,10 +346,10 @@ if(WIN32 AND TARGET dukpt-ui)
 	# Use dukpt-ui license file
 	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/ui/LICENSE.gpl")
 	# Set installer branding icon
-	set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.bmp") # CMake's own installer escapes the last slash due to a bug in NSI
+	set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.bmp") # CMake's own installer uses a backslash for the last slash due to a bug in NSIS
 	# Set installer and uninstaller application icons
-	set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer escapes the last slash due to a bug in NSI
-	set(CPACK_NSIS_MUI_UNIICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer escapes the last slash due to a bug in NSI
+	set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer uses a backslash for the last slash due to a bug in NSIS
+	set(CPACK_NSIS_MUI_UNIICON "${CMAKE_CURRENT_SOURCE_DIR}/ui/icons\\openemv_dukpt.ico") # CMake's own installer uses a backslash for the last slash due to a bug in NSIS
 	# Set display name used by Control Panel
 	set(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_VENDOR} ${CMAKE_PROJECT_NAME} ${CPACK_PACKAGE_VERSION}")
 	# Set name used by installer application
@@ -354,7 +357,7 @@ if(WIN32 AND TARGET dukpt-ui)
 	# Set project URL
 	set(CPACK_NSIS_URL_INFO_ABOUT "${CMAKE_PROJECT_HOMEPAGE_URL}")
 	# Install into vendor/package-version directory
-	set(CPACK_NSIS_INSTALL_ROOT "C:\\\\${CPACK_PACKAGE_VENDOR}")
+	set(CPACK_NSIS_INSTALL_ROOT "C:\\${CPACK_PACKAGE_VENDOR}")
 	set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 	# Set display name used by Start Menu
 	set(CPACK_PACKAGE_EXECUTABLES "dukpt-ui" "Dukpt")
