@@ -46,17 +46,12 @@ endif()
 
 # Check for tr31 but don't be verbose if it cannot be found
 set(TR31_MIN_VERSION 0.5.1)
-find_package(tr31 ${TR31_MIN_VERSION} QUIET)
-if(BUILD_DUKPT_TOOL)
-	if(tr31_FOUND)
-		find_package(tr31 ${TR31_MIN_VERSION} REQUIRED)
-		# The DUKPT_CONFIG_PACKAGE_DEPENDENCIES variable is set for the parent scope
-		# to facilitate the generation of CMake package configuration files.
-		string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(tr31 ${TR31_MIN_VERSION})\n")
-		set(DUKPT_CONFIG_PACKAGE_DEPENDENCIES ${DUKPT_CONFIG_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
-	else()
-		message(STATUS "Could NOT find tr31")
-	endif()
+find_package(tr31 ${TR31_MIN_VERSION} CONFIG)
+if(BUILD_DUKPT_TOOL AND tr31_FOUND)
+	# The DUKPT_CONFIG_PACKAGE_DEPENDENCIES variable is set for the parent scope
+	# to facilitate the generation of CMake package configuration files.
+	string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(tr31 ${TR31_MIN_VERSION} CONFIG)\n")
+	set(DUKPT_CONFIG_PACKAGE_DEPENDENCIES ${DUKPT_CONFIG_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
 endif()
 
 # Check for time.h required by dukpt-tool

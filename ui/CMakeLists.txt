@@ -64,7 +64,7 @@ configure_file(
 )
 
 find_package(Qt5 5.12 COMPONENTS Widgets REQUIRED)
-find_package(tr31 0.5.1 REQUIRED)
+find_package(tr31 0.5.1 REQUIRED CONFIG)
 
 if(Qt5_VERSION VERSION_LESS 5.15)
 	# Qt-5.12 provides these versioned commands
