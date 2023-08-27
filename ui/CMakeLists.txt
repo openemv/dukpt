@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt-ui
-	VERSION 0.2.3
+	VERSION 1.1.0
 	DESCRIPTION "DUKPT User Interface using Qt"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C CXX
@@ -43,7 +43,7 @@ if(DUKPT_UI_IS_TOP_LEVEL)
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../crypto/cmake/Modules/")
 
 	# If this is the top-level project, look for the platform dukpt libraries
-	find_package(dukpt 0.2.0 REQUIRED)
+	find_package(dukpt 1.1.0 REQUIRED)
 else()
 	# Otherwise the parent project must provide the dukpt targets
 	if(NOT TARGET dukpt::dukpt_tdes OR NOT TARGET dukpt::dukpt_aes)
