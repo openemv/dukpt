@@ -52,14 +52,17 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-ninja
           mingw-w64-${{matrix.env}}-github-cli
-          mingw-w64-${{matrix.env}}-qt5-base
-          mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Install MbedTLS
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
         pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-mbedtls
         echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
+
+    - name: Install Qt5
+      if: contains(matrix.deps, 'qt')
+      run: |
+        pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-qt5-base mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Build TR-31 dependency
       if: contains(matrix.deps, 'tr31')
