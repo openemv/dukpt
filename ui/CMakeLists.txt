@@ -63,10 +63,11 @@ configure_file(
 	dukpt_ui_config.h
 )
 
-find_package(Qt5 5.12 COMPONENTS Widgets REQUIRED)
-find_package(tr31 0.5.1 REQUIRED CONFIG)
-
-if(Qt5_VERSION VERSION_LESS 5.15)
+# See https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html#supporting-older-qt-5-versions
+find_package(QT 5.12 NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets PATHS ${QT_DIR})
+message(STATUS "Found Qt${QT_VERSION_MAJOR} Widgets: ${QT_CONFIG} (found suitable version \"${QT_VERSION}\")")
+if(QT_VERSION VERSION_LESS 5.15)
 	# Qt-5.12 provides these versioned commands
 	qt5_wrap_ui(UI_SRCS mainwindow.ui)
 	qt5_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
@@ -78,6 +79,8 @@ else()
 	qt_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
 	qt_add_resources(QRC_SRCS icons.qrc)
 endif()
+
+find_package(tr31 0.5.1 REQUIRED CONFIG)
 
 add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS} ${QRC_SRCS})
 target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files

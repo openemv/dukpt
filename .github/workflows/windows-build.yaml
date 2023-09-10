@@ -158,6 +158,9 @@ jobs:
 
     - name: Configure CMake
       run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=YES -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -Dtr31_DIR=${{ env.TR31_DIR }}
+      # CMake will only accept Windows paths if they are environment variables, not CMake command line cache entries
+      env:
+        QT_DIR: ${{ env.Qt5_DIR }}
 
     - name: Build
       run: cmake --build build
