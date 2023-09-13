@@ -199,6 +199,9 @@ private slots: // connect-by-name helper functions for push buttons
 	void on_encryptDecryptPushButton_clicked();
 	void on_macPushButton_clicked();
 
+private slots: // connect-by-name helper functions for output
+	void on_outputText_linkActivated(const QString& link);
+
 private:
 	// DUKPT state populated when any button is clicked
 	dukpt_ui_mode_t mode;

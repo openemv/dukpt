@@ -30,6 +30,8 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QSettings>
 #include <QtWidgets/QScrollBar>
+#include <QtGui/QTextCharFormat>
+#include <QtGui/QDesktopServices>
 
 #include <cstddef>
 
@@ -630,6 +632,10 @@ void MainWindow::log(dukpt_ui_log_level_t level, QString&& str)
 {
 	switch (level) {
 		case DUKPT_LOG_INFO:
+			// Clear current character format, which is updated based on the
+			// most recent click or selection of QPlainTextEdit text, to
+			// prevent it from impacting the plaintext being appended
+			outputText->setCurrentCharFormat(QTextCharFormat());
 			outputText->appendPlainText(str);
 			break;
 
@@ -1378,6 +1384,12 @@ void MainWindow::on_macPushButton_clicked()
 		logFailure("Unknown mode");
 		return;
 	}
+}
+
+void MainWindow::on_outputText_linkActivated(const QString& link)
+{
+	// Open link using external application
+	QDesktopServices::openUrl(link);
 }
 
 int MainWindow::advanceKSN()
