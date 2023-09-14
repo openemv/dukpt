@@ -102,7 +102,7 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES
+        cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DBUILD_TR31_TOOL=NO
         cmake --build build
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         cd ..
@@ -136,5 +136,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: dukpt-${{ env.GIT_DESCRIBE }}-macos
-        path: build/dukpt-*.dmg
+        path: |
+            build/dukpt-*.tar.gz
+            build/dukpt-*.dmg
         if-no-files-found: error
