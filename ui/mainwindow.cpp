@@ -30,6 +30,8 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QSettings>
 #include <QtWidgets/QScrollBar>
+#include <QtGui/QTextCharFormat>
+#include <QtGui/QDesktopServices>
 
 #include <cstddef>
 
@@ -630,6 +632,10 @@ void MainWindow::log(dukpt_ui_log_level_t level, QString&& str)
 {
 	switch (level) {
 		case DUKPT_LOG_INFO:
+			// Clear current character format, which is updated based on the
+			// most recent click or selection of QPlainTextEdit text, to
+			// prevent it from impacting the plaintext being appended
+			outputText->setCurrentCharFormat(QTextCharFormat());
 			outputText->appendPlainText(str);
 			break;
 
@@ -1380,6 +1386,12 @@ void MainWindow::on_macPushButton_clicked()
 	}
 }
 
+void MainWindow::on_outputText_linkActivated(const QString& link)
+{
+	// Open link using external application
+	QDesktopServices::openUrl(link);
+}
+
 int MainWindow::advanceKSN()
 {
 	if (mode == DUKPT_UI_MODE_TDES) {
@@ -1874,27 +1886,20 @@ QString MainWindow::exportTr31(
 						iksn,
 						DUKPT_TDES_KSI_LEN
 					);
+					if (r) {
+						logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+						return QString();
+					}
 					break;
 
 				case TR31_KEY_USAGE_DUKPT_IK:
-					// Add optional block KS using the provided length. This
-					// allows the user to add either 8 or 10 byte KSNs,
-					// depending on their needs.
-					// See ANSI X9.143:2021, 6.3.6.8, table 16
-					r = tr31_opt_block_add_KS(
-						tr31_ctx.get(),
-						iksn,
-						ksn.size()
-					);
+					// Optional block KS is processed later to match the
+					// ordering of tr31-tool
 					break;
 
 				default:
 					logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KEY_USAGE)));
 					return QString();
-			}
-			if (r) {
-				logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
-				return QString();
 			}
 
 		} else if (mode == DUKPT_UI_MODE_AES) {
@@ -1913,7 +1918,7 @@ QString MainWindow::exportTr31(
 					break;
 
 				case TR31_KEY_USAGE_DUKPT_IK:
-					// Add optional blockKS. For AES DUKPT, this will always be
+					// Add optional block KS. For AES DUKPT, this will always be
 					// the Initial Key ID of 8 bytes and not the whole KSN.
 					// See ANSI X9.143:2021, 6.3.6.6, table 14
 					r = tr31_opt_block_add_IK(
@@ -1949,6 +1954,46 @@ QString MainWindow::exportTr31(
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 			return QString();
+		}
+	}
+
+	// Populate optional block KS for KSN
+	if (settings.tr31WithKsn) {
+		if (mode == DUKPT_UI_MODE_TDES) {
+			uint8_t iksn[DUKPT_TDES_KSN_LEN];
+
+			// Sanitise Initial Key Serial Number (IKSN)
+			memcpy(iksn, ksn.data(), DUKPT_TDES_KSN_LEN - 2);
+			iksn[7] &= 0xE0;
+			iksn[8] = 0;
+			iksn[9] = 0;
+
+			switch (key_usage) {
+				case TR31_KEY_USAGE_BDK:
+					// Optional block BI is processed earlier to match the
+					// ordering of tr31-tool
+					break;
+
+				case TR31_KEY_USAGE_DUKPT_IK:
+					// Add optional block KS using the provided length. This
+					// allows the user to add either 8 or 10 byte KSNs,
+					// depending on their needs.
+					// See ANSI X9.143:2021, 6.3.6.8, table 16
+					r = tr31_opt_block_add_KS(
+						tr31_ctx.get(),
+						iksn,
+						ksn.size()
+					);
+					if (r) {
+						logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
+						return QString();
+					}
+					break;
+
+				default:
+					logError(QString::asprintf("TR-31: %s\n", tr31_get_error_string(TR31_ERROR_UNSUPPORTED_KEY_USAGE)));
+					return QString();
+			}
 		}
 	}
 

@@ -39,9 +39,9 @@ on run argv
         set sidebar width to 0
         set statusbar visible to false
         set toolbar visible to false
-        set the bounds to { 400, 100, 900, 465 }
-        set position of item "Dukpt.app" to { 133, 200 }
-        set position of item "Applications" to { 378, 200 }
+        set the bounds to { 400, 100, 900, 500 }
+        set position of item "Dukpt.app" to { 133, 215 }
+        set position of item "Applications" to { 378, 215 }
       end tell
       update without registering applications
       delay 5

@@ -367,7 +367,7 @@
       </property>
       <layout class="QVBoxLayout" name="outputsVerticalLayout">
        <item>
-        <widget class="QPlainTextEdit" name="outputText">
+        <widget class="BetterPlainTextEdit" name="outputText">
          <property name="readOnly">
           <bool>true</bool>
          </property>
@@ -383,6 +383,13 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>BetterPlainTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>betterplaintextedit.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

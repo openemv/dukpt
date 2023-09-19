@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt-ui
-	VERSION 1.1.0
+	VERSION 1.1.1
 	DESCRIPTION "DUKPT User Interface using Qt"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C CXX
@@ -70,20 +70,23 @@ message(STATUS "Found Qt${QT_VERSION_MAJOR} Widgets: ${QT_CONFIG} (found suitabl
 if(QT_VERSION VERSION_LESS 5.15)
 	# Qt-5.12 provides these versioned commands
 	qt5_wrap_ui(UI_SRCS mainwindow.ui)
-	qt5_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+	qt5_wrap_cpp(MOC_SRCS mainwindow.h betterplaintextedit.h validators.h)
 	qt5_add_resources(QRC_SRCS icons.qrc)
 	add_library(Qt::Widgets ALIAS Qt5::Widgets)
 else()
 	# Qt-5.15 and Qt-6 provide these version-less commands
 	qt_wrap_ui(UI_SRCS mainwindow.ui)
-	qt_wrap_cpp(MOC_SRCS mainwindow.h validators.h)
+	qt_wrap_cpp(MOC_SRCS mainwindow.h betterplaintextedit.h validators.h)
 	qt_add_resources(QRC_SRCS icons.qrc)
 endif()
 
 find_package(tr31 0.5.1 REQUIRED CONFIG)
 
 add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS} ${QRC_SRCS})
-target_include_directories(dukpt-ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated files
+target_include_directories(dukpt-ui PRIVATE
+	${CMAKE_CURRENT_BINARY_DIR} # For generated files
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For generated files to include source headers
+)
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
 
 option(BUILD_MACOSX_BUNDLE "Build MacOS bundle containing dukpt-ui and dukpt-tool")

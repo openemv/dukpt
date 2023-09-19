@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt
-	VERSION 1.1.0
+	VERSION 1.1.1
 	DESCRIPTION "DUKPT libraries and tools"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C
@@ -327,7 +327,7 @@ endif()
 
 # Generate DragNDrop package for MacOS if dukpt-ui is available
 if(APPLE AND TARGET dukpt-ui AND BUILD_MACOSX_BUNDLE)
-	set(CPACK_GENERATOR "DragNDrop") # Skip TGZ generator when building MacOS bundle
+	list(APPEND CPACK_GENERATOR "DragNDrop")
 	# Only package dukpt-ui bundle (which includes ancillary files for MacOS)
 	set(CPACK_COMPONENTS_ALL dukpt_ui_bundle)
 	# Use dukpt-ui license file
