@@ -20,9 +20,11 @@ jobs:
         include:
           - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Release", deps: "none", fetch_deps: YES, build_dukpt_ui: NO }
           - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64;arm64", build_type: "Debug", deps: "tr31", fetch_deps: YES, build_dukpt_ui: NO }
-          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Release", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Debug", deps: "tr31/qt5", fetch_deps: NO, build_dukpt_ui: YES }
+          - { name: "MacOS 11", os: macos-11, osx_arch: "x86_64", build_type: "Release", deps: "tr31/qt6", fetch_deps: NO, build_dukpt_ui: YES }
           - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64", build_type: "Release", deps: "tr31", fetch_deps: NO, build_dukpt_ui: NO }
-          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64", build_type: "Debug", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64", build_type: "Debug", deps: "tr31/qt5", fetch_deps: YES, build_dukpt_ui: YES }
+          - { name: "MacOS 12", os: macos-12, osx_arch: "x86_64", build_type: "Debug", deps: "tr31/qt6", fetch_deps: YES, build_dukpt_ui: YES }
 
     name: ${{ matrix.name }} (${{ matrix.osx_arch }}) build (static/${{ matrix.build_type }}/${{ matrix.deps }})
     runs-on: ${{ matrix.os }}
@@ -44,10 +46,17 @@ jobs:
 
     - name: Install Qt5 using brew
       # Homebrew doesn't support universal binaries so only install Qt for x86_64 builds
-      if: contains(matrix.deps, 'qt')
+      if: contains(matrix.deps, 'qt5')
       run: |
         brew install qt@5
         echo "QT_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5" >> $GITHUB_ENV
+
+    - name: Install Qt6 using brew
+      # Homebrew doesn't support universal binaries so only install Qt for x86_64 builds
+      if: contains(matrix.deps, 'qt6')
+      run: |
+        brew install qt@6
+        echo "QT_DIR=$(brew --prefix qt@6)/lib/cmake/Qt6" >> $GITHUB_ENV
 
     - name: Checkout
       uses: actions/checkout@v3
