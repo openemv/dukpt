@@ -156,13 +156,13 @@ cmake --build build --target package
 Qt
 --
 
-This project supports Qt 5.12.x, Qt 5.15.x and Qt 6.5.x (although it may be
-possible to use other versions of Qt) when building the `dukpt-ui` application.
-However, on some platforms it may be necessary to use the `QT_DIR` option (and
-not the `Qt5_DIR` nor `Qt6_DIR` options) or `CMAKE_PREFIX_PATH` option to
-specify the exact Qt installation to be used. For Qt6 it may also be necessary
-for the Qt tools to be available in the executable PATH regardless of the
-`QT_DIR` option.
+This project supports Qt 5.12.x, Qt 5.15.x, Qt 6.5.x and Qt 6.6.x (although it
+may be possible to use other versions of Qt) when building the `dukpt-ui`
+application. However, on some platforms it may be necessary to use the `QT_DIR`
+option (and not the `Qt5_DIR` nor `Qt6_DIR` options) or `CMAKE_PREFIX_PATH`
+option to specify the exact Qt installation to be used. For Qt6 it may also be
+necessary for the Qt tools to be available in the executable PATH regardless of
+the `QT_DIR` option.
 
 If the Qt installation does not provide universal binaries for MacOS, it will
 not be possible to build `dukpt-ui` as a universal binary for MacOS.

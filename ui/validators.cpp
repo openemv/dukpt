@@ -27,6 +27,17 @@
 
 #include <cctype>
 
+// QString performs a deep copy when begin() is called by a ranged-based for
+// loop, but std::as_const() is only available as of C++17 and qAsConst is
+// deprecated by Qt-6.6. Therefore define a local helper template instead.
+template<class T>
+constexpr std::add_const_t<T>& to_const_ref(T& t) noexcept
+{
+	return t;
+}
+template<class T>
+void to_const_ref(const T&&) = delete;
+
 void DecStringValidator::setMinLength(unsigned int x)
 {
 	if (x != minLength) {
@@ -62,7 +73,7 @@ QValidator::State DecStringValidator::validate(QString& input, int& pos) const
 	}
 
 	// Ensure that decimal string contains only decimal digits
-	for (QChar c : qAsConst(input)) {
+	for (QChar c : to_const_ref(input)) {
 		if (!std::isdigit(c.toLatin1())) {
 			// Non-decimal digit is not allowed
 			return Intermediate;
@@ -80,7 +91,7 @@ QValidator::State HexStringValidator::validate(QString& input, int& pos) const
 	}
 
 	// Ensure that hex string contains only hex digits
-	for (QChar c : qAsConst(input)) {
+	for (QChar c : to_const_ref(input)) {
 		if (!std::isxdigit(c.toLatin1())) {
 			// Non-hex digit is not allowed
 			return Intermediate;
