@@ -18,10 +18,11 @@ fi
 LICENSE="LGPL-2.1+ GPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="+mbedtls openssl qt5 +tr31 doc test"
+IUSE="+mbedtls openssl qt5 qt6 +tr31 doc test"
 REQUIRED_USE="
 	^^ ( mbedtls openssl )
 	qt5? ( tr31 )
+	qt6? ( tr31 )
 "
 RESTRICT="!test? ( test )"
 
@@ -37,6 +38,9 @@ RDEPEND="
 		dev-qt/qtgui:5
 		dev-qt/qtwidgets:5
 	)
+	qt6? (
+		dev-qt/qtbase:6[gui,widgets]
+	)
 	tr31? ( >=dev-libs/tr31-0.5.1 )
 "
 DEPEND="
@@ -48,15 +52,23 @@ src_prepare() {
 }
 
 src_configure() {
+	# NOTE:
+	# https://wiki.gentoo.org/wiki/Project:Qt/Policies states that when an
+	# application optionally supports one of two Qt versions, it is allowed for
+	# both qt5 and qt6 to be enabled and, if so, qt5 should be preferred.
+
 	local mycmakeargs=(
 		$(cmake_use_find_package mbedtls MbedTLS)
 		$(cmake_use_find_package openssl OpenSSL)
 		$(cmake_use_find_package qt5 Qt5)
+		$(cmake_use_find_package qt6 Qt6)
 		$(cmake_use_find_package tr31 tr31)
 		-DBUILD_DOCS=$(usex doc)
-		-DBUILD_DUKPT_UI=$(usex qt5)
 		-DBUILD_TESTING=$(usex test)
 	)
+	if use qt5 || use qt6; then
+		mycmakeargs+=( -DBUILD_DUKPT_UI=YES )
+	fi
 
 	cmake_src_configure
 }
