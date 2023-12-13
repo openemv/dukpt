@@ -98,7 +98,7 @@ static const uint8_t pin_key_aes256_verify[][DUKPT_AES_KEY_LEN(AES256)] = {
 	{ 0x17, 0x3A, 0x45, 0x28, 0x42, 0x62, 0xA3, 0xE2, 0x92, 0xD8, 0x6D, 0x08, 0xFD, 0x6D, 0xE9, 0x16, 0x79, 0x63, 0x21, 0x44, 0x50, 0xD1, 0xD4, 0x8F, 0x61, 0x03, 0xBD, 0x2E, 0xB0, 0x8E, 0x61, 0xB5 },
 };
 
-// ANSI X9.24-1:2009 Supplement Test Vectors for AES-256 BDK (first eight MAC generation keys; bottom of page 7)
+// ANSI X9.24-3:2017 Supplement Test Vectors for AES-256 BDK (first eight MAC generation keys; bottom of page 7)
 // CMAC-AES128 keys
 static const uint8_t cmac_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0xF0, 0x4A, 0x1F, 0xAB, 0xD4, 0x17, 0x6E, 0x15, 0x49, 0x0C, 0xEC, 0x82, 0xE2, 0x17, 0xA9, 0x6D },
@@ -111,7 +111,7 @@ static const uint8_t cmac_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0x6E, 0x94, 0xA9, 0x28, 0x3E, 0xA9, 0xAE, 0xB7, 0xEA, 0xA7, 0x7C, 0x3F, 0xF5, 0x5F, 0xF2, 0xD1 },
 };
 
-// ANSI X9.24-1:2009 Supplement Test Vectors for AES-256 BDK (first eight MAC generation keys; middle of page 13)
+// ANSI X9.24-3:2017 Supplement Test Vectors for AES-256 BDK (first eight MAC generation keys; middle of page 13)
 // CMAC-AES256 keys
 static const uint8_t cmac_aes256_key_verify[][DUKPT_AES_KEY_LEN(AES256)] = {
 	{ 0x61, 0xDA, 0xBD, 0xF4, 0xB3, 0x40, 0xCF, 0x46, 0x1E, 0xE8, 0x60, 0xB1, 0xD1, 0xAB, 0x55, 0x35, 0x71, 0x42, 0xBD, 0x2D, 0x69, 0x77, 0x30, 0x68, 0x59, 0xCF, 0x49, 0xAE, 0xFE, 0x8F, 0x15, 0x49 },
@@ -124,7 +124,7 @@ static const uint8_t cmac_aes256_key_verify[][DUKPT_AES_KEY_LEN(AES256)] = {
 	{ 0x94, 0x9A, 0x3F, 0xEF, 0x12, 0xDB, 0xD2, 0x73, 0xDD, 0x25, 0xBB, 0x60, 0xE2, 0x9B, 0xBE, 0x31, 0x3C, 0x87, 0x2A, 0x9D, 0xE3, 0xBE, 0x03, 0xA7, 0xE2, 0x96, 0x26, 0xAC, 0xA0, 0xA4, 0x28, 0x80 },
 };
 
-// ANSI X9.24-1:2009 Supplement Test Vectors for AES-256 BDK (first eight data encryption keys; bottom of page 7)
+// ANSI X9.24-3:2017 Supplement Test Vectors for AES-256 BDK (first eight data encryption keys; bottom of page 7)
 // AES128 data encryption keys
 static const uint8_t data_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0x61, 0x6D, 0x59, 0xAE, 0x91, 0xF8, 0xCC, 0x70, 0x16, 0xF8, 0x9F, 0xDA, 0x29, 0x60, 0x5F, 0xA4 },
@@ -137,7 +137,7 @@ static const uint8_t data_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0x89, 0x50, 0xDD, 0x50, 0xC2, 0x54, 0xC6, 0x0E, 0x26, 0x73, 0x7C, 0xA9, 0x22, 0x9F, 0x0F, 0x18 },
 };
 
-// ANSI X9.24-1:2009 Supplement Test Vectors for AES-256 BDK (first eight data encryption keys; middle of page 13)
+// ANSI X9.24-3:2017 Supplement Test Vectors for AES-256 BDK (first eight data encryption keys; middle of page 13)
 // AES256 data encryption keys
 static const uint8_t data_aes256_key_verify[][DUKPT_AES_KEY_LEN(AES256)] = {
 	{ 0x71, 0xEB, 0x36, 0xC9, 0xA6, 0xB7, 0xF8, 0x01, 0xD1, 0xD1, 0x70, 0x0C, 0x29, 0x74, 0x1F, 0xC5, 0xA5, 0xC4, 0xE9, 0xB4, 0x5D, 0x74, 0x2D, 0xA7, 0xAF, 0x69, 0x92, 0xB8, 0xAA, 0x29, 0xAF, 0x58 },
@@ -572,7 +572,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -583,7 +583,7 @@ int main(void)
 			cmac_aes128_key_verify[i],
 			sizeof(cmac_aes128_key_verify[i]),
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -596,7 +596,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -613,7 +613,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -626,7 +626,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -641,7 +641,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -652,7 +652,7 @@ int main(void)
 			cmac_aes256_key_verify[i],
 			sizeof(cmac_aes256_key_verify[i]),
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -665,7 +665,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -682,7 +682,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -695,7 +695,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -710,7 +710,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {
@@ -725,7 +725,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {
@@ -740,7 +740,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {
@@ -755,7 +755,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC256,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {

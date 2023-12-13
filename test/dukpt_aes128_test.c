@@ -78,7 +78,7 @@ static const uint8_t pin_key_aes128_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0x4D, 0x9D, 0xF3, 0xFB, 0xEE, 0x34, 0x48, 0xFC, 0x3E, 0x67, 0x6D, 0x04, 0x32, 0x0A, 0x90, 0xF5 },
 };
 
-// ANSI X9.24-1:2009 Supplement Test Vectors for AES-128 BDK (first eight encrypted PIN blocks; page 31)
+// ANSI X9.24-3:2017 Supplement Test Vectors for AES-128 BDK (first eight encrypted PIN blocks; page 31)
 static const uint8_t encrypted_pinblock_verify[][DUKPT_AES_PINBLOCK_LEN] = {
 	{ 0xA9, 0x12, 0x15, 0x03, 0x91, 0xAB, 0x65, 0xA6, 0x7E, 0x52, 0x88, 0x3D, 0x81, 0xCE, 0x2D, 0x15 },
 	{ 0x52, 0xA0, 0x05, 0x03, 0xBD, 0x34, 0xBA, 0x13, 0x83, 0xF6, 0xA7, 0xEE, 0x9F, 0xE2, 0x54, 0x7F },
@@ -90,7 +90,7 @@ static const uint8_t encrypted_pinblock_verify[][DUKPT_AES_PINBLOCK_LEN] = {
 	{ 0x83, 0x08, 0xBB, 0x85, 0x7C, 0x17, 0xF3, 0x90, 0x36, 0x9F, 0x76, 0x1F, 0x8E, 0xB3, 0x58, 0xFA },
 };
 
-// ANSI X9.24-1:2009 Supplement Test Vectors for AES-128 BDK (first eight MAC generation keys; middle of page 2)
+// ANSI X9.24-3:2017 Supplement Test Vectors for AES-128 BDK (first eight MAC generation keys; middle of page 2)
 static const uint8_t cmac_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0xA2, 0xDC, 0x23, 0xDE, 0x6F, 0xDE, 0x08, 0x24, 0xA2, 0xBC, 0x32, 0x1E, 0x08, 0xE4, 0xB8, 0xB7 },
 	{ 0x48, 0x4C, 0x3B, 0x06, 0xE8, 0x56, 0x27, 0x04, 0x52, 0x8C, 0xD5, 0xB4, 0x6F, 0xB1, 0x2F, 0xB6 },
@@ -102,7 +102,7 @@ static const uint8_t cmac_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0x6F, 0xD5, 0x72, 0xE5, 0xD5, 0x9E, 0x61, 0x88, 0x75, 0xF1, 0x93, 0x48, 0x4F, 0x91, 0x78, 0xFB },
 };
 
-// ANSI X9.24-1:2009 Supplement Test Vectors for AES-128 BDK (first eight data encryption keys; middle of page 2)
+// ANSI X9.24-3:2017 Supplement Test Vectors for AES-128 BDK (first eight data encryption keys; middle of page 2)
 static const uint8_t data_aes128_key_verify[][DUKPT_AES_KEY_LEN(AES128)] = {
 	{ 0xA3, 0x5C, 0x41, 0x2E, 0xFD, 0x41, 0xFD, 0xB9, 0x8B, 0x69, 0x79, 0x7C, 0x02, 0xDC, 0xD0, 0x8F },
 	{ 0xD6, 0x39, 0x51, 0x4A, 0xA3, 0x3A, 0xC4, 0x3A, 0xD9, 0x22, 0x9E, 0x43, 0x3D, 0x6D, 0x4E, 0x5B },
@@ -417,7 +417,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -428,7 +428,7 @@ int main(void)
 			cmac_aes128_key_verify[i],
 			sizeof(cmac_aes128_key_verify[i]),
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -441,7 +441,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -458,7 +458,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -471,7 +471,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_AES128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			cmac
 		);
 		if (r) {
@@ -486,7 +486,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {
@@ -501,7 +501,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {
@@ -516,7 +516,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {
@@ -531,7 +531,7 @@ int main(void)
 			ksn,
 			DUKPT_AES_KEY_TYPE_HMAC128,
 			txn_data,
-			sizeof(txn_data),
+			strlen(txn_data),
 			hmac
 		);
 		if (r) {
@@ -603,7 +603,7 @@ int main(void)
 		}
 
 		// Test AES128 response encryption
-		// NOTE: Unfortunately X9.24-1:2017 does not provide test vectors for
+		// NOTE: Unfortunately X9.24-3:2017 does not provide test vectors for
 		// the transaction response data encryption key nor samples of the
 		// encrypted transaction response data
 		memset(iv, 0, sizeof(iv));

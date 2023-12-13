@@ -425,7 +425,7 @@ int main(void)
 		}
 
 		// Test request MAC
-		r = dukpt_tdes_generate_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_generate_request_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_compute_request_mac() failed; r=%d\n", r);
 			goto exit;
@@ -437,14 +437,14 @@ int main(void)
 			r = 1;
 			goto exit;
 		}
-		r = dukpt_tdes_verify_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_verify_request_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_verify_request_mac() failed; r=%d\n", r);
 			goto exit;
 		}
 
 		// Test response MAC
-		r = dukpt_tdes_generate_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_generate_response_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_compute_response_mac() failed; r=%d\n", r);
 			goto exit;
@@ -456,7 +456,7 @@ int main(void)
 			r = 1;
 			goto exit;
 		}
-		r = dukpt_tdes_verify_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_verify_response_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_verify_response_mac() failed; r=%d\n", r);
 			goto exit;
@@ -570,7 +570,7 @@ int main(void)
 		}
 
 		// Test request MAC
-		r = dukpt_tdes_generate_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_generate_request_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_compute_request_mac() failed; r=%d\n", r);
 			goto exit;
@@ -582,14 +582,14 @@ int main(void)
 			r = 1;
 			goto exit;
 		}
-		r = dukpt_tdes_verify_request_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_verify_request_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_verify_request_mac() failed; r=%d\n", r);
 			goto exit;
 		}
 
 		// Test response MAC
-		r = dukpt_tdes_generate_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_generate_response_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_compute_response_mac() failed; r=%d\n", r);
 			goto exit;
@@ -601,7 +601,7 @@ int main(void)
 			r = 1;
 			goto exit;
 		}
-		r = dukpt_tdes_verify_response_mac(txn_key, txn_data, sizeof(txn_data), mac);
+		r = dukpt_tdes_verify_response_mac(txn_key, txn_data, strlen(txn_data), mac);
 		if (r) {
 			fprintf(stderr, "dukpt_tdes_verify_response_mac() failed; r=%d\n", r);
 			goto exit;
