@@ -916,6 +916,138 @@ exit:
 	return r;
 }
 
+int dukpt_tdes_generate_request_cmac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+)
+{
+	int r;
+	uint8_t mac_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive request MAC key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(mac_key, txn_key, DUKPT_TDES_KEY_LEN);
+	mac_key[6] ^= 0xFF;
+	mac_key[14] ^= 0xFF;
+
+	// Generate TDES-CMAC
+	r = crypto_tdes_cmac(mac_key, sizeof(mac_key), buf, buf_len, cmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	crypto_cleanse(cmac, DUKPT_TDES_CMAC_LEN);
+exit:
+	crypto_cleanse(mac_key, sizeof(mac_key));
+
+	return r;
+}
+
+int dukpt_tdes_verify_request_cmac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
+)
+{
+	int r;
+	uint8_t cmac_verify[DUKPT_TDES_CMAC_LEN];
+
+	r = dukpt_tdes_generate_request_cmac(txn_key, buf, buf_len, cmac_verify);
+	if (r) {
+		goto error;
+	}
+
+	if (crypto_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	crypto_cleanse(cmac_verify, sizeof(cmac_verify));
+
+	return r;
+}
+
+int dukpt_tdes_generate_response_cmac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+)
+{
+	int r;
+	uint8_t mac_key[DUKPT_TDES_KEY_LEN];
+
+	// Derive response MAC key variant
+	// See ANSI X9.24-1:2009 A.4.1, table A-1
+	// See ANSI X9.24-3:2017 C.5.2, table 5
+	memcpy(mac_key, txn_key, DUKPT_TDES_KEY_LEN);
+	mac_key[4] ^= 0xFF;
+	mac_key[12] ^= 0xFF;
+
+	// Generate TDES-CMAC
+	r = crypto_tdes_cmac(mac_key, sizeof(mac_key), buf, buf_len, cmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	crypto_cleanse(cmac, DUKPT_TDES_CMAC_LEN);
+exit:
+	crypto_cleanse(mac_key, sizeof(mac_key));
+
+	return r;
+}
+
+int dukpt_tdes_verify_response_cmac(
+	const void* txn_key,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
+)
+{
+	int r;
+	uint8_t cmac_verify[DUKPT_TDES_CMAC_LEN];
+
+	r = dukpt_tdes_generate_response_cmac(txn_key, buf, buf_len, cmac_verify);
+	if (r) {
+		goto error;
+	}
+
+	if (crypto_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	crypto_cleanse(cmac_verify, sizeof(cmac_verify));
+
+	return r;
+}
+
 int dukpt_tdes_encrypt_request(
 	const void* txn_key,
 	const void* iv,
