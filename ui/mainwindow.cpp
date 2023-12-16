@@ -449,7 +449,7 @@ void MainWindow::updateMacKeyTypes(dukpt_ui_mode_t mode)
 	// Build MAC key type based on mode
 	macKeyTypeComboBox->clear();
 	if (mode == DUKPT_UI_MODE_TDES) {
-		macKeyTypeComboBox->addItem("ANSI X9.19 Retail MAC (128-bit)");
+		macKeyTypeComboBox->addItem("Double length TDES (128-bit)");
 		macKeyTypeComboBox->setEnabled(false);
 	} else if (mode == DUKPT_UI_MODE_AES) {
 		// TODO: only show options that are <= input key length
@@ -614,6 +614,8 @@ void MainWindow::updateMacActions(dukpt_ui_mode_t mode)
 	if (mode == DUKPT_UI_MODE_TDES) {
 		macActionComboBox->addItem("MAC request", DUKPT_UI_MAC_ACTION_RETAIL_MAC_REQUEST);
 		macActionComboBox->addItem("MAC response", DUKPT_UI_MAC_ACTION_RETAIL_MAC_RESPONSE);
+		macActionComboBox->addItem("CMAC request", DUKPT_UI_MAC_ACTION_CMAC_REQUEST);
+		macActionComboBox->addItem("CMAC response", DUKPT_UI_MAC_ACTION_CMAC_RESPONSE);
 	} else if (mode == DUKPT_UI_MODE_AES) {
 		macActionComboBox->addItem("CMAC request", DUKPT_UI_MAC_ACTION_CMAC_REQUEST);
 		macActionComboBox->addItem("CMAC response", DUKPT_UI_MAC_ACTION_CMAC_RESPONSE);
@@ -1305,6 +1307,28 @@ void MainWindow::on_macPushButton_clicked()
 
 				logVector("Response MAC: ", output);
 				logSuccess("Response MAC successful");
+				return;
+
+			case DUKPT_UI_MAC_ACTION_CMAC_REQUEST:
+				output = cmacRequest(txnKey);
+				if (output.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Request CMAC: ", output);
+				logSuccess("Request CMAC successful");
+				return;
+
+			case DUKPT_UI_MAC_ACTION_CMAC_RESPONSE:
+				output = cmacResponse(txnKey);
+				if (output.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Response CMAC: ", output);
+				logSuccess("Response CMAC successful");
 				return;
 
 			default:
@@ -2556,83 +2580,129 @@ std::vector<std::uint8_t> MainWindow::macResponse(const std::vector<std::uint8_t
 std::vector<std::uint8_t> MainWindow::cmacRequest(const std::vector<std::uint8_t>& txnKey)
 {
 	int r;
-	dukpt_aes_key_type_t key_type;
 	std::vector<std::uint8_t> cmac;
 
-	if (macKeyType != DUKPT_UI_KEY_TYPE_AES128 &&
-		macKeyType != DUKPT_UI_KEY_TYPE_AES192 &&
-		macKeyType != DUKPT_UI_KEY_TYPE_AES256
-	) {
-		logError("CMAC computation is only allowed for AES working keys");
-		return {};
+	if (mode == DUKPT_UI_MODE_TDES) {
+		// TDES-CMAC length
+		cmac.resize(DUKPT_TDES_CMAC_LEN);
+
+		// Do it
+		r = dukpt_tdes_generate_request_cmac(
+			txnKey.data(),
+			macData.data(),
+			macData.size(),
+			cmac.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_generate_request_cmac() failed; r=%d\n", r));
+			return {};
+		}
+
+		return cmac;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		if (macKeyType != DUKPT_UI_KEY_TYPE_AES128 &&
+			macKeyType != DUKPT_UI_KEY_TYPE_AES192 &&
+			macKeyType != DUKPT_UI_KEY_TYPE_AES256
+		) {
+			logError("CMAC computation is only allowed for AES working keys");
+			return {};
+		}
+
+		// AES-CMAC length
+		cmac.resize(DUKPT_AES_CMAC_LEN);
+
+		r = prepareCmacKeyType(macKeyType);
+		if (r < 0) {
+			return {};
+		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+		// Do it
+		r = dukpt_aes_generate_request_cmac(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			macData.data(),
+			macData.size(),
+			cmac.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_generate_request_cmac() failed; r=%d\n", r));
+			return {};
+		}
+
+		return cmac;
 	}
 
-	r = prepareCmacKeyType(macKeyType);
-	if (r < 0) {
-		return {};
-	}
-	key_type = static_cast<dukpt_aes_key_type_t>(r);
-
-	// AES-CMAC length
-	cmac.resize(DUKPT_AES_CMAC_LEN);
-
-	// Do it
-	r = dukpt_aes_generate_request_cmac(
-		txnKey.data(),
-		txnKey.size(),
-		ksn.data(),
-		key_type,
-		macData.data(),
-		macData.size(),
-		cmac.data()
-	);
-	if (r) {
-		logError(QString::asprintf("dukpt_aes_generate_request_cmac() failed; r=%d\n", r));
-		return {};
-	}
-
-	return cmac;
+	return {};
 }
 
 std::vector<std::uint8_t> MainWindow::cmacResponse(const std::vector<std::uint8_t>& txnKey)
 {
 	int r;
-	dukpt_aes_key_type_t key_type;
 	std::vector<std::uint8_t> cmac;
 
-	if (macKeyType != DUKPT_UI_KEY_TYPE_AES128 &&
-		macKeyType != DUKPT_UI_KEY_TYPE_AES192 &&
-		macKeyType != DUKPT_UI_KEY_TYPE_AES256
-	) {
-		logError("CMAC computation is only allowed for AES working keys");
-		return {};
+	if (mode == DUKPT_UI_MODE_TDES) {
+		// TDES-CMAC length
+		cmac.resize(DUKPT_TDES_CMAC_LEN);
+
+		// Do it
+		r = dukpt_tdes_generate_response_cmac(
+			txnKey.data(),
+			macData.data(),
+			macData.size(),
+			cmac.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_tdes_generate_response_cmac() failed; r=%d\n", r));
+			return {};
+		}
+
+		return cmac;
+
+	} else if (mode == DUKPT_UI_MODE_AES) {
+		dukpt_aes_key_type_t key_type;
+
+		if (macKeyType != DUKPT_UI_KEY_TYPE_AES128 &&
+			macKeyType != DUKPT_UI_KEY_TYPE_AES192 &&
+			macKeyType != DUKPT_UI_KEY_TYPE_AES256
+		) {
+			logError("CMAC computation is only allowed for AES working keys");
+			return {};
+		}
+
+		// AES-CMAC length
+		cmac.resize(DUKPT_AES_CMAC_LEN);
+
+		r = prepareCmacKeyType(macKeyType);
+		if (r < 0) {
+			return {};
+		}
+		key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+		// Do it
+		r = dukpt_aes_generate_response_cmac(
+			txnKey.data(),
+			txnKey.size(),
+			ksn.data(),
+			key_type,
+			macData.data(),
+			macData.size(),
+			cmac.data()
+		);
+		if (r) {
+			logError(QString::asprintf("dukpt_aes_generate_response_cmac() failed; r=%d\n", r));
+			return {};
+		}
+
+		return cmac;
 	}
 
-	r = prepareCmacKeyType(macKeyType);
-	if (r < 0) {
-		return {};
-	}
-	key_type = static_cast<dukpt_aes_key_type_t>(r);
-
-	// AES-CMAC length
-	cmac.resize(DUKPT_AES_CMAC_LEN);
-
-	// Do it
-	r = dukpt_aes_generate_response_cmac(
-		txnKey.data(),
-		txnKey.size(),
-		ksn.data(),
-		key_type,
-		macData.data(),
-		macData.size(),
-		cmac.data()
-	);
-	if (r) {
-		logError(QString::asprintf("dukpt_aes_generate_response_cmac() failed; r=%d\n", r));
-		return {};
-	}
-
-	return cmac;
+	return {};
 }
 
 std::vector<std::uint8_t> MainWindow::hmacRequest(const std::vector<std::uint8_t>& txnKey)
