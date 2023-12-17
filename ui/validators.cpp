@@ -249,3 +249,53 @@ QValidator::State DukptKsnStringValidator::validate(QString& input, int& pos) co
 
 	return Acceptable;
 }
+
+void CryptoKbpkStringValidator::setFormatVersion(FormatVersion fv)
+{
+	if (fv != formatVersion) {
+		formatVersion = fv;
+		emit formatVersionChanged(fv);
+		emit changed();
+	}
+}
+
+QValidator::State CryptoKbpkStringValidator::validate(QString& input, int& pos) const
+{
+	State state;
+	unsigned int dataLength;
+
+	// Ensure that input is a hex string
+	state = HexStringValidator::validate(input, pos);
+	if (state != Acceptable) {
+		return state;
+	}
+
+	dataLength = input.length() / 2;
+
+	// Ensure that data length is a valid key size
+	switch (formatVersion) {
+		case B:
+			// Format version B only allows TDES KBPKs
+			if (dataLength && // Empty string is allowed
+				dataLength != 16 && // Double length TDES
+				dataLength != 24 // Triple length TDES
+			) {
+				return Intermediate;
+			}
+			break;
+
+		case D:
+		case E:
+			// Format version D and E only allow AES KBPKs
+			if (dataLength && // Empty string is allowed
+				dataLength != 16 && // AES-128
+				dataLength != 24 && // AES-192
+				dataLength != 32 // AES-256
+			) {
+				return Intermediate;
+			}
+		break;
+	}
+
+	return Acceptable;
+}

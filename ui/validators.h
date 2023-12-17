@@ -95,6 +95,9 @@ public slots:
 
 signals:
 	void cipherChanged(Cipher cipher);
+
+public:
+	State validate(QString& input, int& pos) const = 0;
 };
 
 class CryptoKeyStringValidator : public CryptoValidator
@@ -151,6 +154,38 @@ public:
 	: CryptoValidator(cipher, parent)
 	{}
 	Q_DISABLE_COPY(DukptKsnStringValidator)
+
+public:
+	State validate(QString& input, int& pos) const override;
+};
+
+class CryptoKbpkStringValidator : public HexStringValidator
+{
+	Q_OBJECT
+
+public:
+	enum FormatVersion {
+		B,
+		D,
+		E,
+	};
+	Q_ENUM(FormatVersion)
+
+protected:
+	FormatVersion formatVersion;
+
+public:
+	CryptoKbpkStringValidator(FormatVersion formatVersion, QObject* parent = nullptr)
+	: HexStringValidator(parent),
+	  formatVersion(formatVersion)
+	{}
+	Q_DISABLE_COPY(CryptoKbpkStringValidator)
+
+public slots:
+	void setFormatVersion(FormatVersion fv);
+
+signals:
+	void formatVersionChanged(FormatVersion FormatVersion);
 
 public:
 	State validate(QString& input, int& pos) const override;

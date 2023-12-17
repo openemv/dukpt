@@ -43,6 +43,8 @@ MainWindow::MainWindow(QWidget* parent)
 	keyValidator->setObjectName("keyValidator");
 	ksnValidator = new DukptKsnStringValidator(CryptoValidator::TDES, this);
 	ksnValidator->setObjectName("ksnValidator");
+	kbpkValidator = new CryptoKbpkStringValidator(CryptoKbpkStringValidator::B, this);
+	kbpkValidator->setObjectName("kbpkValidator");
 	blockValidator = new CryptoHexStringValidator(CryptoValidator::TDES, 1, this);
 	blockValidator->setObjectName("blockValidator");
 	pinValidator = new DecStringValidator(4, 12, this);
@@ -60,7 +62,7 @@ MainWindow::MainWindow(QWidget* parent)
 	setWindowTitle(windowTitle().append(QString(" (" DUKPT_UI_VERSION_STRING ")")));
 	inputKeyEdit->setValidator(keyValidator);
 	ksnEdit->setValidator(ksnValidator);
-	kbpkEdit->setValidator(keyValidator);
+	kbpkEdit->setValidator(kbpkValidator);
 	pinEdit->setValidator(pinValidator);
 	panEdit->setValidator(panValidator);
 	// dataEdit->setValidator(dataValidator); // see updateValidationStyleSheet()
@@ -804,6 +806,22 @@ void MainWindow::on_outputFormatComboBox_currentIndexChanged(int index)
 		tr31KpCheckBox->setEnabled(true);
 		tr31LbCheckBox->setEnabled(true);
 		tr31TsCheckBox->setEnabled(true);
+
+		// Update validators
+		switch (outputFormat) {
+			case DUKPT_UI_OUTPUT_FORMAT_TR31_B:
+				kbpkValidator->setFormatVersion(CryptoKbpkStringValidator::B);
+				break;
+
+			case DUKPT_UI_OUTPUT_FORMAT_TR31_D:
+				kbpkValidator->setFormatVersion(CryptoKbpkStringValidator::D);
+				break;
+
+			case DUKPT_UI_OUTPUT_FORMAT_TR31_E:
+				kbpkValidator->setFormatVersion(CryptoKbpkStringValidator::E);
+				break;
+		}
+
 	} else {
 		kbpkEdit->clear();
 		kbpkEdit->setEnabled(false);
