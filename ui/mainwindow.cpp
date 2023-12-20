@@ -525,9 +525,11 @@ void MainWindow::updateOutputFormats(dukpt_ui_mode_t mode)
 		derivationAction == DUKPT_UI_DERIVATION_ACTION_IK
 	) {
 		if (mode == DUKPT_UI_MODE_TDES) {
-			outputFormatComboBox->addItem("TR-31 format version B", DUKPT_UI_OUTPUT_FORMAT_TR31_B);
+			outputFormatComboBox->addItem("ANSI X9.143 / TR-31 format version B", DUKPT_UI_OUTPUT_FORMAT_TR31_B);
+			outputFormatComboBox->addItem("ANSI X9.143 / TR-31 format version D", DUKPT_UI_OUTPUT_FORMAT_TR31_D);
+			outputFormatComboBox->addItem("ISO 20038 format version E", DUKPT_UI_OUTPUT_FORMAT_TR31_E);
 		} else if (mode == DUKPT_UI_MODE_AES) {
-			outputFormatComboBox->addItem("TR-31 format version D", DUKPT_UI_OUTPUT_FORMAT_TR31_D);
+			outputFormatComboBox->addItem("ANSI X9.143 / TR-31 format version D", DUKPT_UI_OUTPUT_FORMAT_TR31_D);
 			outputFormatComboBox->addItem("ISO 20038 format version E", DUKPT_UI_OUTPUT_FORMAT_TR31_E);
 		} else {
 			// Unknown mode
@@ -985,13 +987,16 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 				return;
 			}
 
-			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B) {
+			if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B ||
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_D ||
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_E
+			) {
 				QString keyBlock = exportTr31(TR31_KEY_USAGE_DUKPT_IK, ik, tr31Settings);
 				if (keyBlock.isEmpty()) {
 					logFailure("Action failed");
 					return;
 				}
-				keyBlock.prepend("TR-31: ");
+				keyBlock.prepend("Key block: ");
 				logInfo(std::move(keyBlock));
 			} else if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_HEX) {
 				logVector("IK: ", ik);
@@ -1059,7 +1064,7 @@ void MainWindow::on_keyDerivationPushButton_clicked()
 					logFailure("Action failed");
 					return;
 				}
-				keyBlock.prepend("TR-31: ");
+				keyBlock.prepend("Key block: ");
 				logInfo(std::move(keyBlock));
 			} else if (outputFormat == DUKPT_UI_OUTPUT_FORMAT_HEX) {
 				logVector("IK: ", ik);
@@ -1799,12 +1804,16 @@ bool MainWindow::outputTr31InputKey(const Tr31Settings& settings)
 		return false;
 	}
 
-	// TDES mode should only allow TR-31 format version B
+	// TDES mode should allow TR-31 format version B, D and E
 	// AES mode should only allow TR-31 format version D and E
 	if (
 		(
 			mode == DUKPT_UI_MODE_TDES &&
-			outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B
+			(
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_B ||
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_D ||
+				outputFormat == DUKPT_UI_OUTPUT_FORMAT_TR31_E
+			)
 		) ||
 		(
 			mode == DUKPT_UI_MODE_AES &&
@@ -1819,7 +1828,7 @@ bool MainWindow::outputTr31InputKey(const Tr31Settings& settings)
 			// exportTr31() will print error message
 			return false;
 		}
-		keyBlock.prepend("TR-31: ");
+		keyBlock.prepend("Key block: ");
 		logInfo(std::move(keyBlock));
 		return true;
 	}
@@ -1960,7 +1969,7 @@ QString MainWindow::exportTr31(
 					break;
 
 				case TR31_KEY_USAGE_DUKPT_IK:
-					// Add optional block KS. For AES DUKPT, this will always be
+					// Add optional block IK. For AES DUKPT, this will always be
 					// the Initial Key ID of 8 bytes and not the whole KSN.
 					// See ANSI X9.143:2021, 6.3.6.6, table 14
 					r = tr31_opt_block_add_IK(
