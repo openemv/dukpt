@@ -10,7 +10,7 @@ name: Ubuntu build
 on: [push]
 
 env:
-  TR31_VERSION: 0.5.1
+  TR31_VERSION: 0.5.2
 
 jobs:
   build-ubuntu-debug:
