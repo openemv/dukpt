@@ -1801,6 +1801,7 @@ QString MainWindow::exportTr31(
 	scoped_tr31_ctx tr31_ctx;
 	unsigned int kbpk_algorithm;
 	scoped_tr31_key kbpk_obj;
+	uint32_t export_flags;
 	char key_block[1024];
 
 	if (settings.kbpk.empty()) {
@@ -1817,6 +1818,7 @@ QString MainWindow::exportTr31(
 			key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
 			key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 			key.exportability = TR31_KEY_EXPORT_TRUSTED;
+			key.key_context = TR31_KEY_CONTEXT_NONE;
 			break;
 
 		case TR31_KEY_USAGE_DUKPT_IK:
@@ -1826,6 +1828,7 @@ QString MainWindow::exportTr31(
 			key.mode_of_use = TR31_KEY_MODE_OF_USE_DERIVE;
 			key.key_version = TR31_KEY_VERSION_IS_UNUSED;
 			key.exportability = TR31_KEY_EXPORT_NONE;
+			key.key_context = TR31_KEY_CONTEXT_NONE;
 			break;
 
 		default:
@@ -2071,6 +2074,7 @@ QString MainWindow::exportTr31(
 		TR31_KEY_MODE_OF_USE_ENC_DEC,
 		"00",
 		TR31_KEY_EXPORT_NONE,
+		TR31_KEY_CONTEXT_NONE,
 		kbpk.data(),
 		kbpk.size(),
 		kbpk_obj.get()
@@ -2088,11 +2092,19 @@ QString MainWindow::exportTr31(
 	// length obfuscation.
 	// This matches the behaviour of dukpt-tool.
 	if (tr31_version == TR31_VERSION_E) {
-		tr31_ctx->export_flags = TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION | TR31_EXPORT_ZERO_OPT_BLOCK_PB;
+		export_flags = TR31_EXPORT_NO_KEY_LENGTH_OBFUSCATION | TR31_EXPORT_ZERO_OPT_BLOCK_PB;
+	} else {
+		export_flags = 0;
 	}
 
 	// Export TR-31 key block
-	r = tr31_export(tr31_ctx.get(), kbpk_obj.get(), key_block, sizeof(key_block));
+	r = tr31_export(
+		tr31_ctx.get(),
+		kbpk_obj.get(),
+		export_flags,
+		key_block,
+		sizeof(key_block)
+	);
 	if (r) {
 		logError(QString::asprintf("TR-31 export error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 		return QString();
