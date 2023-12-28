@@ -97,6 +97,8 @@ elseif (NOT TARGET pinblock)
 	message(FATAL_ERROR "Parent project must provide pinblock library for static builds")
 endif()
 
+# Set minimum tr31 version before adding subdirectories
+set(TR31_MIN_VERSION 0.6.0 CACHE INTERNAL "Minimum tr31 version")
 add_subdirectory(src)
 add_subdirectory(test)
 
@@ -112,7 +114,7 @@ else()
 		message(STATUS "Could NOT find Qt5 Widgets: skipping dukpt-ui build")
 	endif()
 endif()
-find_package(tr31 0.5.1 QUIET)
+find_package(tr31 ${TR31_MIN_VERSION} QUIET)
 if(NOT tr31_FOUND)
 	if(BUILD_DUKPT_UI)
 		message(FATAL_ERROR "Could NOT find tr31; required to build dukpt-ui")

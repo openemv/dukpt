@@ -44,8 +44,7 @@ if(NOT argp_FOUND)
 	endif()
 endif()
 
-# Check for tr31 but don't be verbose if it cannot be found
-set(TR31_MIN_VERSION 0.5.1)
+# Check for tr31 using TR31_MIN_VERSION provided by the parent scope
 find_package(tr31 ${TR31_MIN_VERSION} CONFIG)
 if(BUILD_DUKPT_TOOL AND tr31_FOUND)
 	# The DUKPT_CONFIG_PACKAGE_DEPENDENCIES variable is set for the parent scope
