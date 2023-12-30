@@ -152,7 +152,7 @@ configure_package_config_file(cmake/dukptConfig.cmake.in
 )
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/dukptConfigVersion.cmake"
-	COMPATIBILITY AnyNewerVersion
+	COMPATIBILITY SameMajorVersion
 )
 install(FILES
 	"${CMAKE_CURRENT_BINARY_DIR}/cmake/dukptConfig.cmake"
