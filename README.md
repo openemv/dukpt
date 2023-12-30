@@ -60,10 +60,11 @@ Dependencies
 * `dukpt-tool` can _optionally_ use [tr31](https://github.com/openemv/tr31) if
   available at build-time (either install a release build or use `tr31_DIR` to
   find a local build)
-* `dukpt-ui` can _optionally_ be built if both [Qt5](https://www.qt.io/) and
-  [tr31](https://github.com/openemv/tr31) are available at build-time. If
-  either are not available, `dukpt-ui` will not be built. Use the
-  `BUILD_DUKPT_UI` option to ensure that `dukpt-ui` will be built.
+* `dukpt-ui` can _optionally_ be built if [Qt](https://www.qt.io/) (see
+  [Qt](#qt) for details) as well as [tr31](https://github.com/openemv/tr31) are
+  available at build-time. If either are not available, `dukpt-ui` will not be
+  built. Use the `BUILD_DUKPT_UI` option to ensure that `dukpt-ui` will be
+  built.
 * [Doxygen](https://github.com/doxygen/doxygen) can _optionally_ be used to
   generate API documentation if it is available; see
   [Documentation](#documentation)
@@ -152,6 +153,20 @@ cmake --build build &&
 cmake --build build --target package
 ```
 
+Qt
+--
+
+This project supports Qt 5.12.x, Qt 5.15.x, Qt 6.5.x and Qt 6.6.x (although it
+may be possible to use other versions of Qt) when building the `dukpt-ui`
+application. However, on some platforms it may be necessary to use the `QT_DIR`
+option (and not the `Qt5_DIR` nor `Qt6_DIR` options) or `CMAKE_PREFIX_PATH`
+option to specify the exact Qt installation to be used. For Qt6 it may also be
+necessary for the Qt tools to be available in the executable PATH regardless of
+the `QT_DIR` option.
+
+If the Qt installation does not provide universal binaries for MacOS, it will
+not be possible to build `dukpt-ui` as a universal binary for MacOS.
+
 MacOS / Windows
 ---------------
 
@@ -170,12 +185,8 @@ cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_BUILD_TYPE="RelW
 cmake --build build
 ```
 
-Note that it may also be necessary to use the `Qt5_DIR` option to specify the
-Qt installation to be used. If the Qt installation does not provide universal
-binaries, it will not be possible to build `dukpt-ui` as a universal binary.
-
 On MacOS, a bundle can also be built using the `BUILD_MACOSX_BUNDLE` option and
-packaged as a DMG installer. Assuming `tr31_DIR` and `Qt5_DIR` are already
+packaged as a DMG installer. Assuming `tr31_DIR` and `QT_DIR` are already
 appropriately set, this is an example of how a self-contained, static, native
 bundle and isntaller can be built from scratch for MacOS:
 ```

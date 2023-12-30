@@ -52,14 +52,24 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-ninja
           mingw-w64-${{matrix.env}}-github-cli
-          mingw-w64-${{matrix.env}}-qt5-base
-          mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Install MbedTLS
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
         pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-mbedtls
         echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
+
+    - name: Install Qt5
+      # MSYS2 doesn't support Qt6 for i686
+      if: ${{ contains(matrix.deps, 'qt') && matrix.env == 'i686' }}
+      run: |
+        pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-qt5-base mingw-w64-${{matrix.env}}-qt5-tools
+
+    - name: Install Qt6
+      # MSYS2 doesn't support Qt6 for i686
+      if: ${{ contains(matrix.deps, 'qt') && matrix.env != 'i686' }}
+      run: |
+        pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-qt6-base mingw-w64-${{matrix.env}}-qt6-tools
 
     - name: Build TR-31 dependency
       if: contains(matrix.deps, 'tr31')
@@ -97,7 +107,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: ucrt64, env: ucrt-x86_64, build_type: "RelWithDebInfo" }
+          - { sys: mingw64, env: x86_64, build_type: "RelWithDebInfo" }
 
     name: Windows MSYS2 ${{matrix.sys}} build (release)
 
@@ -126,14 +136,15 @@ jobs:
           mingw-w64-${{matrix.env}}-github-cli
           mingw-w64-${{matrix.env}}-nsis
 
-    - name: Install Qt
+    - name: Install Qt6
       uses: jurplel/install-qt-action@v3
       with:
-        version: 5.15.*
+        version: 6.5.*
         host: windows
         target: desktop
-        arch: win64_mingw81
-        archives: qtbase qttools
+        arch: win64_mingw
+        archives: qtbase qttools MinGW
+        cache: true
 
     - name: Build TR-31 dependency
       run: |
@@ -155,6 +166,9 @@ jobs:
 
     - name: Configure CMake
       run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=YES -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -Dtr31_DIR=${{ env.TR31_DIR }}
+      # CMake will only accept Windows paths if they are environment variables, not CMake command line cache entries
+      env:
+        CMAKE_PREFIX_PATH: ${{ env.Qt6_DIR }}
 
     - name: Build
       run: cmake --build build

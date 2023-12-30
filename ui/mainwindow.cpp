@@ -674,9 +674,9 @@ void MainWindow::logDigitVector(QString&& str, std::vector<std::uint8_t> v)
 {
 	for (auto&& digit : v) {
 		if (digit <= 9) {
-			str += '0' + digit;
+			str += QChar::fromLatin1('0' + digit);
 		} else {
-			str += '?';
+			str += QChar::fromLatin1('?');
 		}
 	}
 	log(DUKPT_LOG_INFO, qUtf8Printable(str));
