@@ -2,7 +2,7 @@
  * @file scoped_struct.h
  * @brief Helper template for scoped structures on a function stack
  *
- * Copyright (c) 2022 Leon Lynch
+ * Copyright 2022 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

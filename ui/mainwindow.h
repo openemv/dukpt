@@ -2,7 +2,7 @@
  * @file mainwindow.h
  * @brief Main window of DUKPT User Interface
  *
- * Copyright (c) 2022, 2023 Leon Lynch
+ * Copyright 2022-2023 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright (c) 2022, 2023 Leon Lynch
+# Copyright 2022-2023 Leon Lynch
 #
 # This file is licensed under the terms of the GPL v3 license.
 # See LICENSE file.
@@ -99,7 +99,7 @@ if(APPLE AND BUILD_MACOSX_BUNDLE)
 			MACOSX_BUNDLE_BUNDLE_NAME Dukpt
 			MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION}
 			MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION}
-			MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2021, 2022 Leon Lynch"
+			MACOSX_BUNDLE_COPYRIGHT "Copyright 2021-2023 Leon Lynch"
 			MACOSX_BUNDLE_GUI_IDENTIFIER org.openemv.${CMAKE_PROJECT_NAME}
 			MACOSX_BUNDLE_ICON_FILE "openemv_dukpt.icns"
 			RESOURCE icons/openemv_dukpt.icns
