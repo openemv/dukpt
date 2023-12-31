@@ -64,7 +64,22 @@ configure_file(
 )
 
 # See https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html#supporting-older-qt-5-versions
-find_package(QT 5.12 NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+# Note that CMAKE_DISABLE_FIND_PACKAGE_<PackageName> only applies to the
+# primary package name and not the alternative names and therefore it is
+# necessary to build the list of alternative names to ensure that either Qt5 or
+# Qt6 can be disabled, otherwise CMAKE_DISABLE_FIND_PACKAGE_<PackageName> will
+# be ignored.
+if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt5)
+	list(APPEND Qt_NAMES Qt5)
+endif()
+if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt6)
+	list(APPEND Qt_NAMES Qt6)
+endif()
+if(NOT Qt_NAMES)
+	message(FATAL_ERROR "Either Qt5 or Qt6 are required to build dukpt-ui")
+endif()
+
+find_package(QT 5.12 NAMES ${Qt_NAMES} REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets PATHS ${QT_DIR})
 message(STATUS "Found Qt${QT_VERSION_MAJOR} Widgets: ${QT_CONFIG} (found suitable version \"${QT_VERSION}\")")
 if(QT_VERSION VERSION_LESS 5.15)

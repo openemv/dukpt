@@ -104,14 +104,34 @@ add_subdirectory(test)
 
 # If Qt::Widgets and tr31 are available, build dukpt-ui
 option(BUILD_DUKPT_UI "Build dukpt-ui")
-find_package(QT 5.12 NAMES Qt6 Qt5 COMPONENTS Widgets)
-if(QT_FOUND)
-	message(STATUS "Found Qt${QT_VERSION_MAJOR} Widgets: ${QT_CONFIG} (found suitable version \"${QT_VERSION}\")")
+# See https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html#supporting-older-qt-5-versions
+# Note that CMAKE_DISABLE_FIND_PACKAGE_<PackageName> only applies to the
+# primary package name and not the alternative names and therefore it is
+# necessary to build the list of alternative names to ensure that either Qt5 or
+# Qt6 can be disabled, otherwise CMAKE_DISABLE_FIND_PACKAGE_<PackageName> will
+# be ignored.
+if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt5)
+	list(APPEND Qt_NAMES Qt5)
+endif()
+if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt6)
+	list(APPEND Qt_NAMES Qt6)
+endif()
+if(Qt_NAMES)
+	find_package(QT 5.12 NAMES ${Qt_NAMES} COMPONENTS Widgets)
+	if(QT_FOUND)
+		message(STATUS "Found Qt${QT_VERSION_MAJOR} Widgets: ${QT_CONFIG} (found suitable version \"${QT_VERSION}\")")
+	else()
+		if(BUILD_DUKPT_UI)
+			message(FATAL_ERROR "Could NOT find Qt Widgets; required to build dukpt-ui")
+		else()
+			message(STATUS "Could NOT find Qt Widgets: skipping dukpt-ui build")
+		endif()
+	endif()
 else()
 	if(BUILD_DUKPT_UI)
-		message(FATAL_ERROR "Could NOT find Qt Widgets; required to build dukpt-ui")
+		message(FATAL_ERROR "Both Qt5 and Qt6 are disabled: required to build dukpt-ui")
 	else()
-		message(STATUS "Could NOT find Qt Widgets: skipping dukpt-ui build")
+		message(STATUS "Both Qt5 and Qt6 are disabled: skipping dukpt-ui build")
 	endif()
 endif()
 find_package(tr31 ${TR31_MIN_VERSION} QUIET)
