@@ -33,6 +33,9 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	add_compile_options($<$<CONFIG:Debug>:-ggdb>)
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb>)
 endif()
+if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+	add_compile_options(-Wall)
+endif()
 if(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
 	add_compile_options(-Wall)
 endif()
@@ -161,6 +164,11 @@ install(FILES
 include(CMakePackageConfigHelpers) # Provides CMake config generator macros
 # NOTE: crypto subdirectory provides CRYPTO_PACKAGE_DEPENDENCIES
 foreach(pkg IN LISTS CRYPTO_PACKAGE_DEPENDENCIES)
+	# Build dependency string for use in CMake config file
+	string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(${pkg})\n")
+endforeach()
+# NOTE: src subdirectory provides DUKPT_PACKAGE_DEPENDENCIES
+foreach(pkg IN LISTS DUKPT_PACKAGE_DEPENDENCIES)
 	# Build dependency string for use in CMake config file
 	string(APPEND DUKPT_CONFIG_PACKAGE_DEPENDENCIES "find_dependency(${pkg})\n")
 endforeach()
