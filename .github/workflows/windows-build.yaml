@@ -23,10 +23,10 @@ jobs:
           - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none", fetch_deps: NO, build_dukpt_ui: NO }
           - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
           - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
-          - { sys: mingw32, env: i686, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
-          - { sys: mingw32, env: i686, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
           - { sys: ucrt64, env: ucrt-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
           - { sys: ucrt64, env: ucrt-x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
+          - { sys: clang64, env: clang-x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
+          - { sys: clang64, env: clang-x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
 
     name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }}/${{ matrix.deps }})
 
@@ -36,7 +36,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -117,7 +117,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: recursive
@@ -180,7 +180,7 @@ jobs:
       run: cmake --build build --target package
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dukpt-${{ env.GIT_DESCRIBE }}-windows
         path: |
