@@ -85,12 +85,12 @@ Build
 This project uses CMake and can be built using the usual CMake steps.
 
 To generate the build system in the `build` directory, use:
-```
+```shell
 cmake -B build
 ```
 
 To build the project, use:
-```
+```shell
 cmake --build build
 ```
 
@@ -103,14 +103,14 @@ Testing
 The tests can be run using the `test` target of the generated build system.
 
 To run the tests using CMake, do:
-```
+```shell
 cmake --build build --target test
 ```
 
 Alternatively, [ctest](https://cmake.org/cmake/help/latest/manual/ctest.1.html)
 can be used directly which also allows actions such as `MemCheck` to be
 performed or the number of jobs to be set, for example:
-```
+```shell
 ctest --test-dir build -T MemCheck -j 10
 ```
 
@@ -121,7 +121,7 @@ If Doxygen was found by CMake, then HTML documentation can be generated using
 the `docs` target of the generated build system.
 
 To generate the documentation using CMake, do:
-```
+```shell
 cmake --build build --target docs
 ```
 
@@ -136,7 +136,7 @@ by CMake, packages can be created using the `package` target of the generated
 build system.
 
 To generate the packages using CMake, do:
-```
+```shell
 cmake --build build --target package
 ```
 
@@ -146,7 +146,7 @@ can be used directly from within the build directory (`build` in the above
 
 This is an example of how monolithic release packages can be built from
 scratch on Ubuntu or Fedora:
-```
+```shell
 rm -Rf build &&
 cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=YES -DBUILD_DOCS=YES -DCPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE &&
 cmake --build build &&
@@ -179,7 +179,7 @@ architectures using the `CMAKE_OSX_ARCHITECTURES` option.
 
 This is an example of how a self-contained, static, universal binary can be
 built from scratch for MacOS:
-```
+```shell
 rm -Rf build &&
 cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES &&
 cmake --build build
@@ -189,7 +189,7 @@ On MacOS, a bundle can also be built using the `BUILD_MACOSX_BUNDLE` option and
 packaged as a DMG installer. Assuming `tr31_DIR` and `QT_DIR` are already
 appropriately set, this is an example of how a self-contained, static, native
 bundle and isntaller can be built from scratch for MacOS:
-```
+```shell
 rm -Rf build &&
 cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES &&
 cmake --build build --target package
@@ -200,7 +200,7 @@ Usage
 
 The available command line options of the `dukpt-tool` application can be
 displayed using:
-```
+```shell
 dukpt-tool --help
 ```
 
@@ -208,14 +208,14 @@ To derive an initial key, specify the base derivation key using the `--bdk`
 option, specify the initial key serial number using the `--ksn` option, and
 use the `--derive-ik` option. For example (using test data examples from
 ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
-```
+```shell
 dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00000 --derive-ik
 ```
 
 To advance a key serial number, specify it using the `--ksn` option and use
 the `--advance-ksn` option. For example (using test data examples from
 ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
-```
+```shell
 dukpt-tool --ksn=FFFF9876543210EFFC00 --advance-ksn
 ```
 
@@ -224,14 +224,14 @@ the `--bdk` or `--ik` options, specify the key serial number using the `--ksn`
 option, and specify the provide the encrypted transaction request using the
 `--decrypt-request` option. For example (using test data examples from
 ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
-```
+```shell
 dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00002 --decrypt-request A2B4E70F846E63D68775B7215EB4563DFD3037244C61CC13
 ```
 
 To output raw bytes instead of hex digits to stdout, add the `--output-raw`
 option. This can then be piped to another tool. For example (using test data
 examples from ANSI X9.24-1:2009 Annex A.4 or ANSI X9.24-3:2017 Annex C.5):
-```
+```shell
 dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00002 --decrypt-request A2B4E70F846E63D68775B7215EB4563DFD3037244C61CC13 --output-raw | strings
 ```
 
@@ -241,7 +241,7 @@ the `--output-tr31` option and the desired key block format version using the
 `--output-tr31-format-version` option. In addition, a few optional header
 blocks can also be added using options such as `--output-tr31-with-ksn` and
 others. For example:
-```
+```shell
 dukpt-tool --bdk 0123456789ABCDEFFEDCBA9876543210 --ksn FFFF9876543210E00000 --derive-ik --output-tr31 1D22BF32387C600AD97F9B97A51311AC --output-tr31-format-version B --output-tr31-with-ksn --output-tr31-with-kc --output-tr31-with-kp --output-tr31-with-ts
 ```
 
@@ -253,7 +253,7 @@ Roadmap
 License
 -------
 
-Copyright 2021-2023 [Leon Lynch](https://github.com/leonlynch).
+Copyright 2021-2024 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license with the
 exception of `dukpt-ui` which is licensed under the terms of the GPL v3 license
