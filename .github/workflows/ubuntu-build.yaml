@@ -10,7 +10,7 @@ name: Ubuntu build
 on: [push]
 
 env:
-  TR31_VERSION: 0.6.0
+  TR31_VERSION: 0.6.1
 
 jobs:
   build-ubuntu-debug:
@@ -21,6 +21,7 @@ jobs:
           - { name: "Ubuntu 20.04", os: ubuntu-20.04, ubuntu_release_name: "focal", deps: "none", build_dukpt_ui: NO }
           - { name: "Ubuntu 20.04", os: ubuntu-20.04, ubuntu_release_name: "focal", deps: "tr31/qt", build_dukpt_ui: YES }
           - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { name: "Ubuntu 24.04", os: ubuntu-24.04, ubuntu_release_name: "noble", deps: "tr31/qt", build_dukpt_ui: YES }
 
     name: ${{ matrix.name }} build (static/debug/${{ matrix.deps }})
     runs-on: ${{ matrix.os }}
@@ -67,6 +68,7 @@ jobs:
         include:
           - { name: "Ubuntu 20.04", os: ubuntu-20.04, ubuntu_release_name: "focal" }
           - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy" }
+          - { name: "Ubuntu 24.04", os: ubuntu-24.04, ubuntu_release_name: "noble" }
 
     name: ${{ matrix.name }} build (release)
     runs-on: ${{ matrix.os }}
