@@ -1,8 +1,8 @@
 ##############################################################################
-# Copyright 2022-2023 Leon Lynch
+# Copyright 2022-2024 Leon Lynch
 #
 # This file is licensed under the terms of the GPL v3 license.
-# See LICENSE file.
+# See LICENSE.gpl file.
 ##############################################################################
 
 cmake_minimum_required(VERSION 3.16)
@@ -11,7 +11,7 @@ project(dukpt-ui
 	VERSION 1.2.1
 	DESCRIPTION "DUKPT User Interface using Qt"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
-	LANGUAGES C CXX
+	LANGUAGES CXX
 )
 
 # Determine whether this project is the top-level project
@@ -32,6 +32,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	add_compile_options(-Wall)
 	add_compile_options($<$<CONFIG:Debug>:-ggdb>)
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-ggdb>)
+endif()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	add_compile_options(-Wall)
 endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 	add_compile_options(-Wall)
