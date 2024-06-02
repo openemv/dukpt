@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>OpenEMV | dukpt-ui</string>
+   <string>OpenEMV | DUKPT User Interface</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -381,7 +381,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <customwidgets>
   <customwidget>
