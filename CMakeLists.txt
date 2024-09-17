@@ -120,6 +120,9 @@ if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt6)
 	list(APPEND Qt_NAMES Qt6)
 endif()
 if(Qt_NAMES)
+	# Searching for Qt requires CXX
+	enable_language(CXX)
+
 	find_package(QT 5.12 NAMES ${Qt_NAMES} COMPONENTS Widgets)
 	if(QT_FOUND)
 		message(STATUS "Found Qt${QT_VERSION_MAJOR} Widgets: ${QT_CONFIG} (found suitable version \"${QT_VERSION}\")")
