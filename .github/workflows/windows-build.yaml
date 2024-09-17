@@ -187,3 +187,11 @@ jobs:
             build/dukpt-*.tar.gz
             build/dukpt-*.exe
         if-no-files-found: error
+
+    - name: Upload build directory if failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: dukpt-${{ env.GIT_DESCRIBE }}-windows-build
+        path: ./
+        if-no-files-found: error
