@@ -24,7 +24,7 @@ icons_dir="$1"
 input_icon="$2"
 
 if [ ! -f "${input_icon}" ]; then
-	printf "${icons_dir}/${icon_src} does not exist!\n"
+	printf "${input_icon} does not exist!\n"
 	exit 1
 fi
 
