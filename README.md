@@ -19,7 +19,8 @@ licensing options.
 Features
 --------
 
-Currently these libraries only implement the host (direct) key derivations for
+These libraries implement the host (direct) key derivation algorithms as well
+as the transaction-originating device's key derivation algorithms for both
 TDES and AES DUKPT. In addition to key derivation, these libraries also
 implement the usage of the various working keys to ensure that the derivation
 data used for the working key derivation match the usage of the derived
@@ -32,7 +33,7 @@ Installation
   the appropriate [release package](https://github.com/openemv/dukpt/releases)
 * For Fedora 39 or Fedora 40, install the appropriate
   [release package](https://github.com/openemv/dukpt/releases)
-* For Gentoo, use  the
+* For Gentoo, use the
   [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the
   keywords and useflags as needed, and install using
   `emerge --verbose --ask dukpt`
@@ -188,7 +189,7 @@ cmake --build build
 On MacOS, a bundle can also be built using the `BUILD_MACOSX_BUNDLE` option and
 packaged as a DMG installer. Assuming `tr31_DIR` and `QT_DIR` are already
 appropriately set, this is an example of how a self-contained, static, native
-bundle and isntaller can be built from scratch for MacOS:
+bundle and installer can be built from scratch for MacOS:
 ```shell
 rm -Rf build &&
 cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES &&
