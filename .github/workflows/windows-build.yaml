@@ -21,12 +21,13 @@ jobs:
       matrix:
         include:
           - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none", fetch_deps: NO, build_dukpt_ui: NO }
-          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
-          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
-          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
-          - { sys: clang64, env: clang-x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt", fetch_deps: NO, build_dukpt_ui: YES }
-          - { sys: clang64, env: clang-x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt", fetch_deps: YES, build_dukpt_ui: YES }
+          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt6", fetch_deps: NO, build_dukpt_ui: YES }
+          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt5", fetch_deps: YES, build_dukpt_ui: YES }
+          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt5", fetch_deps: NO, build_dukpt_ui: YES }
+          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt6", fetch_deps: YES, build_dukpt_ui: YES }
+          # NOTE: Only test Qt6 for clang64 because Qt5's windeployqt does not support clang64
+          - { sys: clang64, env: clang-x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt6", fetch_deps: NO, build_dukpt_ui: YES }
+          - { sys: clang64, env: clang-x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt6", fetch_deps: YES, build_dukpt_ui: YES }
 
     name: Windows MSYS2 ${{matrix.sys}} build (${{ matrix.lib_type }}/${{ matrix.build_type }}/${{ matrix.deps }})
 
@@ -60,14 +61,12 @@ jobs:
         echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
 
     - name: Install Qt5
-      # MSYS2 doesn't support Qt6 for i686
-      if: ${{ contains(matrix.deps, 'qt') && matrix.env == 'i686' }}
+      if: contains(matrix.deps, 'qt5')
       run: |
         pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-qt5-base mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Install Qt6
-      # MSYS2 doesn't support Qt6 for i686
-      if: ${{ contains(matrix.deps, 'qt') && matrix.env != 'i686' }}
+      if: contains(matrix.deps, 'qt6')
       run: |
         pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-qt6-base mingw-w64-${{matrix.env}}-qt6-tools
 
@@ -92,7 +91,18 @@ jobs:
         git describe --always --dirty
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DFETCH_ARGP=YES -Dtr31_DIR=${{ env.TR31_DIR }} -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
+      run: |
+        cmake -G Ninja -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} \
+          -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} \
+          -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} \
+          -DFETCH_ARGP=YES \
+          -Dtr31_DIR=${{ env.TR31_DIR }} \
+          -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} \
+          -DCMAKE_DISABLE_FIND_PACKAGE_Qt5=${{ !contains(matrix.deps, 'qt5') && 'YES' || 'NO' }} \
+          -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=${{ !contains(matrix.deps, 'qt6') && 'YES' || 'NO' }} \
+          -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
       run: cmake --build build
@@ -165,7 +175,14 @@ jobs:
         echo "GIT_DESCRIBE=$(git describe --always --dirty)" >> $GITHUB_ENV
 
     - name: Configure CMake
-      run: cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=YES -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -Dtr31_DIR=${{ env.TR31_DIR }}
+      run: |
+        cmake -G Ninja -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DBUILD_SHARED_LIBS=YES \
+          -DFETCH_MBEDTLS=YES \
+          -DFETCH_ARGP=YES \
+          -Dtr31_DIR=${{ env.TR31_DIR }} \
+          -DBUILD_DUKPT_UI=YES
       # CMake will only accept Windows paths if they are environment variables, not CMake command line cache entries
       env:
         CMAKE_PREFIX_PATH: ${{ env.Qt6_DIR }}
