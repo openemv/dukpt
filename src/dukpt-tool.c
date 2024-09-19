@@ -113,7 +113,7 @@ static void output_buf(const void* buf, size_t length);
 
 // argp option keys
 enum dukpt_tool_option_t {
-	DUKPT_TOOL_OPTION_MODE = 1,
+	DUKPT_TOOL_OPTION_MODE = -255, // Negative value to avoid short options
 	DUKPT_TOOL_OPTION_KEY_TYPE,
 
 	DUKPT_TOOL_OPTION_BDK,
