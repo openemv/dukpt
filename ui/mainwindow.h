@@ -22,6 +22,7 @@
 #define DUKPT_UI_MAINWINDOW_H
 
 #include <QtWidgets/QMainWindow>
+#include <QtCore/QString>
 
 #include "ui_mainwindow.h"
 #include "validators.h"

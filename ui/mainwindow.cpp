@@ -20,15 +20,17 @@
 
 #include "mainwindow.h"
 #include "validators.h"
-#include "dukpt_ui_config.h"
 #include "scoped_struct.h"
 
 #include "dukpt_tdes.h"
 #include "dukpt_aes.h"
 #include "tr31.h"
 
+#include <QtCore/QStringLiteral>
+#include <QtCore/QString>
 #include <QtCore/QByteArray>
 #include <QtCore/QSettings>
+#include <QtWidgets/QApplication>
 #include <QtWidgets/QScrollBar>
 #include <QtGui/QTextCharFormat>
 #include <QtGui/QDesktopServices>
@@ -59,7 +61,7 @@ MainWindow::MainWindow(QWidget* parent)
 	// Setup UI widgets
 	setupUi(this);
 	setWindowIcon(QIcon(":icons/openemv_dukpt_512x512.png"));
-	setWindowTitle(windowTitle().append(QString(" (" DUKPT_UI_VERSION_STRING ")")));
+	setWindowTitle(windowTitle().append(QStringLiteral(" (") + qApp->applicationVersion() + QStringLiteral(")")));
 	inputKeyEdit->setValidator(keyValidator);
 	ksnEdit->setValidator(ksnValidator);
 	kbpkEdit->setValidator(kbpkValidator);
@@ -86,17 +88,18 @@ MainWindow::MainWindow(QWidget* parent)
 	dataActionComboBox->addItem("Decrypt response", DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE);
 
 	// Display copyright, license and disclaimer notice
-	outputText->appendHtml(
+	outputText->appendHtml(QStringLiteral(
 		"Copyright 2021-2023 <a href='https://github.com/leonlynch'>Leon Lynch</a><br/><br/>"
 		"<a href='https://github.com/openemv/dukpt'>This program</a> is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.<br/>"
 		"<a href='https://github.com/openemv/dukpt'>This program</a> is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.<br/>"
 		"See <a href='https://raw.githubusercontent.com/openemv/dukpt/master/ui/LICENSE.gpl'>LICENSE.gpl</a> file for more details.<br/><br/>"
 		"<a href='https://github.com/openemv/dukpt'>This program</a> uses various libraries including:<br/>"
-		"- <a href='https://github.com/Mbed-TLS/mbedtls'>MbedTLS</a> (licensed under <a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache License v2</a>)<br/>"
+		"- <a href='https://github.com/openemv/dukpt'>dukpt</a> (licensed under <a href='https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html'>LGPL v2.1</a>)<br/>"
 		"- <a href='https://github.com/openemv/tr31'>tr31</a> (licensed under <a href='https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html'>LGPL v2.1</a>)<br/>"
+		"- <a href='https://github.com/Mbed-TLS/mbedtls'>MbedTLS</a> (licensed under <a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache License v2</a>)<br/>"
 		"- <a href='https://www.qt.io'>Qt</a> (licensed under <a href='https://www.gnu.org/licenses/lgpl-3.0.html'>LGPL v3</a>)<br/>"
 		"<br/>"
-	);
+	));
 
 	// Load previous UI values
 	loadSettings();
@@ -197,7 +200,7 @@ void MainWindow::saveSettings() const
 		settings.setValue(check_box->objectName(), check_box->checkState());
 	}
 	for (auto plain_text_edit : plain_text_edit_list) {
-		if (plain_text_edit->objectName() == "outputText") {
+		if (plain_text_edit->objectName() == QStringLiteral("outputText")) {
 			// Don't save output text
 			continue;
 		}
@@ -646,16 +649,25 @@ void MainWindow::log(dukpt_ui_log_level_t level, QString&& str)
 			break;
 
 		case DUKPT_LOG_SUCCESS:
-			outputText->appendHtml(QString("<span style='color: green'>") + str + QString("</span><p></p>"));
+			outputText->appendHtml(
+				QStringLiteral("<span style='color: green'>") +
+				str +
+				QStringLiteral("</span><p></p>"));
 			break;
 
 		case DUKPT_LOG_FAILURE:
-			outputText->appendHtml(QString("<span style='color: red'>") + str + QString("</span><p></p>"));
+			outputText->appendHtml(
+				QStringLiteral("<span style='color: red'>") +
+				str +
+				QStringLiteral("</span><p></p>"));
 			break;
 
 		case DUKPT_LOG_ERROR:
 		default:
-			outputText->appendHtml(QString("<span style='color: red'>") + str + QString("</span>"));
+			outputText->appendHtml(
+				QStringLiteral("<span style='color: red'>") +
+				str +
+				QStringLiteral("</span>"));
 			break;
 	}
 
@@ -2053,8 +2065,7 @@ QString MainWindow::exportTr31(
 
 	// Populate optional block LB
 	if (settings.tr31WithLb) {
-		QString label = tr31LbEdit->text();
-		r = tr31_opt_block_add_LB(tr31_ctx.get(), label.toStdString().c_str());
+		r = tr31_opt_block_add_LB(tr31_ctx.get(), qPrintable(tr31LbEdit->text()));
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 			return QString();
@@ -2072,7 +2083,7 @@ QString MainWindow::exportTr31(
 		ts.remove('-');
 		ts.remove(':');
 
-		r = tr31_opt_block_add_TS(tr31_ctx.get(), ts.toStdString().c_str());
+		r = tr31_opt_block_add_TS(tr31_ctx.get(), qPrintable(ts));
 		if (r) {
 			logError(QString::asprintf("TR-31 optional block error %d: %s\n", r, tr31_get_error_string(static_cast<tr31_error_t>(r))));
 			return QString();

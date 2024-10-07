@@ -20,6 +20,7 @@
 
 #include <QtWidgets/QApplication>
 
+#include "dukpt_ui_config.h"
 #include "mainwindow.h"
 
 int main(int argc, char** argv)
@@ -28,6 +29,7 @@ int main(int argc, char** argv)
 	app.setOrganizationName("OpenEMV");
 	app.setOrganizationDomain("openemv.org");
 	app.setApplicationName("dukpt-ui");
+	app.setApplicationVersion(DUKPT_UI_VERSION_STRING);
 	app.setWindowIcon(QIcon(":icons/openemv_dukpt_512x512.png"));
 
 	MainWindow mainwindow;
