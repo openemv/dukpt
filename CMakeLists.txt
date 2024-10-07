@@ -100,6 +100,9 @@ elseif (NOT TARGET pinblock)
 	message(FATAL_ERROR "Parent project must provide pinblock library for static builds")
 endif()
 
+include(FindPackageHandleStandardArgs) # Provides find_package() messages
+include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
+
 # Set minimum tr31 version before adding subdirectories
 set(TR31_MIN_VERSION 0.6.0 CACHE INTERNAL "Minimum tr31 version")
 add_subdirectory(src)
@@ -125,7 +128,9 @@ if(Qt_NAMES)
 
 	find_package(QT 5.12 NAMES ${Qt_NAMES} COMPONENTS Widgets)
 	if(QT_FOUND)
-		message(STATUS "Found Qt${QT_VERSION_MAJOR} Widgets: ${QT_CONFIG} (found suitable version \"${QT_VERSION}\")")
+		find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets PATHS ${QT_DIR})
+		find_package_handle_standard_args(Qt${QT_VERSION_MAJOR} CONFIG_MODE)
+		find_package_handle_standard_args(Qt${QT_VERSION_MAJOR}Widgets CONFIG_MODE)
 	else()
 		if(BUILD_DUKPT_UI)
 			message(FATAL_ERROR "Could NOT find Qt Widgets; required to build dukpt-ui")
@@ -152,8 +157,6 @@ if(QT_FOUND AND tr31_FOUND)
 	message(STATUS "Adding dukpt-ui to build")
 	add_subdirectory(ui)
 endif()
-
-include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
 
 # Install README and LICENSE files to runtime component
 install(FILES

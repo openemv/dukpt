@@ -60,8 +60,6 @@ if(BUILD_DUKPT_TOOL AND NOT HAVE_TIME_H)
 	message(FATAL_ERROR "Could NOT find time.h. This is required to build dukpt-tool")
 endif()
 
-include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
-
 # Generate config file for internal use only
 # This file should NOT be installed or used by an installed header
 configure_file(
