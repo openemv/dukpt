@@ -11,6 +11,9 @@
 # - OPENEMV_MACOS_CERT_PWD
 # - KEYCHAIN_PASSWORD
 
+# TODO: remove
+set -x
+
 # Temporary paths
 OPENEMV_MACOS_CERT_PATH=$RUNNER_TEMP/certificate.p12
 KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
@@ -21,7 +24,8 @@ security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
 # Decode and import signing certificate
-echo -n "$OPENEMV_MACOS_CERT_BASE64" | base64 --decode --output $OPENEMV_MACOS_CERT_PATH
+echo -n "$OPENEMV_MACOS_CERT_BASE64" | base64 --decode --input - --output $OPENEMV_MACOS_CERT_PATH
+openssl x509 -in $OPENEMV_MACOS_CERT_PATH -text -noout
 security import $OPENEMV_MACOS_CERT_PATH -P "$OPENEMV_MACOS_CERT_PWD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
 security list-keychain -d user -s $KEYCHAIN_PATH
 security find-identity -v -p codesigning
