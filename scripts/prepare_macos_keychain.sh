@@ -21,8 +21,8 @@ KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 # Create temporary keychain
 security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 security default-keychain -s $KEYCHAIN_PATH
-security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+security set-keychain-settings -ut 21600 $KEYCHAIN_PATH
 
 # Decode and import signing certificate
 #echo -n "$OPENEMV_MACOS_CERT_BASE64" | base64 --decode --input - --output $OPENEMV_MACOS_CERT_PATH
@@ -30,17 +30,20 @@ security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 #echo -n "$OPENEMV_MACOS_CERT_BASE64" | base64 -d -o $OPENEMV_MACOS_CERT_PATH
 echo -n "$OPENEMV_MACOS_CERT_BASE64" | base64 --decode > $OPENEMV_MACOS_CERT_PATH
 #openssl pkcs12 -in $OPENEMV_MACOS_CERT_PATH -info -noout -password "$OPENEMV_MACOS_CERT_PWD"
-openssl pkcs12 -in $OPENEMV_MACOS_CERT_PATH -info -noout -passin "$OPENEMV_MACOS_CERT_PWD"
+openssl pkcs12 -in $OPENEMV_MACOS_CERT_PATH -info -noout -passin ${OPENEMV_MACOS_CERT_PWD}
 #security import $OPENEMV_MACOS_CERT_PATH -P "$OPENEMV_MACOS_CERT_PWD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-security import $OPENEMV_MACOS_CERT_PATH -P "$OPENEMV_MACOS_CERT_PWD" -A -f pkcs12 -k $KEYCHAIN_PATH
-security list-keychain -d user -s $KEYCHAIN_PATH
+security import $OPENEMV_MACOS_CERT_PATH -P "$OPENEMV_MACOS_CERT_PWD" -k $KEYCHAIN_PATH -T /usr/bin/codesign -T /usr/bin/productsign
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+#security list-keychains -d user -s $KEYCHAIN_PATH
 security find-identity -v -p codesigning
-security find-identity -v $KEYCHAIN_PATH
+security find-identity -v -p codesigning KEYCHAIN_PATH
+security find-identity $KEYCHAIN_PATH
 
 # Allow codesign application to use signing key
-security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+#security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
-security find-identity -v $KEYCHAIN_PATH
+# TODO: remove
+which codesign
 
 # Cleanup
 rm $OPENEMV_MACOS_CERT_PATH
