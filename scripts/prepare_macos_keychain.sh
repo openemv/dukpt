@@ -4,6 +4,7 @@
 # - https://docs.github.com/en/actions/deployment/deploying-xcode-applications/installing-an-apple-certificate-on-macos-runners-for-xcode-development
 # - https://localazy.com/blog/how-to-automatically-sign-macos-apps-using-github-actions
 # - https://federicoterzi.com/blog/automatic-code-signing-and-notarization-for-macos-apps-using-github-actions/
+# - https://github.com/lando/code-sign-action/
 
 # This script assumes that these environment variables are provided:
 # - RUNNER_TEMP (temporary directory provided by Github Actions runner)
@@ -36,7 +37,7 @@ security import $OPENEMV_MACOS_CERT_PATH -P "$OPENEMV_MACOS_CERT_PWD" -k $KEYCHA
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 #security list-keychains -d user -s $KEYCHAIN_PATH
 security find-identity -v -p codesigning
-security find-identity -v -p codesigning KEYCHAIN_PATH
+security find-identity -v -p codesigning $KEYCHAIN_PATH
 security find-identity $KEYCHAIN_PATH
 
 # Allow codesign application to use signing key
