@@ -149,6 +149,7 @@ jobs:
           -DQT_DIR=${{ env.QT_DIR }} \
           -DBUILD_DUKPT_UI=YES \
           -DBUILD_MACOSX_BUNDLE=YES \
+          -DCPACK_COMMAND_HDIUTIL="/usr/bin/sudo /usr/bin/hdiutil" \
           -DSIGN_MACOSX_BUNDLE=openemv.org
 
     - name: Build
