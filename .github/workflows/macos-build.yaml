@@ -175,9 +175,10 @@ jobs:
         if-no-files-found: error
 
     - name: Upload build directory if failed
-      if: ${{ failure() }}
+      #if: ${{ failure() }}
+      if: ${{ always() }} # THIS IS A HACK
       uses: actions/upload-artifact@v4
       with:
         name: dukpt-${{ env.GIT_DESCRIBE }}-macos-build
-        path: ./
+        path: build/*.cmake
         if-no-files-found: error
