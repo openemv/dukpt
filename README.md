@@ -157,7 +157,7 @@ cmake --build build --target package
 Qt
 --
 
-This project supports Qt 5.12.x, Qt 5.15.x, Qt 6.5.x and Qt 6.6.x (although it
+This project supports Qt 5.12.x, Qt 5.15.x, Qt 6.5.x and Qt 6.7.x (although it
 may be possible to use other versions of Qt) when building the `dukpt-ui`
 application. However, on some platforms it may be necessary to use the `QT_DIR`
 option (and not the `Qt5_DIR` nor `Qt6_DIR` options) or `CMAKE_PREFIX_PATH`

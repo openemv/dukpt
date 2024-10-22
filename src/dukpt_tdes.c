@@ -177,7 +177,7 @@ static uint32_t dukpt_tdes_ksn_get_tc(const uint8_t* ksn)
 	return
 		((uint32_t)ksn[DUKPT_TDES_KSN_LEN - 1]) |
 		((uint32_t)ksn[DUKPT_TDES_KSN_LEN - 2]) << 8 |
-		((uint32_t)ksn[DUKPT_TDES_KSN_LEN - 3] & 0x1f) << 16
+		((uint32_t)ksn[DUKPT_TDES_KSN_LEN - 3] & 0x1F) << 16
 	;
 }
 
@@ -197,7 +197,7 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 	// described in ANSI X9.24-1:2009 A.2 or ANSI X9.24-3:2017 C.3.
 
 	// These algorithms are described in terms of various registers and this
-	// implementation follows the same style
+	// implementation follows the same style.
 
 	// A recursive description of the process would be that the key associated
 	// with a specific KSN is derived from the key associated with a KSN
