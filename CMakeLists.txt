@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt
-	VERSION 1.2.1
+	VERSION 1.2.2
 	DESCRIPTION "DUKPT libraries and tools"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES C
