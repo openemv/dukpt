@@ -49,6 +49,9 @@ DEPEND="
 
 src_prepare() {
 	cmake_src_prepare
+
+	# Remove dirty suffix because Gentoo modifies CMakeLists.txt
+	sed -i -e 's/--dirty//' CMakeLists.txt || die "Failed to remove dirty suffix"
 }
 
 src_configure() {
