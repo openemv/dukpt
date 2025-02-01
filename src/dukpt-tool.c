@@ -2,7 +2,7 @@
  * @file dukpt-tool.c
  * @brief Simple DUKPT tool
  *
- * Copyright 2021-2023 Leon Lynch
+ * Copyright 2021-2025 Leon Lynch
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,6 +34,12 @@
 #include <argp.h>
 
 #include <time.h> // for time, gmtime and strftime
+
+#ifdef _WIN32
+// For _setmode
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 // Globals
 static uint8_t* bdk = NULL;
@@ -681,6 +687,10 @@ static void* read_file(FILE* file, size_t* len)
 		return NULL;
 	}
 
+#ifdef _WIN32
+	_setmode(_fileno(file), _O_BINARY);
+#endif
+
 	do {
 		// Grow buffer
 		buf_len += block_size;
@@ -787,6 +797,10 @@ static int parse_dec_str(const char* str, uint8_t* buf, size_t* buf_len)
 static void output_buf(const void* buf, size_t length)
 {
 	if (output_format == DUKPT_TOOL_OUTPUT_FORMAT_RAW) {
+#ifdef _WIN32
+		_setmode(_fileno(stdout), _O_BINARY);
+#endif
+
 		// Output buffer as raw bytes
 		fwrite(buf, length, 1, stdout);
 		return;
