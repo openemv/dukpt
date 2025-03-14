@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2022-2024 Leon Lynch
+# Copyright 2022-2025 Leon Lynch
 #
 # This file is licensed under the terms of the GPL v3 license.
 # See LICENSE.gpl file.
@@ -91,7 +91,16 @@ if(QT_VERSION VERSION_LESS 5.15)
 	qt5_wrap_ui(UI_SRCS mainwindow.ui)
 	qt5_wrap_cpp(MOC_SRCS mainwindow.h betterplaintextedit.h validators.h)
 	qt5_add_resources(QRC_SRCS icons.qrc)
-	add_library(Qt::Widgets ALIAS Qt5::Widgets)
+
+	if(CMAKE_VERSION VERSION_LESS "3.18")
+		# CMake versions older than 3.18 cannot create alias targets for
+		# non-global imported targets and an alternative is to use INTERFACE
+		# linking instead
+		add_library(Qt::Widgets INTERFACE IMPORTED)
+		set_target_properties(Qt::Widgets PROPERTIES INTERFACE_LINK_LIBRARIES Qt5::Widgets)
+	else()
+		add_library(Qt::Widgets ALIAS Qt5::Widgets)
+	endif()
 else()
 	# Qt-5.15 and Qt-6 provide these version-less commands
 	qt_wrap_ui(UI_SRCS mainwindow.ui)
