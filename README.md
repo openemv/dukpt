@@ -254,7 +254,7 @@ Roadmap
 License
 -------
 
-Copyright 2021-2024 [Leon Lynch](https://github.com/leonlynch).
+Copyright 2021-2025 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license with the
 exception of `dukpt-ui` which is licensed under the terms of the GPL v3
@@ -262,3 +262,11 @@ license.
 See [LICENSE](https://github.com/openemv/dukpt/blob/master/LICENSE) and
 [LICENSE.gpl](https://github.com/openemv/dukpt/blob/master/ui/LICENSE.gpl)
 files.
+
+This project includes [crypto](https://github.com/openemv/crypto) as a git
+submodule and it is licensed under the terms of the MIT license. See
+[LICENSE](https://github.com/openemv/crypto/blob/master/LICENSE) file.
+
+This project includes [pinblock](https://github.com/openemv/pinblock) as a git
+submodule and it is licensed under the terms of the LGPL v2.1 license. See
+[LICENSE](https://github.com/openemv/pinblock/blob/master/LICENSE) file.
