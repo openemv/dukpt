@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2022-2024 Leon Lynch
+# Copyright 2022-2025 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -10,7 +10,7 @@ name: Fedora build
 on: [push]
 
 env:
-  TR31_VERSION: 0.6.2
+  TR31_VERSION: 0.6.3
 
 jobs:
   build-fedora-debug:
@@ -18,9 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Fedora 40", fedora_version: 40, deps: "none", build_dukpt_ui: NO }
-          - { name: "Fedora 40", fedora_version: 40, deps: "tr31/qt", build_dukpt_ui: YES }
+          - { name: "Fedora 41", fedora_version: 41, deps: "none", build_dukpt_ui: NO }
           - { name: "Fedora 41", fedora_version: 41, deps: "tr31/qt", build_dukpt_ui: YES }
+          - { name: "Fedora 42", fedora_version: 42, deps: "tr31/qt", build_dukpt_ui: YES }
 
     name: ${{ matrix.name }} build (static/debug/${{ matrix.deps }})
     runs-on: ubuntu-latest
@@ -74,8 +74,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Fedora 40", fedora_version: 40 }
           - { name: "Fedora 41", fedora_version: 41 }
+          - { name: "Fedora 42", fedora_version: 42 }
 
     name: ${{ matrix.name }} release
     runs-on: ubuntu-latest
@@ -84,7 +84,7 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
-        sudo dnf -y install git gh cmake gcc mbedtls-devel bash-completion doxygen rpm-build qt5-qtbase-devel
+        sudo dnf -y install git gh cmake gcc mbedtls-devel bash-completion-devel doxygen rpm-build qt5-qtbase-devel
 
     - name: Install TR-31 release
       run: |
