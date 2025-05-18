@@ -33,7 +33,7 @@
 #include <string.h>
 #include <argp.h>
 
-#include <time.h> // for time, gmtime and strftime
+#include <time.h> // For time, gmtime and strftime
 
 #ifdef _WIN32
 // For _setmode

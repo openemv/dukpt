@@ -34,7 +34,7 @@
 #include <string.h>
 
 #if defined(HAVE_ARPA_INET_H)
-#include <arpa/inet.h> // for htons and friends
+#include <arpa/inet.h> // For htons and friends
 #elif defined(HAVE_WINSOCK_H)
 #include <winsock.h>
 #endif
@@ -403,7 +403,7 @@ int dukpt_aes_derive_txn_key(
 	// This process is explained in ANSI X9.24-3:2017 6.1 and 6.3.1
 	// A recursive description of the process would be that the key associated
 	// with a specific KSN is derived from the key associated with a KSN
-	// formed by unsettign the least significant transaction counter bit set
+	// formed by unsetting the least significant transaction counter bit set
 	// in the previous KSN. When no transaction counter bits are set, the
 	// associated key is the IK.
 

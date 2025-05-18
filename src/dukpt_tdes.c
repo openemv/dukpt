@@ -201,7 +201,7 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 
 	// A recursive description of the process would be that the key associated
 	// with a specific KSN is derived from the key associated with a KSN
-	// formed by unsettign the least significant transaction counter bit set
+	// formed by unsetting the least significant transaction counter bit set
 	// in the previous KSN. When no transaction counter bits are set, the
 	// associated key is the IK.
 
