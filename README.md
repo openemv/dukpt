@@ -26,6 +26,13 @@ implement the usage of the various working keys to ensure that the derivation
 data used for the working key derivation match the usage of the derived
 working key.
 
+Example output
+--------------
+![Example of dukpt-tool usage](/dukpt-tool-example.png)
+![Example of dukpt-ui using TDES](/dukpt-ui-example.png)
+![Example of dukpt-ui using AES](/dukpt-ui-example2.png)
+See [usage](#usage) for more examples.
+
 Installation
 ------------
 
