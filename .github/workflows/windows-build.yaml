@@ -147,21 +147,33 @@ jobs:
           mingw-w64-${{matrix.env}}-nsis
 
     - name: Install Qt6
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
-        version: 6.5.*
+        version: 6.8.*
         host: windows
         target: desktop
         arch: win64_mingw
         archives: qtbase qttools MinGW
+        tools: tools_mingw1310
+        add-tools-to-path: true
         cache: true
+
+    # Build using Qt toolchain because it will be packaged with Qt toolchain's runtime
+    - name: Configure Qt toolchain path
+      run: echo "TOOLCHAIN_PATH=$(cygpath -u '${{ env.IQTA_TOOLS }}')/mingw1310_64/bin" >> $GITHUB_ENV
 
     - name: Build TR-31 dependency
       run: |
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=YES -DFETCH_MBEDTLS=YES -DBUILD_TR31_TOOL=NO
+        cmake -G Ninja -B build \
+            -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+            -DCMAKE_C_COMPILER="${{ env.TOOLCHAIN_PATH }}/gcc.exe" \
+            -DCMAKE_CXX_COMPILER="${{ env.TOOLCHAIN_PATH }}/g++.exe" \
+            -DBUILD_SHARED_LIBS=YES \
+            -DFETCH_MBEDTLS=YES \
+            -DBUILD_TR31_TOOL=NO
         cmake --build build
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         cd ..
@@ -178,6 +190,8 @@ jobs:
       run: |
         cmake -G Ninja -B build \
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DCMAKE_C_COMPILER="${{ env.TOOLCHAIN_PATH }}/gcc.exe" \
+          -DCMAKE_CXX_COMPILER="${{ env.TOOLCHAIN_PATH }}/g++.exe" \
           -DBUILD_SHARED_LIBS=YES \
           -DFETCH_MBEDTLS=YES \
           -DFETCH_ARGP=YES \
@@ -185,7 +199,7 @@ jobs:
           -DBUILD_DUKPT_UI=YES
       # CMake will only accept Windows paths if they are environment variables, not CMake command line cache entries
       env:
-        CMAKE_PREFIX_PATH: ${{ env.Qt6_DIR }}
+        CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}
 
     - name: Build
       run: cmake --build build
