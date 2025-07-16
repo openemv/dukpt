@@ -81,6 +81,7 @@ endif()
 
 # Allow parent scope to provide crypto targets when not building shared libs
 if(DUKPT_IS_TOP_LEVEL OR BUILD_SHARED_LIBS)
+	list(APPEND CRYPTO_TESTS crypto_tdes crypto_aes crypto_hmac)
 	add_subdirectory(crypto)
 	add_subdirectory(crypto/test)
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/crypto/cmake/Modules/")
