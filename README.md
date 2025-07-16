@@ -49,8 +49,7 @@ Installation
   `brew install openemv/tap/dukpt`. After installation, the `Dukpt` application
   can be made available in Launchpad via a symlink using
   `ln -s $(brew --prefix dukpt)/Dukpt.app /Applications/`.
-* For Windows, use [MSYS2](https://www.msys2.org/) and follow the build
-  instructions below
+* For Windows, use the [installer](https://github.com/openemv/dukpt/releases).
 * For other platforms, architectures or configurations, follow the build
   instructions below
 
@@ -164,7 +163,7 @@ cmake --build build --target package
 Qt
 --
 
-This project supports Qt 5.12.x, Qt 5.15.x, Qt 6.5.x and Qt 6.7.x (although it
+This project supports Qt 5.12.x, Qt 5.15.x, Qt 6.5.x and Qt 6.8.x (although it
 may be possible to use other versions of Qt) when building the `dukpt-ui`
 application. However, on some platforms it may be necessary to use the `QT_DIR`
 option (and not the `Qt5_DIR` nor `Qt6_DIR` options) or `CMAKE_PREFIX_PATH`
