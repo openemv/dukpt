@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(dukpt-ui
-	VERSION 1.2.3
+	VERSION 1.2.4
 	DESCRIPTION "DUKPT User Interface using Qt"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES CXX
