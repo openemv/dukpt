@@ -65,6 +65,49 @@ jobs:
     - name: Test
       run: ctest --test-dir build --output-on-failure
 
+  build-ubuntu-sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Ubuntu 24.04 build (debug/sanitizers)", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "Debug" }
+          - { name: "Ubuntu 24.04 build (release/sanitizers)", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "RelWithDebInfo" }
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+
+    - name: Install TR-31 release
+      run: |
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        unzip tr31-${{ env.TR31_VERSION }}-${{ matrix.os }}.zip
+        sudo dpkg -i tr31_${{ env.TR31_VERSION }}-0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1_amd64.deb
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure CMake with sanitizers
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DDUKPT_ENABLE_SANITIZERS=ON \
+          -DBUILD_DUKPT_UI=YES
+
+    - name: Build
+      run: cmake --build build
+
+    - name: Test with sanitizers
+      run: ctest --test-dir build --output-on-failure
+
   build-ubuntu-legacy-release:
     strategy:
       fail-fast: false
