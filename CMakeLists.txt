@@ -47,6 +47,41 @@ if(CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-g3>)
 endif()
 
+# Configure debugging sanitizers
+option(DUKPT_ENABLE_SANITIZERS "Enable debugging sanitizers" OFF)
+if(DUKPT_ENABLE_SANITIZERS)
+	if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
+		CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
+		CMAKE_C_COMPILER_ID STREQUAL "AppleClang"
+	)
+		add_compile_options(-fsanitize=address)
+		add_compile_options(-fsanitize=undefined)
+		add_link_options(-fsanitize=address)
+		add_link_options(-fsanitize=undefined)
+		if(NOT APPLE)
+			# LeakSanitizer not available on MacOS
+			add_compile_options(-fsanitize=leak)
+			add_link_options(-fsanitize=leak)
+		endif()
+	endif()
+endif()
+
+# Configure runtime security hardening
+option(DUKPT_ENABLE_HARDENING "Enable runtime security hardening" OFF)
+if(DUKPT_ENABLE_HARDENING)
+	if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
+		CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
+		CMAKE_C_COMPILER_ID STREQUAL "AppleClang"
+	)
+		add_compile_options(-fstack-protector-strong)
+		if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+			# FORTIFY_SOURCE less reliable using Clang
+			# FORTIFY_SOURCE not recommended on MacOS
+			add_compile_definitions(_FORTIFY_SOURCE=2)
+		endif()
+	endif()
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 # Determine version string (use git describe string if possible)

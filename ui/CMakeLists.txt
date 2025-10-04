@@ -47,6 +47,41 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 	add_compile_options($<$<CONFIG:RelWithDebInfo>:-g3>)
 endif()
 
+# Configure sanitizers for debugging and development use only
+option(DUKPT_UI_ENABLE_SANITIZERS "Enable debugging sanitizers" ${DUKPT_ENABLE_SANITIZERS})
+if(DUKPT_UI_ENABLE_SANITIZERS)
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+		CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+		CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
+	)
+		add_compile_options(-fsanitize=address)
+		add_compile_options(-fsanitize=undefined)
+		add_link_options(-fsanitize=address)
+		add_link_options(-fsanitize=undefined)
+		if(NOT APPLE)
+			# LeakSanitizer not available on MacOS
+			add_compile_options(-fsanitize=leak)
+			add_link_options(-fsanitize=leak)
+		endif()
+	endif()
+endif()
+
+# Configure runtime security hardening
+option(DUKPT_UI_ENABLE_HARDENING "Enable runtime security hardening" ${DUKPT_ENABLE_HARDENING})
+if(DUKPT_UI_ENABLE_HARDENING)
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+		CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+		CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
+	)
+		add_compile_options(-fstack-protector-strong)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+			# FORTIFY_SOURCE less reliable using Clang
+			# FORTIFY_SOURCE not recommended on MacOS
+			add_compile_definitions(_FORTIFY_SOURCE=2)
+		endif()
+	endif()
+endif()
+
 if(DUKPT_UI_IS_TOP_LEVEL)
 	# If this is the top-level project, it will need CMake modules provided by
 	# the crypto sub-module
