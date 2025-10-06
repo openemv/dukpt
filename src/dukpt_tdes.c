@@ -3,7 +3,7 @@
  * @brief ANSI X9.24-1:2009 TDES DUKPT implementation
  *        (equivalent to ANSI X9.24-3:2017 Annex C)
  *
- * Copyright 2021-2023 Leon Lynch
+ * Copyright 2021-2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -228,7 +228,7 @@ int dukpt_tdes_derive_txn_key(const void* ik, const uint8_t* ksn, void* txn_key)
 	for (unsigned int shift_bit = DUKPT_TDES_TC_BITS; shift_bit > 0; --shift_bit) {
 		// Set appropriate bit in shift register
 		uint8_t shift_reg_idx = (shift_bit-1) >> 3; // Upper bits indicate byte index
-		uint8_t shift_reg_val = 0x1 << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
+		uint8_t shift_reg_val = 0x1U << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
 		memset(shift_reg, 0, sizeof(shift_reg));
 		shift_reg[shift_reg_idx] = shift_reg_val;
 
@@ -305,7 +305,7 @@ int dukpt_tdes_state_init(const void* ik, const uint8_t* iksn, struct dukpt_tdes
 	for (unsigned int shift_bit = DUKPT_TDES_TC_BITS; shift_bit > 0; --shift_bit) {
 		// Set appropriate bit in shift register
 		uint8_t shift_reg_idx = (shift_bit-1) >> 3; // Upper bits indicate byte index
-		uint8_t shift_reg_val = 0x1 << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
+		uint8_t shift_reg_val = 0x1U << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
 		memset(shift_reg, 0, sizeof(shift_reg));
 		shift_reg[shift_reg_idx] = shift_reg_val;
 
@@ -393,7 +393,7 @@ int dukpt_tdes_state_next_txn_key(struct dukpt_tdes_state_t* state, void* txn_ke
 	// See ANSI X9.24-3:2017 C.3.5 "Set Bit"
 	for (shift_bit = 0; shift_bit < DUKPT_TDES_TC_BITS; ++shift_bit) {
 		uint8_t shift_reg_idx = (shift_bit >> 3);
-		uint8_t shift_reg_val = 0x1 << (shift_bit & 0x7);
+		uint8_t shift_reg_val = 0x1U << (shift_bit & 0x7);
 
 		if ((state->ksn[DUKPT_TDES_KSN_LEN - 1 - shift_reg_idx] & shift_reg_val)) {
 			// Least significant transaction counter bit found
@@ -420,7 +420,7 @@ int dukpt_tdes_state_next_txn_key(struct dukpt_tdes_state_t* state, void* txn_ke
 	for (; shift_bit > 0; --shift_bit) {
 		// Set appropriate bit in shift register
 		uint8_t shift_reg_idx = (shift_bit-1) >> 3; // Upper bits indicate byte index
-		uint8_t shift_reg_val = 0x1 << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
+		uint8_t shift_reg_val = 0x1U << ((shift_bit-1) & 0x7); // Lower bits indicate shift for byte value
 		memset(shift_reg, 0, sizeof(shift_reg));
 		shift_reg[shift_reg_idx] = shift_reg_val;
 
