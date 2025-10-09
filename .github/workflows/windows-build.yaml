@@ -77,7 +77,7 @@ jobs:
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
         cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DBUILD_TR31_TOOL=NO
-        cmake --build build
+        cmake --build build -j 4
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
         cd ..
@@ -105,10 +105,10 @@ jobs:
           -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
 
   build-windows-msys2-release:
     runs-on: windows-latest
@@ -174,7 +174,7 @@ jobs:
             -DBUILD_SHARED_LIBS=YES \
             -DFETCH_MBEDTLS=YES \
             -DBUILD_TR31_TOOL=NO
-        cmake --build build
+        cmake --build build -j 4
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         cd ..
       env:
@@ -202,10 +202,10 @@ jobs:
         CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
 
     - name: Package
       run: cmake --build build --target package

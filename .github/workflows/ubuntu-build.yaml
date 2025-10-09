@@ -60,10 +60,10 @@ jobs:
           -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
 
   build-ubuntu-sanitizers:
     strategy:
@@ -103,10 +103,10 @@ jobs:
           -DBUILD_DUKPT_UI=YES
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test with sanitizers
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
 
   build-ubuntu-hardening:
     strategy:
@@ -146,10 +146,10 @@ jobs:
           -DBUILD_DUKPT_UI=YES
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test with hardening
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
 
   build-ubuntu-legacy-release:
     strategy:
@@ -218,10 +218,10 @@ jobs:
           -DCPACK_DEBIAN_PACKAGE_RELEASE="0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1"
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: cmake --build build --target test
+      run: cmake --build build --target test -j 4
 
     - name: Package
       run: cmake --build build --target package
@@ -283,10 +283,10 @@ jobs:
           -DCPACK_DEBIAN_PACKAGE_RELEASE="0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1"
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
 
     - name: Package
       run: cmake --build build --target package
