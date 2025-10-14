@@ -61,9 +61,10 @@ Dependencies
 * DUKPT libraries require [MbedTLS](https://github.com/Mbed-TLS/mbedtls)
   (preferred), or [OpenSSL](https://www.openssl.org/)
 * `dukpt-tool` will be built by default and requires `argp` (either via Glibc,
-  a system-provided standalone or a downloaded implementation; see
+  a system-provided standalone, or downloaded during the build from
+  [libargp](https://github.com/leonlynch/libargp); see
   [MacOS / Windows](#macos--windows)). Use the `BUILD_DUKPT_TOOL` option to
-  prevent DUKPT tool from being built and avoid the dependency on `argp`.
+  prevent `dukpt-tool` from being built and avoid the dependency on `argp`.
 * `dukpt-tool` can _optionally_ use [tr31](https://github.com/openemv/tr31) if
   available at build-time (either install a release build or use `tr31_DIR` to
   find a local build)
@@ -276,3 +277,7 @@ submodule and it is licensed under the terms of the MIT license. See
 This project includes [pinblock](https://github.com/openemv/pinblock) as a git
 submodule and it is licensed under the terms of the LGPL v2.1 license. See
 [LICENSE](https://github.com/openemv/pinblock/blob/master/LICENSE) file.
+
+This project may download [libargp](https://github.com/leonlynch/libargp)
+during the build and it is licensed under the terms of the LGPL v3 license. See
+[LICENSE](https://github.com/leonlynch/libargp/blob/master/LICENSE) file.
