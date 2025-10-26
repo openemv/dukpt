@@ -275,6 +275,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				// Ensure that the buffer has enough space for odd length hex strings
 				buf_len = (arg_len + 1) / 2;
 				buf = malloc(buf_len);
+				if (!buf) {
+					argp_error(state, "Memory allocation failed");
+				}
 
 				r = parse_hex(arg, buf, &buf_len);
 				if (r < 0) {
@@ -295,6 +298,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				// that require padding
 				buf_len = (arg_len + 1) / 2;
 				buf = malloc(buf_len);
+				if (!buf) {
+					argp_error(state, "Memory allocation failed");
+				}
 
 				r = parse_pan_str(arg, buf, &buf_len);
 				if (r) {
@@ -328,6 +334,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 				buf_len = arg_len;
 				buf = malloc(buf_len);
+				if (!buf) {
+					argp_error(state, "Memory allocation failed");
+				}
 
 				r = parse_dec_str(arg, buf, &buf_len);
 				if (r) {
@@ -696,9 +705,17 @@ static void* read_file(FILE* file, size_t* len)
 #endif
 
 	do {
+		void* buf_realloc;
+
 		// Grow buffer
 		buf_len += block_size;
-		buf = realloc(buf, buf_len);
+		buf_realloc = realloc(buf, buf_len);
+		if (!buf_realloc) {
+			free(buf);
+			*len = 0;
+			return NULL;
+		}
+		buf = buf_realloc;
 
 		// Read next block
 		total_len += fread(buf + total_len, 1, block_size, file);
@@ -1063,6 +1080,10 @@ static int prepare_tdes_ik(bool full_ksn)
 
 		ik_len = DUKPT_TDES_KEY_LEN;
 		ik = malloc(ik_len);
+		if (!ik) {
+			fprintf(stderr, "Memory allocation failed\n");
+			return 1;
+		}
 
 		// Derive initial key
 		r = dukpt_tdes_derive_ik(bdk, ksn, ik);
@@ -1086,6 +1107,10 @@ static int prepare_tdes_txn_key(void)
 
 	txn_key_len = DUKPT_TDES_KEY_LEN;
 	txn_key = malloc(txn_key_len);
+	if (!txn_key) {
+		fprintf(stderr, "Memory allocation failed\n");
+		return 1;
+	}
 
 	// Derive current transaction key
 	r = dukpt_tdes_derive_txn_key(ik, ksn, txn_key);
@@ -1274,6 +1299,10 @@ static int do_tdes_mode(void)
 
 			// Do it
 			pin = malloc(12);
+			if (!pin) {
+				fprintf(stderr, "Memory allocation failed\n");
+				return 1;
+			}
 			pin_len = 0;
 			r = dukpt_tdes_decrypt_pin(txn_key, pinblock, pan, pan_len, pin, &pin_len);
 			if (r) {
@@ -1379,6 +1408,10 @@ static int do_tdes_mode(void)
 			}
 			txn_key_len = DUKPT_TDES_KEY_LEN;
 			txn_key = malloc(txn_key_len);
+			if (!txn_key) {
+				fprintf(stderr, "Memory allocation failed\n");
+				return 1;
+			}
 
 			// Do it
 			r = dukpt_tdes_state_init(ik, ksn, &state);
@@ -1466,6 +1499,10 @@ static int prepare_aes_ik(bool full_ksn)
 
 		ik_len = bdk_len;
 		ik = malloc(ik_len);
+		if (!ik) {
+			fprintf(stderr, "Memory allocation failed\n");
+			return 1;
+		}
 
 		// Derive initial key
 		r = dukpt_aes_derive_ik(bdk, bdk_len, ksn, ik);
@@ -1489,6 +1526,10 @@ static int prepare_aes_txn_key(void)
 
 	txn_key_len = ik_len;
 	txn_key = malloc(txn_key_len);
+	if (!txn_key) {
+		fprintf(stderr, "Memory allocation failed\n");
+		return 1;
+	}
 
 	// Derive current transaction key
 	r = dukpt_aes_derive_txn_key(ik, ik_len, ksn, txn_key);
@@ -1780,6 +1821,10 @@ static int do_aes_mode(void)
 
 			// Do it
 			pin = malloc(12);
+			if (!pin) {
+				fprintf(stderr, "Memory allocation failed\n");
+				return 1;
+			}
 			pin_len = 0;
 			r = dukpt_aes_decrypt_pin(
 				txn_key,
@@ -1959,6 +2004,10 @@ static int do_aes_mode(void)
 			}
 			txn_key_len = ik_len;
 			txn_key = malloc(txn_key_len);
+			if (!txn_key) {
+				fprintf(stderr, "Memory allocation failed\n");
+				return 1;
+			}
 
 			// Ensure that KSN is valid
 			if (!dukpt_aes_ksn_is_valid(ksn)) {
