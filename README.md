@@ -38,7 +38,7 @@ Installation
 
 * For Ubuntu 20.04 LTS (Focal), 22.04 LTS (Jammy), or 24.04 LTS (Noble) install
   the appropriate [release package](https://github.com/openemv/dukpt/releases)
-* For Fedora 41 or Fedora 42, install the appropriate
+* For Fedora 42 or Fedora 43, install the appropriate
   [release package](https://github.com/openemv/dukpt/releases)
 * For Gentoo, use the
   [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the
