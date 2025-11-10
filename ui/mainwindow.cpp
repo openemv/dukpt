@@ -2,7 +2,7 @@
  * @file mainwindow.cpp
  * @brief Main window of DUKPT User Interface
  *
- * Copyright 2022-2023 Leon Lynch
+ * Copyright 2022-2025 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@
 #include <QtGui/QDesktopServices>
 
 #include <cstddef>
+#include <cstring>
 
 MainWindow::MainWindow(QWidget* parent)
 : QMainWindow(parent)
@@ -1864,7 +1865,7 @@ QString MainWindow::exportTr31(
 	scoped_tr31_ctx tr31_ctx;
 	unsigned int kbpk_algorithm;
 	scoped_tr31_key kbpk_obj;
-	uint32_t export_flags;
+	std::uint32_t export_flags;
 	char key_block[1024];
 
 	if (settings.kbpk.empty()) {
@@ -1933,10 +1934,10 @@ QString MainWindow::exportTr31(
 	// Populate optional blocks for KSN
 	if (settings.tr31WithKsn) {
 		if (mode == DUKPT_UI_MODE_TDES) {
-			uint8_t iksn[DUKPT_TDES_KSN_LEN];
+			std::uint8_t iksn[DUKPT_TDES_KSN_LEN];
 
 			// Sanitise Initial Key Serial Number (IKSN)
-			memcpy(iksn, ksn.data(), DUKPT_TDES_KSN_LEN - 2);
+			std::memcpy(iksn, ksn.data(), DUKPT_TDES_KSN_LEN - 2);
 			iksn[7] &= 0xE0;
 			iksn[8] = 0;
 			iksn[9] = 0;
@@ -2026,10 +2027,10 @@ QString MainWindow::exportTr31(
 	// Populate optional block KS for KSN
 	if (settings.tr31WithKsn) {
 		if (mode == DUKPT_UI_MODE_TDES) {
-			uint8_t iksn[DUKPT_TDES_KSN_LEN];
+			std::uint8_t iksn[DUKPT_TDES_KSN_LEN];
 
 			// Sanitise Initial Key Serial Number (IKSN)
-			memcpy(iksn, ksn.data(), DUKPT_TDES_KSN_LEN - 2);
+			std::memcpy(iksn, ksn.data(), DUKPT_TDES_KSN_LEN - 2);
 			iksn[7] &= 0xE0;
 			iksn[8] = 0;
 			iksn[9] = 0;
