@@ -1,4 +1,4 @@
-# Copyright 1999-2024 Gentoo Authors
+# Copyright 1999-2025 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
@@ -15,10 +15,10 @@ else
 	SRC_URI="https://github.com/openemv/dukpt/releases/download/${PV}/${P}-src.tar.gz -> ${P}.tar.gz"
 fi
 
-LICENSE="LGPL-2.1+ GPL-3"
+LICENSE="LGPL-2.1+ tools? ( GPL-3+ ) qt5? ( GPL-3+ ) qt6? ( GPL-3+ )"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="+mbedtls openssl qt5 qt6 +tr31 doc test"
+IUSE="+mbedtls openssl qt5 qt6 +tools +tr31 doc test"
 REQUIRED_USE="
 	^^ ( mbedtls openssl )
 	qt5? ( tr31 )
@@ -66,6 +66,7 @@ src_configure() {
 		$(cmake_use_find_package qt5 Qt5)
 		$(cmake_use_find_package qt6 Qt6)
 		$(cmake_use_find_package tr31 tr31)
+		-DBUILD_DUKPT_TOOL=$(usex tools)
 		-DBUILD_DOCS=$(usex doc)
 		-DBUILD_TESTING=$(usex test)
 	)
