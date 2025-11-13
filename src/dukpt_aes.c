@@ -2,7 +2,7 @@
  * @file dukpt_aes.c
  * @brief ANSI X9.24-3:2017 AES DUKPT implementation
  *
- * Copyright 2021-2023 Leon Lynch
+ * Copyright 2021-2023, 2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -582,7 +582,7 @@ int dukpt_aes_state_init(
 	// ANSI X9.24-3:2017 6.5.3 "Update Derivation Keys"
 	for (unsigned int shift_bit = DUKPT_AES_TC_BITS; shift_bit > 0; --shift_bit) {
 		// Set shift bit in transaction counter
-		uint32_t tc = 0x1 << (shift_bit-1);
+		uint32_t tc = 0x1U << (shift_bit-1);
 
 		// Create key derivation data
 		r = dukpt_aes_create_derivation_data(
@@ -718,7 +718,7 @@ int dukpt_aes_state_next_txn_key(void* state, size_t state_len, void* txn_key)
 	// See ANSI X9.24-3:2017 6.5.3 "Set Shift Register"
 	tc = dukpt_aes_ksn_get_tc(ksn);
 	for (shift_bit = 0; shift_bit < DUKPT_AES_TC_BITS; ++shift_bit) {
-		if (tc & (0x01 << shift_bit)) {
+		if (tc & (0x01U << shift_bit)) {
 			// Least significant transaction counter bit found
 			break;
 		}
@@ -745,7 +745,7 @@ int dukpt_aes_state_next_txn_key(void* state, size_t state_len, void* txn_key)
 		uint32_t working_tc;
 
 		// Set shift bit in transaction counter
-		working_tc = tc | (0x1 << (shift_bit-1));
+		working_tc = tc | (0x1U << (shift_bit-1));
 
 		// Create key derivation data
 		r = dukpt_aes_create_derivation_data(

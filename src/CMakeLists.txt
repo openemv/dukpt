@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2021-2024 Leon Lynch
+# Copyright 2021-2025 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -53,11 +53,24 @@ if(BUILD_DUKPT_TOOL AND tr31_FOUND)
 	set(DUKPT_PACKAGE_DEPENDENCIES ${DUKPT_PACKAGE_DEPENDENCIES} PARENT_SCOPE)
 endif()
 
-# Check for time.h required by dukpt-tool
+# Check for time.h and gmtime_r()
 include(CheckIncludeFile)
+include(CheckSymbolExists)
 CHECK_INCLUDE_FILE(time.h HAVE_TIME_H)
 if(BUILD_DUKPT_TOOL AND NOT HAVE_TIME_H)
 	message(FATAL_ERROR "Could NOT find time.h. This is required to build dukpt-tool")
+endif()
+set(TIME_H_DEFINITIONS_TRY _GNU_SOURCE) # Retry using _GNU_SOURCE
+check_symbol_exists(gmtime_r time.h HAVE_GMTIME_R)
+if(NOT HAVE_GMTIME_R)
+	unset(HAVE_GMTIME_R CACHE)
+	list(APPEND CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	check_symbol_exists(gmtime_r time.h HAVE_GMTIME_R)
+	list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D${TIME_H_DEFINITIONS_TRY})
+	if(HAVE_GMTIME_R)
+		# Set as cache entry to persist across multiple builds
+		set(TIME_H_DEFINITIONS ${TIME_H_DEFINITIONS_TRY} CACHE INTERNAL "Definitions required for time.h")
+	endif()
 endif()
 
 # Generate config file for internal use only
@@ -128,6 +141,13 @@ install(
 # DUKPT command line tool
 if(BUILD_DUKPT_TOOL)
 	add_executable(dukpt-tool dukpt-tool.c)
+	if(HAVE_GMTIME_R AND TIME_H_DEFINITIONS)
+		set_source_files_properties(dukpt-tool.c
+			PROPERTIES
+				COMPILE_DEFINITIONS ${TIME_H_DEFINITIONS}
+		)
+	endif()
+	target_include_directories(dukpt-tool PRIVATE ${CMAKE_CURRENT_BINARY_DIR}) # For generated config file
 	if(TARGET libargp::argp)
 		target_link_libraries(dukpt-tool PRIVATE libargp::argp)
 	endif()

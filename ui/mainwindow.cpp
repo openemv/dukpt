@@ -698,7 +698,7 @@ void MainWindow::logDigitVector(QString&& str, std::vector<std::uint8_t> v)
 static std::vector<std::uint8_t> HexStringToVector(const QString& s)
 {
 	QByteArray data;
-	if (s.length() % 2 == 1) {
+	if (s.length() % 2 != 0) {
 		// Invalid hex string
 		return {};
 	}
@@ -892,7 +892,7 @@ static std::vector<std::uint8_t> PinStringToVector(const QString& s)
 
 static std::vector<std::uint8_t> PanStringToVector(QString pan)
 {
-	if (pan.length() % 2 == 1) {
+	if (pan.length() % 2 != 0) {
 		// Pad uneven number of PAN digits with trailing 'F'
 		pan += "F";
 	}

@@ -1,7 +1,7 @@
 /**
  * @file dukpt_config.h
  *
- * Copyright 2021-2022 Leon Lynch
+ * Copyright 2021-2022, 2025 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,5 +25,6 @@
 #cmakedefine HAS_BUILTIN_POPCOUNT
 #cmakedefine HAVE_ARPA_INET_H
 #cmakedefine HAVE_WINSOCK_H
+#cmakedefine HAVE_GMTIME_R
 
 #endif

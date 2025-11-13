@@ -1,0 +1,72 @@
+##############################################################################
+# Copyright 2025 Leon Lynch
+#
+# This file is licensed under the terms of the LGPL v2.1 license.
+# See LICENSE file.
+##############################################################################
+
+name: CodeQL
+
+on:
+  push:
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '15 4 20 * *'
+
+env:
+  TR31_VERSION: 0.6.4
+
+jobs:
+  analyze:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Ubuntu 24.04", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "Debug" }
+
+    name: ${{ matrix.name }} build (CodeQL)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+
+    - name: Install TR-31 release
+      run: |
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        unzip tr31-${{ env.TR31_VERSION }}-${{ matrix.os }}.zip
+        sudo dpkg -i tr31_${{ env.TR31_VERSION }}-0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1_amd64.deb
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: c-cpp
+        build-mode: manual
+        queries: security-and-quality
+
+    - name: Build
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=YES \
+          -DBUILD_DUKPT_UI=YES
+        cmake --build build -j 4
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3

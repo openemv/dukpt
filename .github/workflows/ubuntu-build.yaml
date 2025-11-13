@@ -60,10 +60,96 @@ jobs:
           -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
+
+  build-ubuntu-sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Ubuntu 24.04 build (debug/sanitizers)", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "Debug" }
+          - { name: "Ubuntu 24.04 build (release/sanitizers)", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "RelWithDebInfo" }
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+
+    - name: Install TR-31 release
+      run: |
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        unzip tr31-${{ env.TR31_VERSION }}-${{ matrix.os }}.zip
+        sudo dpkg -i tr31_${{ env.TR31_VERSION }}-0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1_amd64.deb
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure CMake with sanitizers
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DDUKPT_ENABLE_SANITIZERS=ON \
+          -DBUILD_DUKPT_UI=YES
+
+    - name: Build
+      run: cmake --build build -j 4
+
+    - name: Test with sanitizers
+      run: ctest --test-dir build -j 4 --output-on-failure
+
+  build-ubuntu-hardening:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Ubuntu 24.04", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "Debug" }
+
+    name: ${{ matrix.name }} build (hardening)
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+
+    - name: Install TR-31 release
+      run: |
+        gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
+        unzip tr31-${{ env.TR31_VERSION }}-${{ matrix.os }}.zip
+        sudo dpkg -i tr31_${{ env.TR31_VERSION }}-0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1_amd64.deb
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure CMake with hardening
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DBUILD_SHARED_LIBS=YES \
+          -DDUKPT_ENABLE_HARDENING=ON \
+          -DBUILD_DUKPT_UI=YES
+
+    - name: Build
+      run: cmake --build build -j 4
+
+    - name: Test with hardening
+      run: ctest --test-dir build -j 4 --output-on-failure
 
   build-ubuntu-legacy-release:
     strategy:
@@ -132,10 +218,10 @@ jobs:
           -DCPACK_DEBIAN_PACKAGE_RELEASE="0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1"
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: cmake --build build --target test
+      run: cmake --build build --target test -j 4
 
     - name: Package
       run: cmake --build build --target package
@@ -197,10 +283,10 @@ jobs:
           -DCPACK_DEBIAN_PACKAGE_RELEASE="0ubuntu1~ppa1~${{ matrix.ubuntu_release_name }}1"
 
     - name: Build
-      run: cmake --build build
+      run: cmake --build build -j 4
 
     - name: Test
-      run: ctest --test-dir build --output-on-failure
+      run: ctest --test-dir build -j 4 --output-on-failure
 
     - name: Package
       run: cmake --build build --target package
