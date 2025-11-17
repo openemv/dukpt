@@ -49,7 +49,9 @@ Installation
   `brew install openemv/tap/dukpt`. After installation, the `Dukpt` application
   can be made available in Launchpad via a symlink using
   `ln -s $(brew --prefix dukpt)/Dukpt.app /Applications/`.
-* For Windows, use the [installer](https://github.com/openemv/dukpt/releases).
+* For Windows, use the [installer](https://github.com/openemv/dukpt/releases)
+  or follow the build instructions below to build using
+  [MSYS2](https://www.msys2.org/)
 * For other platforms, architectures or configurations, follow the build
   instructions below
 
