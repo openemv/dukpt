@@ -1,3 +1,6 @@
+* Mon Nov 17 2025 Leon Lynch <lynch.leon@gmail.com> - 1.2.5-1
+- Update to dukpt-1.2.5
+
 * Thu Jul 17 2025 Leon Lynch <lynch.leon@gmail.com> - 1.2.4-1
 - Update to dukpt-1.2.4
 
