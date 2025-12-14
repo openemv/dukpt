@@ -58,7 +58,6 @@ jobs:
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
         pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-mbedtls
-        echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
 
     - name: Install Qt5
       if: contains(matrix.deps, 'qt5')
@@ -76,7 +75,11 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -G Ninja -B build -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DBUILD_TR31_TOOL=NO
+        cmake -G Ninja -B build \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} \
+          ${{ matrix.fetch_deps == 'NO' && '-DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES' || '-DFETCH_MBEDTLS=YES' }} \
+          -DBUILD_TR31_TOOL=NO
         cmake --build build -j 4
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
@@ -95,8 +98,7 @@ jobs:
         cmake -G Ninja -B build \
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
           -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} \
-          -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} \
-          -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} \
+          ${{ matrix.fetch_deps == 'NO' && '-DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES' || '-DFETCH_MBEDTLS=YES' }} \
           -DFETCH_ARGP=YES \
           -Dtr31_DIR=${{ env.TR31_DIR }} \
           -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} \

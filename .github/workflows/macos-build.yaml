@@ -34,9 +34,9 @@ jobs:
       # Homebrew doesn't support universal binaries so only install dependencies for arch-specific builds
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
-        brew install mbedtls
+        brew install mbedtls@3
         brew install argp-standalone
-        echo "CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES" >> $GITHUB_ENV
+        echo "MbedTLS_DIR=$(brew --prefix mbedtls@3)/lib/cmake/MbedTLS" >> $GITHUB_ENV
 
     - name: Install TR-31 using brew
       if: ${{ contains(matrix.deps, 'tr31') && matrix.fetch_deps == 'NO' }}
@@ -70,7 +70,12 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -B build -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} -DBUILD_TR31_TOOL=NO
+        cmake -B build \
+          -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" \
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+          -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} \
+          ${{ matrix.fetch_deps == 'NO' && '-DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES' || '-DFETCH_MBEDTLS=YES' }} \
+          -DBUILD_TR31_TOOL=NO
         cmake --build build -j 4
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
@@ -84,8 +89,7 @@ jobs:
           -DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" \
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
           -DBUILD_SHARED_LIBS=${{ matrix.shared_libs }} \
-          -DFETCH_MBEDTLS=${{ matrix.fetch_deps }} \
-          -DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_MbedTLS }} \
+          ${{ matrix.fetch_deps == 'NO' && '-DCMAKE_REQUIRE_FIND_PACKAGE_MbedTLS=YES' || '-DFETCH_MBEDTLS=YES' }} \
           -DFETCH_ARGP=${{ matrix.fetch_deps }} \
           -Dtr31_DIR=${{ env.TR31_DIR }} \
           -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} \
@@ -124,7 +128,11 @@ jobs:
         gh release download --repo openemv/tr31 ${{ env.TR31_VERSION }}
         tar xvfz tr31-${{ env.TR31_VERSION }}-src.tar.gz
         cd tr31-${{ env.TR31_VERSION }}
-        cmake -B build -DCMAKE_OSX_ARCHITECTURES="x86_64" -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DBUILD_TR31_TOOL=NO
+        cmake -B build \
+          -DCMAKE_OSX_ARCHITECTURES="x86_64" \
+          -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
+          -DFETCH_MBEDTLS=YES \
+          -DBUILD_TR31_TOOL=NO
         cmake --build build -j 4
         echo "TR31_DIR=$(pwd)/build/cmake/" >> $GITHUB_ENV
         cd ..
