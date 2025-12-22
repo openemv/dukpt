@@ -99,7 +99,7 @@ jobs:
       run: |
         cmake -B build \
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
-          -DDUKPT_ENABLE_SANITIZERS=ON \
+          -DDUKPT_ENABLE_SANITIZERS=YES \
           -DBUILD_DUKPT_UI=YES
 
     - name: Build
@@ -142,7 +142,7 @@ jobs:
         cmake -B build \
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
           -DBUILD_SHARED_LIBS=YES \
-          -DDUKPT_ENABLE_HARDENING=ON \
+          -DDUKPT_ENABLE_HARDENING=YES \
           -DBUILD_DUKPT_UI=YES
 
     - name: Build
