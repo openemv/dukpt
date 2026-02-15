@@ -1,4 +1,4 @@
-# Copyright 1999-2025 Gentoo Authors
+# Copyright 1999-2026 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
@@ -15,14 +15,13 @@ else
 	SRC_URI="https://github.com/openemv/dukpt/releases/download/${PV}/${P}-src.tar.gz -> ${P}.tar.gz"
 fi
 
-LICENSE="LGPL-2.1+ tools? ( GPL-3+ ) qt5? ( GPL-3+ ) qt6? ( GPL-3+ )"
+LICENSE="LGPL-2.1+ tools? ( GPL-3+ ) gui? ( GPL-3+ )"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="+mbedtls openssl qt5 qt6 +tools +tr31 doc test"
+IUSE="+mbedtls openssl +tools +tr31 gui doc test"
 REQUIRED_USE="
 	^^ ( mbedtls openssl )
-	qt5? ( tr31 )
-	qt6? ( tr31 )
+	gui? ( tr31 )
 "
 RESTRICT="!test? ( test )"
 
@@ -33,14 +32,7 @@ BDEPEND="
 RDEPEND="
 	mbedtls? ( net-libs/mbedtls )
 	openssl? ( dev-libs/openssl )
-	qt5? (
-		dev-qt/qtcore:5
-		dev-qt/qtgui:5
-		dev-qt/qtwidgets:5
-	)
-	qt6? (
-		dev-qt/qtbase:6[gui,widgets]
-	)
+	gui? ( dev-qt/qtbase:6[gui,widgets] )
 	tr31? ( >=dev-libs/tr31-0.6.0 )
 "
 DEPEND="
@@ -56,23 +48,20 @@ src_prepare() {
 
 src_configure() {
 	# NOTE:
-	# https://wiki.gentoo.org/wiki/Project:Qt/Policies states that when an
-	# application optionally supports one of two Qt versions, it is allowed for
-	# both qt5 and qt6 to be enabled and, if so, qt5 should be preferred.
+	# https://wiki.gentoo.org/wiki/Project:Qt/Policies recommends that Qt5
+	# support should be dropped and that USE=gui should be used instead.
 
 	local mycmakeargs=(
 		$(cmake_use_find_package mbedtls MbedTLS)
 		$(cmake_use_find_package openssl OpenSSL)
-		$(cmake_use_find_package qt5 Qt5)
-		$(cmake_use_find_package qt6 Qt6)
-		$(cmake_use_find_package tr31 tr31)
 		-DBUILD_DUKPT_TOOL=$(usex tools)
+		$(cmake_use_find_package tr31 tr31)
+		-DCMAKE_DISABLE_FIND_PACKAGE_Qt5=YES
+		$(cmake_use_find_package gui Qt6)
+		-DBUILD_DUKPT_UI=$(usex gui)
 		-DBUILD_DOCS=$(usex doc)
 		-DBUILD_TESTING=$(usex test)
 	)
-	if use qt5 || use qt6; then
-		mycmakeargs+=( -DBUILD_DUKPT_UI=YES )
-	fi
 
 	cmake_src_configure
 }

@@ -14,5 +14,7 @@
 		<flag name="openssl">Use OpenSSL as the crypto library</flag>
 		<flag name="tools">Build command-line tool (dukpt-tool)</flag>
 		<flag name="tr31">Use TR-31 library</flag>
+		<flag name="gui">Build Qt-based GUI application (dukpt-ui)</flag>
+		<flag name="doc">Build API documentation with Doxygen</flag>
 	</use>
 </pkgmetadata>
