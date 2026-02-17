@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2021-2025 Leon Lynch
+# Copyright 2021-2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -145,6 +145,9 @@ endif()
 
 include(FindPackageHandleStandardArgs) # Provides find_package() messages
 include(GNUInstallDirs) # Provides CMAKE_INSTALL_* variables and good defaults for install()
+
+option(BUILD_MACOSX_BUNDLE "Build MacOS bundle containing dukpt-ui and dukpt-tool")
+option(BUILD_WIN_STANDALONE "Build standalone Windows installation that includes external dependencies")
 
 # Set minimum tr31 version before adding subdirectories
 set(TR31_MIN_VERSION 0.6.0 CACHE INTERNAL "Minimum tr31 version")
@@ -418,7 +421,7 @@ if(APPLE AND TARGET dukpt-ui AND BUILD_MACOSX_BUNDLE)
 endif()
 
 # Generate NSIS package for Windows if dukpt-ui is available
-if(WIN32 AND TARGET dukpt-ui)
+if(WIN32 AND TARGET dukpt-ui AND BUILD_WIN_STANDALONE)
 	list(APPEND CPACK_GENERATOR "NSIS")
 	# Only package runtime and development components
 	set(CPACK_COMPONENTS_ALL dukpt_runtime dukpt_ui_runtime dukpt_development)

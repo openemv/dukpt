@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2022-2025 Leon Lynch
+# Copyright 2022-2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -198,7 +198,8 @@ jobs:
           -DFETCH_MBEDTLS=YES \
           -DFETCH_ARGP=YES \
           -Dtr31_DIR=${{ env.TR31_DIR }} \
-          -DBUILD_DUKPT_UI=YES
+          -DBUILD_DUKPT_UI=YES \
+          -DBUILD_WIN_STANDALONE=YES
       # CMake will only accept Windows paths if they are environment variables, not CMake command line cache entries
       env:
         CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}

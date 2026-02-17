@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2022-2025 Leon Lynch
+# Copyright 2022-2026 Leon Lynch
 #
 # This file is licensed under the terms of the GPL v3 license.
 # See LICENSE.gpl file.
@@ -159,7 +159,6 @@ target_include_directories(dukpt-ui PRIVATE
 )
 target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
 
-option(BUILD_MACOSX_BUNDLE "Build MacOS bundle containing dukpt-ui and dukpt-tool")
 if(APPLE AND BUILD_MACOSX_BUNDLE)
 	# Set properties needed for bundle applications on MacOS
 	set_target_properties(
@@ -228,36 +227,38 @@ if(WIN32)
 	# Add application icon for Windows
 	target_sources(dukpt-ui PRIVATE icon.rc)
 
-	# Deploy Qt for Windows
-	include(DeployQt)
-	windeployqt(dukpt-ui dukpt_ui_runtime)
+	if(BUILD_WIN_STANDALONE)
+		# Install tr31 DLL library to DUKPT runtime, if necessary
+		# NOTE: The tr31 DLL is installed to the DUKPT runtime, not the UI
+		# runtime, because the latter depends on the former and it should be
+		# possible to install the former without the latter. It is implemented
+		# here because when the UI is not being built, it is assumed that tr31
+		# will be available in the PATH of the shell environment.
+		get_target_property(tr31_TYPE tr31::tr31 TYPE)
+		if(tr31_TYPE STREQUAL "SHARED_LIBRARY")
+			if(${CMAKE_VERSION} VERSION_LESS "3.21")
+				message(FATAL_ERROR "CMake >=3.21 is required to install on Windows when tr31 library is a DLL")
+			endif()
 
-	# Install tr31 DLL library to DUKPT runtime, if necessary
-	# NOTE: The tr31 DLL is installed to the DUKPT runtime, not the DUKPT UI
-	# runtime, because the latter depends on the former and it should be
-	# possible to install the former without the latter. It is implemented here
-	# because when the GUI is not being built, it is assumed that tr31 will be
-	# available in the PATH of the shell environment.
-	get_target_property(tr31_TYPE tr31::tr31 TYPE)
-	if(tr31_TYPE STREQUAL "SHARED_LIBRARY")
-		if(${CMAKE_VERSION} VERSION_LESS "3.21")
-			message(FATAL_ERROR "CMake >=3.21 is required to install on Windows when tr31 library is a DLL")
+			install(
+				IMPORTED_RUNTIME_ARTIFACTS # NOTE: requires CMake >=3.21
+					tr31::tr31
+				RUNTIME
+					COMPONENT dukpt_runtime
+			)
 		endif()
 
-		install(
-			IMPORTED_RUNTIME_ARTIFACTS # NOTE: requires CMake >=3.21
-				tr31::tr31
-			RUNTIME
-				COMPONENT dukpt_runtime
-		)
-	endif()
+		# Deploy Qt for Windows
+		include(DeployQt)
+		windeployqt(dukpt-ui dukpt_ui_runtime)
 
-	# Deploy runtime libraries for Windows
-	set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT dukpt_ui_runtime)
-	include(InstallRequiredSystemLibraries)
-	if(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
-		message(STATUS "Required system libraries: ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}")
-	endif()
+		# Deploy runtime libraries for Windows
+		set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT dukpt_ui_runtime)
+		include(InstallRequiredSystemLibraries)
+		if(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+			message(STATUS "Required system libraries: ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}")
+		endif()
+	endif() # BUILD_WIN_STANDALONE
 endif()
 
 # Install LICENSE.gpl file to UI runtime component

@@ -205,6 +205,18 @@ cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_A
 cmake --build build --target package
 ```
 
+On Windows, a standalone installation that includes external dependencies can be
+built using the `BUILD_WIN_STANDALONE` option and packaged using
+[NSIS](https://nsis.sourceforge.io). Assuming `tr31_DIR` is already
+appropriately set and `QT_DIR` is set to a Qt installation that can deploy its
+own dependencies, this is an example of how a standalone installation can be
+built and packaged from scratch on Windows:
+```shell
+rm -Rf build &&
+cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DBUILD_SHARED_LIBS=YES -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -DBUILD_WIN_STANDALONE=YES &&
+cmake --build build --target package
+```
+
 Usage
 -----
 
