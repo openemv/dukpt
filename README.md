@@ -36,8 +36,8 @@ See [usage](#usage) for more examples.
 Installation
 ------------
 
-* For Ubuntu 20.04 LTS (Focal), 22.04 LTS (Jammy), or 24.04 LTS (Noble) install
-  the appropriate [release package](https://github.com/openemv/dukpt/releases)
+* For Ubuntu 22.04 LTS (Jammy) or 24.04 LTS (Noble) install the appropriate
+  Ubuntu [release package](https://github.com/openemv/dukpt/releases)
 * For Fedora 42 or Fedora 43, install the appropriate
   [release package](https://github.com/openemv/dukpt/releases)
 * For Gentoo, use the
@@ -275,7 +275,7 @@ Roadmap
 License
 -------
 
-Copyright 2021-2025 [Leon Lynch](https://github.com/leonlynch).
+Copyright 2021-2026 [Leon Lynch](https://github.com/leonlynch).
 
 This project is licensed under the terms of the LGPL v2.1 license with the
 exception of `dukpt-tool` and `dukpt-ui` which are licensed under the terms of
