@@ -166,13 +166,12 @@ cmake --build build --target package
 Qt
 --
 
-This project supports Qt 5.15.x, Qt 6.5.x and Qt 6.8.x (although it
-may be possible to use other versions of Qt) when building the `dukpt-ui`
-application. However, on some platforms it may be necessary to use the `QT_DIR`
-option (and not the `Qt5_DIR` nor `Qt6_DIR` options) or `CMAKE_PREFIX_PATH`
-option to specify the exact Qt installation to be used. For Qt6 it may also be
-necessary for the Qt tools to be available in the executable PATH regardless of
-the `QT_DIR` option.
+This project supports Qt 5.15.x, Qt 6.8.x and Qt 6.10.x (although it may be
+possible to use other versions of Qt) when building the `dukpt-ui` application.
+However, on some platforms it may be necessary to use the `Qt5_DIR`, `Qt6_DIR`
+or `CMAKE_PREFIX_PATH` options to specify the exact Qt installation to be used.
+For Qt6 it may also be necessary for the Qt tools to be available in the
+executable PATH regardless of the `Qt6_DIR` option.
 
 If the Qt installation does not provide universal binaries for MacOS, it will
 not be possible to build `dukpt-ui` as a universal binary for MacOS.
@@ -196,9 +195,10 @@ cmake --build build
 ```
 
 On MacOS, a bundle can also be built using the `BUILD_MACOSX_BUNDLE` option and
-packaged as a DMG installer. Assuming `tr31_DIR` and `QT_DIR` are already
-appropriately set, this is an example of how a self-contained, static, native
-bundle and installer can be built from scratch for MacOS:
+packaged as a DMG installer. Assuming the appropriate CMake environment
+variables have already been set for all dependencies to be found, this is an
+example of how a self-contained, static, native bundle and installer can be
+built from scratch for MacOS:
 ```shell
 rm -Rf build &&
 cmake -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo" -DFETCH_MBEDTLS=YES -DFETCH_ARGP=YES -DBUILD_DUKPT_UI=YES -DBUILD_MACOSX_BUNDLE=YES &&

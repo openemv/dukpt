@@ -149,24 +149,22 @@ add_subdirectory(test)
 # If Qt::Widgets and tr31 are available, build dukpt-ui
 option(BUILD_DUKPT_UI "Build dukpt-ui")
 # See https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html#supporting-older-qt-5-versions
-# Note that CMAKE_DISABLE_FIND_PACKAGE_<PackageName> only applies to the
-# primary package name and not the alternative names and therefore it is
-# necessary to build the list of alternative names to ensure that either Qt5 or
-# Qt6 can be disabled, otherwise CMAKE_DISABLE_FIND_PACKAGE_<PackageName> will
-# be ignored.
-if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt5)
-	list(APPEND Qt_NAMES Qt5)
-endif()
-if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt6)
-	list(APPEND Qt_NAMES Qt6)
-endif()
-if(Qt_NAMES)
+# See https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html#pitfalls-when-using-versionless-targets
+# Only support Qt-6.8+, or Qt-5.15, because Qt-6.8 is the current LTS and
+# contains various fixes.
+if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt6 OR NOT CMAKE_DISABLE_FIND_PACKAGE_Qt5)
 	# Searching for Qt requires CXX
 	enable_language(CXX)
-
-	find_package(QT 5.15 NAMES ${Qt_NAMES} COMPONENTS Widgets)
-	if(QT_FOUND)
-		find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets PATHS ${QT_DIR})
+	find_package(Qt6 6.8 COMPONENTS Widgets CONFIG)
+	if(Qt6_FOUND)
+		set(QT_VERSION_MAJOR 6)
+	else()
+		find_package(Qt5 5.15 COMPONENTS Widgets CONFIG)
+		if(Qt5_FOUND)
+			set(QT_VERSION_MAJOR 5)
+		endif()
+	endif()
+	if(QT_VERSION_MAJOR)
 		find_package_handle_standard_args(Qt${QT_VERSION_MAJOR} CONFIG_MODE)
 		find_package_handle_standard_args(Qt${QT_VERSION_MAJOR}Widgets CONFIG_MODE)
 	else()
@@ -191,7 +189,7 @@ if(NOT tr31_FOUND)
 		message(STATUS "Could NOT find tr31: skipping dukpt-ui build")
 	endif()
 endif()
-if(QT_FOUND AND tr31_FOUND)
+if(QT_VERSION_MAJOR AND tr31_FOUND)
 	message(STATUS "Adding dukpt-ui to build")
 	add_subdirectory(ui)
 endif()

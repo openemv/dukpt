@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2022-2025 Leon Lynch
+# Copyright 2022-2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
@@ -49,14 +49,14 @@ jobs:
       if: contains(matrix.deps, 'qt5')
       run: |
         brew install qt@5
-        echo "QT_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5" >> $GITHUB_ENV
+        echo "Qt5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5" >> $GITHUB_ENV
 
     - name: Install Qt6 using brew
       # Homebrew doesn't support universal binaries so only install Qt for arch-specific builds
       if: contains(matrix.deps, 'qt6')
       run: |
         brew install qt@6
-        echo "QT_DIR=$(brew --prefix qt@6)/lib/cmake/Qt6" >> $GITHUB_ENV
+        echo "Qt6_DIR=$(brew --prefix qt@6)/lib/cmake/Qt6" >> $GITHUB_ENV
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -93,7 +93,6 @@ jobs:
           -DFETCH_ARGP=${{ matrix.fetch_deps }} \
           -Dtr31_DIR=${{ env.TR31_DIR }} \
           -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ env.CMAKE_REQUIRE_FIND_PACKAGE_tr31 }} \
-          -DQT_DIR=${{ env.QT_DIR }} \
           -DCMAKE_DISABLE_FIND_PACKAGE_Qt5=${{ !contains(matrix.deps, 'qt5') && 'YES' || 'NO' }} \
           -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=${{ !contains(matrix.deps, 'qt6') && 'YES' || 'NO' }} \
           -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
@@ -111,8 +110,8 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
-        brew install qt@5
-        echo "QT_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5" >> $GITHUB_ENV
+        brew install qt@6
+        echo "Qt6_DIR=$(brew --prefix qt@6)/lib/cmake/Qt6" >> $GITHUB_ENV
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -154,7 +153,6 @@ jobs:
           -DFETCH_MBEDTLS=YES \
           -DFETCH_ARGP=YES \
           -Dtr31_DIR=${{ env.TR31_DIR }} \
-          -DQT_DIR=${{ env.QT_DIR }} \
           -DBUILD_DUKPT_UI=YES \
           -DBUILD_MACOSX_BUNDLE=YES \
           -DCPACK_COMMAND_HDIUTIL="/usr/bin/sudo /usr/bin/hdiutil" \

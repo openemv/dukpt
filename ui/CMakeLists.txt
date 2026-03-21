@@ -102,23 +102,23 @@ configure_file(
 )
 
 # See https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html#supporting-older-qt-5-versions
-# Note that CMAKE_DISABLE_FIND_PACKAGE_<PackageName> only applies to the
-# primary package name and not the alternative names and therefore it is
-# necessary to build the list of alternative names to ensure that either Qt5 or
-# Qt6 can be disabled, otherwise CMAKE_DISABLE_FIND_PACKAGE_<PackageName> will
-# be ignored.
-if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt5)
-	list(APPEND Qt_NAMES Qt5)
+# See https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html#pitfalls-when-using-versionless-targets
+# Only support Qt-6.8+, or Qt-5.15, because Qt-6.8 is the current LTS and
+# contains various fixes.
+find_package(Qt6 6.8 COMPONENTS Widgets CONFIG)
+if(Qt6_FOUND)
+	set(QT_VERSION_MAJOR 6)
+else()
+	find_package(Qt5 5.15 COMPONENTS Widgets CONFIG)
+	if(Qt5_FOUND)
+		set(QT_VERSION_MAJOR 5)
+	endif()
 endif()
-if(NOT CMAKE_DISABLE_FIND_PACKAGE_Qt6)
-	list(APPEND Qt_NAMES Qt6)
-endif()
-if(NOT Qt_NAMES)
+if(NOT QT_VERSION_MAJOR)
 	message(FATAL_ERROR "Either Qt5 or Qt6 are required to build dukpt-ui")
 endif()
 
-find_package(QT 5.15 NAMES ${Qt_NAMES} REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets PATHS ${QT_DIR})
+find_package_handle_standard_args(Qt${QT_VERSION_MAJOR} CONFIG_MODE)
 find_package_handle_standard_args(Qt${QT_VERSION_MAJOR}Widgets CONFIG_MODE)
 qt_wrap_ui(UI_SRCS mainwindow.ui)
 qt_wrap_cpp(MOC_SRCS mainwindow.h betterplaintextedit.h validators.h)
@@ -131,7 +131,13 @@ target_include_directories(dukpt-ui PRIVATE
 	${CMAKE_CURRENT_BINARY_DIR} # For generated files
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For generated files to include source headers
 )
-target_link_libraries(dukpt-ui Qt::Widgets dukpt::dukpt_tdes dukpt::dukpt_aes tr31::tr31)
+target_link_libraries(dukpt-ui
+	PRIVATE
+		Qt${QT_VERSION_MAJOR}::Widgets
+		dukpt::dukpt_tdes
+		dukpt::dukpt_aes
+		tr31::tr31
+)
 
 if(APPLE AND BUILD_MACOSX_BUNDLE)
 	# Set properties needed for bundle applications on MacOS
