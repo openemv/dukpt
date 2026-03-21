@@ -164,7 +164,7 @@ if(Qt_NAMES)
 	# Searching for Qt requires CXX
 	enable_language(CXX)
 
-	find_package(QT 5.12 NAMES ${Qt_NAMES} COMPONENTS Widgets)
+	find_package(QT 5.15 NAMES ${Qt_NAMES} COMPONENTS Widgets)
 	if(QT_FOUND)
 		find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets PATHS ${QT_DIR})
 		find_package_handle_standard_args(Qt${QT_VERSION_MAJOR} CONFIG_MODE)
