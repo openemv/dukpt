@@ -43,7 +43,7 @@ jobs:
       run: sudo dnf -y install qt6-qtbase-devel
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -94,7 +94,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
         submodules: recursive
@@ -130,7 +130,7 @@ jobs:
       run: cmake --build build --target package
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: dukpt-${{ env.GIT_DESCRIBE }}-fedora${{ matrix.fedora_version }}
         path: build/dukpt-*.rpm
