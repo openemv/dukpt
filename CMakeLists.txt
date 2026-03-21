@@ -5,7 +5,7 @@
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 project(dukpt
 	VERSION 1.2.5
@@ -15,15 +15,7 @@ project(dukpt
 )
 
 # Determine whether this project is the top-level project
-if(${CMAKE_VERSION} VERSION_LESS "3.21")
-	get_directory_property(DUKPT_HAS_PARENT PARENT_DIRECTORY)
-	if(NOT DUKPT_HAS_PARENT)
-		set(DUKPT_IS_TOP_LEVEL True)
-	endif()
-else()
-	# CMake >=3.21 provides <PROJECT-NAME>_IS_TOP_LEVEL
-	set(DUKPT_IS_TOP_LEVEL ${dukpt_IS_TOP_LEVEL})
-endif()
+set(DUKPT_IS_TOP_LEVEL ${dukpt_IS_TOP_LEVEL})
 
 # Configure compiler
 set(CMAKE_C_STANDARD 11)

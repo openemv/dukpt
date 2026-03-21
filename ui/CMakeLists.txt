@@ -5,7 +5,7 @@
 # See LICENSE.gpl file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 project(dukpt-ui
 	VERSION 1.2.5
@@ -15,15 +15,7 @@ project(dukpt-ui
 )
 
 # Determine whether this project is the top-level project
-if(${CMAKE_VERSION} VERSION_LESS "3.21")
-	get_directory_property(DUKPT_UI_HAS_PARENT PARENT_DIRECTORY)
-	if(NOT DUKPT_UI_HAS_PARENT)
-		set(DUKPT_UI_IS_TOP_LEVEL True)
-	endif()
-else()
-	# CMake >=3.21 provides <PROJECT-NAME>_IS_TOP_LEVEL
-	set(DUKPT_UI_IS_TOP_LEVEL ${dukpt-ui_IS_TOP_LEVEL})
-endif()
+set(DUKPT_UI_IS_TOP_LEVEL ${dukpt-ui_IS_TOP_LEVEL})
 
 # Configure compiler
 set(CMAKE_CXX_STANDARD 14)
@@ -134,15 +126,8 @@ if(QT_VERSION VERSION_LESS 5.15)
 	qt5_wrap_cpp(MOC_SRCS mainwindow.h betterplaintextedit.h validators.h)
 	qt5_add_resources(QRC_SRCS icons.qrc)
 
-	if(CMAKE_VERSION VERSION_LESS "3.18")
-		# CMake versions older than 3.18 cannot create alias targets for
-		# non-global imported targets and an alternative is to use INTERFACE
-		# linking instead
-		add_library(Qt::Widgets INTERFACE IMPORTED)
-		set_target_properties(Qt::Widgets PROPERTIES INTERFACE_LINK_LIBRARIES Qt5::Widgets)
-	else()
-		add_library(Qt::Widgets ALIAS Qt5::Widgets)
-	endif()
+	# Create alias targets for compatibility with newer Qt versions
+	add_library(Qt::Widgets ALIAS Qt5::Widgets)
 else()
 	# Qt-5.15 and Qt-6 provide these version-less commands
 	qt_wrap_ui(UI_SRCS mainwindow.ui)
@@ -236,12 +221,8 @@ if(WIN32)
 		# will be available in the PATH of the shell environment.
 		get_target_property(tr31_TYPE tr31::tr31 TYPE)
 		if(tr31_TYPE STREQUAL "SHARED_LIBRARY")
-			if(${CMAKE_VERSION} VERSION_LESS "3.21")
-				message(FATAL_ERROR "CMake >=3.21 is required to install on Windows when tr31 library is a DLL")
-			endif()
-
 			install(
-				IMPORTED_RUNTIME_ARTIFACTS # NOTE: requires CMake >=3.21
+				IMPORTED_RUNTIME_ARTIFACTS
 					tr31::tr31
 				RUNTIME
 					COMPONENT dukpt_runtime

@@ -1,11 +1,11 @@
 ##############################################################################
-# Copyright 2021-2025 Leon Lynch
+# Copyright 2021-2026 Leon Lynch
 #
 # This file is licensed under the terms of the LGPL v2.1 license.
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 # Check whether compiler supports __builtin_popcount()
 include(CheckCSourceCompiles)
