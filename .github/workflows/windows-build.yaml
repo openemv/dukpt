@@ -20,12 +20,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none", fetch_deps: NO, build_dukpt_ui: NO }
-          - { sys: mingw64, env: x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt6", fetch_deps: NO, build_dukpt_ui: YES }
-          - { sys: mingw64, env: x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt5", fetch_deps: YES, build_dukpt_ui: YES }
-          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt5", fetch_deps: NO, build_dukpt_ui: YES }
+          - { sys: clang64, env: clang-x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "none", fetch_deps: NO, build_dukpt_ui: NO }
+          - { sys: clang64, env: clang-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31", fetch_deps: NO, build_dukpt_ui: NO }
+          - { sys: ucrt64, env: ucrt-x86_64, build_type: "Debug", lib_type: "static", shared_libs: "NO", deps: "tr31/qt6", fetch_deps: NO, build_dukpt_ui: YES }
           - { sys: ucrt64, env: ucrt-x86_64, build_type: "Release", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt6", fetch_deps: YES, build_dukpt_ui: YES }
-          # NOTE: Only test Qt6 for clang64 because Qt5's windeployqt does not support clang64
           - { sys: clang64, env: clang-x86_64, build_type: "Debug", lib_type: "dll", shared_libs: "YES", deps: "tr31/qt6", fetch_deps: NO, build_dukpt_ui: YES }
           - { sys: clang64, env: clang-x86_64, build_type: "Release", lib_type: "static", shared_libs: "NO", deps: "tr31/qt6", fetch_deps: YES, build_dukpt_ui: YES }
 
@@ -58,11 +56,6 @@ jobs:
       if: ${{ matrix.fetch_deps == 'NO' }}
       run: |
         pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-mbedtls
-
-    - name: Install Qt5
-      if: contains(matrix.deps, 'qt5')
-      run: |
-        pacman --noconfirm -S --needed mingw-w64-${{matrix.env}}-qt5-base mingw-w64-${{matrix.env}}-qt5-tools
 
     - name: Install Qt6
       if: contains(matrix.deps, 'qt6')
@@ -119,7 +112,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, build_type: "RelWithDebInfo" }
+          - { sys: clang64, env: clang-x86_64, build_type: "RelWithDebInfo" }
 
     name: Windows MSYS2 ${{matrix.sys}} build (release)
 
@@ -154,15 +147,8 @@ jobs:
         version: 6.8.*
         host: windows
         target: desktop
-        arch: win64_mingw
-        archives: qtbase qttools MinGW
-        tools: tools_mingw1310
-        add-tools-to-path: true
+        arch: win64_llvm_mingw
         cache: true
-
-    # Build using Qt toolchain because it will be packaged with Qt toolchain's runtime
-    - name: Configure Qt toolchain path
-      run: echo "TOOLCHAIN_PATH=$(cygpath -u '${{ env.IQTA_TOOLS }}')/mingw1310_64/bin" >> $GITHUB_ENV
 
     - name: Build TR-31 dependency
       run: |
@@ -171,8 +157,6 @@ jobs:
         cd tr31-${{ env.TR31_VERSION }}
         cmake -G Ninja -B build \
             -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
-            -DCMAKE_C_COMPILER="${{ env.TOOLCHAIN_PATH }}/gcc.exe" \
-            -DCMAKE_CXX_COMPILER="${{ env.TOOLCHAIN_PATH }}/g++.exe" \
             -DBUILD_SHARED_LIBS=YES \
             -DFETCH_MBEDTLS=YES \
             -DBUILD_TR31_TOOL=NO
@@ -192,8 +176,6 @@ jobs:
       run: |
         cmake -G Ninja -B build \
           -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
-          -DCMAKE_C_COMPILER="${{ env.TOOLCHAIN_PATH }}/gcc.exe" \
-          -DCMAKE_CXX_COMPILER="${{ env.TOOLCHAIN_PATH }}/g++.exe" \
           -DBUILD_SHARED_LIBS=YES \
           -DFETCH_MBEDTLS=YES \
           -DFETCH_ARGP=YES \
