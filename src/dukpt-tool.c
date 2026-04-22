@@ -2,7 +2,7 @@
  * @file dukpt-tool.c
  * @brief Simple DUKPT tool
  *
- * Copyright 2021-2025 Leon Lynch
+ * Copyright 2021-2026 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -243,12 +243,14 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				if (strcmp(arg, "-") == 0) {
 					if (found_stdin_arg) {
 						argp_error(state, "Only one option may be read from stdin");
+						return EINVAL;
 					}
 					found_stdin_arg = true;
 
 					buf = read_file(stdin, &buf_len);
 					if (!buf) {
 						argp_error(state, "Failed to read data from stdin");
+						return EINVAL;
 					}
 
 					break;
@@ -270,6 +272,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 				if (arg_len < 2) {
 					argp_error(state, "Argument value must consist of at least 1 byte (thus 2 hex digits)");
+					return EINVAL;
 				}
 
 				// Ensure that the buffer has enough space for odd length hex strings
@@ -277,14 +280,17 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				buf = malloc(buf_len);
 				if (!buf) {
 					argp_error(state, "Memory allocation failed");
+					return ENOMEM;
 				}
 
 				r = parse_hex(arg, buf, &buf_len);
 				if (r < 0) {
 					argp_error(state, "Argument value must consist of hex digits");
+					return EINVAL;
 				}
 				if (r > 0) {
 					argp_error(state, "Argument value must have even number of hex digits");
+					return EINVAL;
 				}
 
 				break;
@@ -300,11 +306,13 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				buf = malloc(buf_len);
 				if (!buf) {
 					argp_error(state, "Memory allocation failed");
+					return ENOMEM;
 				}
 
 				r = parse_pan_str(arg, buf, &buf_len);
 				if (r) {
 					argp_error(state, "PAN must consist of valid decimal digits");
+					return EINVAL;
 				}
 
 				break;
@@ -317,11 +325,13 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 
 				if (arg_len != 1) {
 					argp_error(state, "PIN block format number must be a single decimal digit");
+					return EINVAL;
 				}
 
 				r = parse_dec_str(arg, &value, &arg_len);
 				if (r) {
 					argp_error(state, "PIN block format number must be a single decimal digit");
+					return EINVAL;
 				}
 				pinblock_format = value;
 
@@ -336,11 +346,13 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				buf = malloc(buf_len);
 				if (!buf) {
 					argp_error(state, "Memory allocation failed");
+					return ENOMEM;
 				}
 
 				r = parse_dec_str(arg, buf, &buf_len);
 				if (r) {
 					argp_error(state, "PIN must consist of valid decimal digits");
+					return EINVAL;
 				}
 
 				break;
@@ -356,6 +368,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				dukpt_tool_mode = DUKPT_TOOL_MODE_AES;
 			} else {
 				argp_error(state, "Invalid derivation mode (--mode) \"%s\"", arg);
+				return EINVAL;
 			}
 
 			return 0;
@@ -369,6 +382,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				key_type = DUKPT_AES_KEY_TYPE_AES256;
 			} else {
 				argp_error(state, "Invalid working key type (--key-type) \"%s\"", arg);
+				return EINVAL;
 			}
 
 			key_type_valid = true;
@@ -490,6 +504,7 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				tr31_version = TR31_VERSION_E;
 			} else {
 				argp_error(state, "Invalid TR-31 format version (--output-tr31-format-version) \"%s\"", arg);
+				return EINVAL;
 			}
 			return 0;
 
@@ -535,53 +550,66 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			// Validate options
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_NONE) {
 				argp_error(state, "No action specified");
+				return EINVAL;
 			}
 			if (!ksn) {
 				argp_error(state, "Key serial number (--ksn) is required");
+				return EINVAL;
 			}
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_DERIVE_IK &&
 				(!bdk || ik)
 			) {
 				argp_error(state, "Initial key derivation (--derive-ik/--derive-ipek) requires Base Derivation Key (--bdk)");
+				return EINVAL;
 			}
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_DERIVE_TXN_KEY &&
 				((!bdk && !ik) || (bdk && ik))
 			) {
 				argp_error(state, "Transaction key derivation (--derive-txn-key) requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+				return EINVAL;
 			}
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_DERIVE_UPDATE_KEY) {
 				if (dukpt_tool_mode != DUKPT_TOOL_MODE_AES) {
 					argp_error(state, "Update key derivation (--derive-update-key) is only allowed for derivation mode (--mode) AES");
+					return EINVAL;
 				}
 				if ((!bdk && !ik) || (bdk && ik)) {
 					argp_error(state, "Update key derivation (--derive-update-key) requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+					return EINVAL;
 				}
 			}
 
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_PINBLOCK || dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_PINBLOCK) {
 				if ((!bdk && !ik) || (bdk && ik)) {
 					argp_error(state, "PIN block encrypt/decrypt requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+					return EINVAL;
 				}
 				if (iv) {
 					argp_error(state, "Initial vector (--iv) is not allowed for PIN block encrypt/decrypt");
+					return EINVAL;
 				}
 				if (dukpt_tool_mode == DUKPT_TOOL_MODE_TDES && pan) {
 					argp_error(state, "TDES: PIN block encrypt/decrypt ignores PAN (--pan)");
+					return EINVAL;
 				}
 				if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES && !pan) {
 					argp_error(state, "AES: PIN block encrypt/decrypt requires PAN (--pan)");
+					return EINVAL;
 				}
 			}
 
 			if (dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_PIN || dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_PIN) {
 				if ((!bdk && !ik) || (bdk && ik)) {
 					argp_error(state, "PIN encrypt/decrypt requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+					return EINVAL;
 				}
 				if (iv) {
 					argp_error(state, "Initial vector (--iv) is not allowed for PIN encrypt/decrypt");
+					return EINVAL;
 				}
 				if (!pan) {
 					argp_error(state, "PIN encrypt/decrypt requires PAN (--pan)");
+					return EINVAL;
 				}
 
 				// Set default PIN block format according to mode
@@ -599,34 +627,43 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 				((!bdk && !ik) || (bdk && ik))
 			) {
 				argp_error(state, "Dumping of internal DUKPT state (--dump-state) requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+				return EINVAL;
 			}
 
 #ifdef DUKPT_TOOL_USE_TR31
 			if (output_format == DUKPT_TOOL_OUTPUT_FORMAT_TR31) {
 				if (dukpt_tool_action != DUKPT_TOOL_ACTION_DERIVE_IK) {
 					argp_error(state, "TR-31 output (--output-tr31) is only allowed for initial key derivation (--derive-ik/derive-ipek)");
+					return EINVAL;
 				}
 				if (!tr31_version) {
 					argp_error(state, "TR-31 output (--output-tr31) requires TR-31 format version (--output-tr31-format-version)");
+					return EINVAL;
 				}
 			} else {
 				if (tr31_version) {
 					argp_error(state, "TR-31 format version (--output-tr31-format-version) is only allowed for TR-31 output (--output-tr31)");
+					return EINVAL;
 				}
 				if (tr31_with_ksn) {
 					argp_error(state, "TR-31 with optional block IK or KS (--output-tr31-with-ksn) is only allowed for TR-31 output (--output-tr31)");
+					return EINVAL;
 				}
 				if (tr31_with_kc) {
 					argp_error(state, "TR-31 with optional block KC (--output-tr31-with-kc) is only allowed for TR-31 output (--output-tr31)");
+					return EINVAL;
 				}
 				if (tr31_with_kp) {
 					argp_error(state, "TR-31 with optional block KP (--output-tr31-with-kp) is only allowed for TR-31 output (--output-tr31)");
+					return EINVAL;
 				}
 				if (tr31_with_lb) {
 					argp_error(state, "TR-31 with optional block LB (--output-tr31-with-lb) is only allowed for TR-31 output (--output-tr31)");
+					return EINVAL;
 				}
 				if (tr31_with_ts) {
 					argp_error(state, "TR-31 with optional block TS (--output-tr31-with-ts) is only allowed for TR-31 output (--output-tr31)");
+					return EINVAL;
 				}
 			}
 #endif
