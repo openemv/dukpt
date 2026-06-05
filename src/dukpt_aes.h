@@ -2,7 +2,7 @@
  * @file dukpt_aes.h
  * @brief ANSI X9.24-3:2017 AES DUKPT implementation
  *
- * Copyright 2021-2023 Leon Lynch
+ * Copyright 2021-2023, 2026 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -587,6 +587,120 @@ int dukpt_aes_verify_response_hmac_sha256(
 );
 
 /**
+ * Generate AES-CMAC for bidirectional transaction data using DUKPT transaction
+ * key
+ *
+ * @note This function may be used by the transaction originating as well as
+ *       transaction receiving Secure Cryptographic Device (SCD) but offers no
+ *       protection against the one masquerading as the other.
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of CMAC key
+ * @param buf Transaction data
+ * @param buf_len Length of transaction data in bytes
+ * @param cmac CMAC output of length @ref DUKPT_AES_CMAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_generate_both_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+);
+
+/**
+ * Verify AES-CMAC for bidirectional transaction data using DUKPT transaction
+ * key
+ *
+ * @note This function may be used by the transaction originating as well as
+ *       transaction receiving Secure Cryptographic Device (SCD) but offers no
+ *       protection against the one masquerading as the other.
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of CMAC key
+ * @param buf Transaction data
+ * @param buf_len Length of transaction data in bytes
+ * @param cmac CMAC of length @ref DUKPT_AES_CMAC_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters
+ *         or invalid CMAC.
+ */
+int dukpt_aes_verify_both_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
+);
+
+/**
+ * Generate HMAC-SHA256 for bidirectional transaction data using DUKPT
+ * transaction key
+ *
+ * @note This function may be used by the transaction originating as well as
+ *       transaction receiving Secure Cryptographic Device (SCD) but offers no
+ *       protection against the one masquerading as the other.
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of HMAC key
+ * @param buf Transaction data
+ * @param buf_len Length of transaction data in bytes
+ * @param hmac HMAC output of length @ref DUKPT_AES_HMAC_SHA256_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters.
+ */
+int dukpt_aes_generate_both_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* hmac
+);
+
+/**
+ * Verify HMAC-SHA256 for bidirectional transaction data using DUKPT
+ * transaction key
+ *
+ * @note This function may be used by the transaction originating as well as
+ *       transaction receiving Secure Cryptographic Device (SCD) but offers no
+ *       protection against the one masquerading as the other.
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of HMAC key
+ * @param buf Transaction data
+ * @param buf_len Length of transaction data in bytes
+ * @param hmac HMAC of length @ref DUKPT_AES_HMAC_SHA256_LEN
+ * @return Zero for success. Less than zero for internal error.
+ *         Greater than zero for invalid/unsupported parameters
+ *         or invalid HMAC.
+ */
+int dukpt_aes_verify_both_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* hmac
+);
+
+/**
  * Encrypt transaction request using DUKPT transaction key
  *
  * @note This function should only be used by the transaction originating
@@ -684,6 +798,62 @@ int dukpt_aes_encrypt_response(
  * @return Zero for success. Less than zero for internal error.
  */
 int dukpt_aes_decrypt_response(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
+);
+
+/**
+ * Encrypt bidirectional transaction data using DUKPT transaction key
+ *
+ * @note This function may be used by the transaction originating as well as
+ *       transaction receiving Secure Cryptographic Device (SCD) but offers no
+ *       protection against the one masquerading as the other.
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of AES key
+ * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
+ * @param buf Transaction data
+ * @param buf_len Length of transaction data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
+ * @param ciphertext Encrypted transaction data of length @p buf_len
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_aes_encrypt_both(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+);
+
+/**
+ * Decrypt bidirectional transaction data using DUKPT transaction key
+ *
+ * @note This function may be used by the transaction originating as well as
+ *       transaction receiving Secure Cryptographic Device (SCD) but offers no
+ *       protection against the one masquerading as the other.
+ *
+ * @param txn_key DUKPT transaction key
+ * @param txn_key_len Length of DUKPT transaction key in bytes
+ * @param ksn Key Serial Number of length @ref DUKPT_AES_KSN_LEN
+ * @param key_type Key type of AES key
+ * @param iv Initial vector of length @ref DUKPT_AES_BLOCK_LEN
+ * @param buf Encrypted transaction data
+ * @param buf_len Length of encrypted transaction data in bytes. Must be a multiple of @ref DUKPT_AES_BLOCK_LEN
+ * @param plaintext Decrypted transaction data of length @p buf_len
+ * @return Zero for success. Less than zero for internal error.
+ */
+int dukpt_aes_decrypt_both(
 	const void* txn_key,
 	size_t txn_key_len,
 	const uint8_t* ksn,
