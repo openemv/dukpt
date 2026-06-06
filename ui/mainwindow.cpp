@@ -713,7 +713,7 @@ void MainWindow::logVector(QString&& str, const std::vector<std::uint8_t>& v)
 	// Abuse QByteArray to convert binary data to ASCII-HEX
 	QByteArray data(reinterpret_cast<const char*>(v.data()), v.size());
 	str += data.toHex().toUpper();
-	log(DUKPT_LOG_INFO, qUtf8Printable(str));
+	log(DUKPT_LOG_INFO, std::move(str));
 }
 
 void MainWindow::logDigitVector(QString&& str, std::vector<std::uint8_t> v)
@@ -725,7 +725,7 @@ void MainWindow::logDigitVector(QString&& str, std::vector<std::uint8_t> v)
 			str += QChar::fromLatin1('?');
 		}
 	}
-	log(DUKPT_LOG_INFO, qUtf8Printable(str));
+	log(DUKPT_LOG_INFO, std::move(str));
 }
 
 static std::vector<std::uint8_t> HexStringToVector(const QString& s)
@@ -2261,13 +2261,13 @@ std::vector<std::uint8_t> MainWindow::encryptPin(const std::vector<std::uint8_t>
 
 	// Validate PIN length
 	if (pin.size() < 4 || pin.size() > 12) {
-		logError(QString::asprintf("TDES: PIN must be 4 to 12 digits\n"));
+		logError(QString::asprintf("PIN must be 4 to 12 digits\n"));
 		return {};
 	}
 
 	// Validate PAN length
 	if (pan.size() < 5 || pan.size() > 10) {
-		logError(QString::asprintf("TDES: PAN must be 10 to 19 digits\n"));
+		logError(QString::asprintf("PAN must be 10 to 19 digits\n"));
 		return {};
 	}
 
@@ -2331,7 +2331,7 @@ std::vector<std::uint8_t> MainWindow::decryptPin(const std::vector<std::uint8_t>
 
 	// Validate PAN length
 	if (pan.size() < 5 || pan.size() > 10) {
-		logError(QString::asprintf("TDES: PAN must be 10 to 19 digits\n"));
+		logError(QString::asprintf("PAN must be 10 to 19 digits\n"));
 		return {};
 	}
 

@@ -1218,7 +1218,7 @@ static int do_tdes_mode(void)
 
 	switch (dukpt_tool_action) {
 		case DUKPT_TOOL_ACTION_NONE: {
-			fprintf(stderr, "No action specified");
+			fprintf(stderr, "No action specified\n");
 			return 1;
 		}
 
@@ -1678,7 +1678,7 @@ static int do_aes_mode(void)
 
 	switch (dukpt_tool_action) {
 		case DUKPT_TOOL_ACTION_NONE: {
-			fprintf(stderr, "No action specified");
+			fprintf(stderr, "No action specified\n");
 			return 1;
 		}
 
