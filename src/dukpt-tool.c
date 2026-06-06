@@ -96,6 +96,8 @@ enum dukpt_tool_action_t {
 	DUKPT_TOOL_ACTION_DECRYPT_REQUEST,
 	DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE,
 	DUKPT_TOOL_ACTION_DECRYPT_RESPONSE,
+	DUKPT_TOOL_ACTION_ENCRYPT_BOTH,
+	DUKPT_TOOL_ACTION_DECRYPT_BOTH,
 	DUKPT_TOOL_ACTION_DUMP_STATE,
 };
 static enum dukpt_tool_action_t dukpt_tool_action = DUKPT_TOOL_ACTION_NONE;
@@ -143,6 +145,8 @@ enum dukpt_tool_option_t {
 	DUKPT_TOOL_OPTION_DECRYPT_REQUEST,
 	DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE,
 	DUKPT_TOOL_OPTION_DECRYPT_RESPONSE,
+	DUKPT_TOOL_OPTION_ENCRYPT_BOTH,
+	DUKPT_TOOL_OPTION_DECRYPT_BOTH,
 
 	DUKPT_TOOL_OPTION_DUMP_STATE,
 
@@ -190,6 +194,8 @@ static struct argp_option argp_options[] = {
 	{ "decrypt-request", DUKPT_TOOL_OPTION_DECRYPT_REQUEST, "DATA", 0, "Decrypt transaction request data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "encrypt-response", DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE, "DATA", 0, "Encrypt transaction response data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "decrypt-response", DUKPT_TOOL_OPTION_DECRYPT_RESPONSE, "DATA", 0, "Decrypt transaction response data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "encrypt-both", DUKPT_TOOL_OPTION_ENCRYPT_BOTH, "DATA", 0, "Encrypt bidirectional transaction data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
+	{ "decrypt-both", DUKPT_TOOL_OPTION_DECRYPT_BOTH, "DATA", 0, "Decrypt bidirectional transaction data. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 	{ "dump-state", DUKPT_TOOL_OPTION_DUMP_STATE, NULL, 0, "Dump internal DUKPT state of transaction originating device TRSM. Requires either BDK or IK, as well as KSN. Use - to read raw bytes from stdin." },
 
 	{ NULL, 0, NULL, 0, "Outputs:", 5 },
@@ -238,7 +244,9 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			case DUKPT_TOOL_OPTION_ENCRYPT_REQUEST:
 			case DUKPT_TOOL_OPTION_DECRYPT_REQUEST:
 			case DUKPT_TOOL_OPTION_ENCRYPT_RESPONSE:
-			case DUKPT_TOOL_OPTION_DECRYPT_RESPONSE: {
+			case DUKPT_TOOL_OPTION_DECRYPT_RESPONSE:
+			case DUKPT_TOOL_OPTION_ENCRYPT_BOTH:
+			case DUKPT_TOOL_OPTION_DECRYPT_BOTH: {
 				// If argument is "-", read from stdin
 				if (strcmp(arg, "-") == 0) {
 					if (found_stdin_arg) {
@@ -480,6 +488,18 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_RESPONSE;
 			return 0;
 
+		case DUKPT_TOOL_OPTION_ENCRYPT_BOTH:
+			txn_data = buf;
+			txn_data_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_ENCRYPT_BOTH;
+			return 0;
+
+		case DUKPT_TOOL_OPTION_DECRYPT_BOTH:
+			txn_data = buf;
+			txn_data_len = buf_len;
+			dukpt_tool_action = DUKPT_TOOL_ACTION_DECRYPT_BOTH;
+			return 0;
+
 		case DUKPT_TOOL_OPTION_DUMP_STATE:
 			dukpt_tool_action = DUKPT_TOOL_ACTION_DUMP_STATE;
 			return 0;
@@ -620,6 +640,28 @@ static error_t argp_parser_helper(int key, char* arg, struct argp_state* state)
 					if (dukpt_tool_mode == DUKPT_TOOL_MODE_AES) {
 						pinblock_format = 4;
 					}
+				}
+			}
+
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_REQUEST ||
+				dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_REQUEST ||
+				dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE ||
+				dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_RESPONSE ||
+				dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_BOTH ||
+				dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_BOTH
+			) {
+				if ((!bdk && !ik) || (bdk && ik)) {
+					argp_error(state, "Transaction data encrypt/decrypt requires either Base Derivation Key (--bdk) or Initial Key (--ik)");
+					return EINVAL;
+				}
+			}
+
+			if (dukpt_tool_action == DUKPT_TOOL_ACTION_ENCRYPT_BOTH ||
+				dukpt_tool_action == DUKPT_TOOL_ACTION_DECRYPT_BOTH
+			) {
+				if (dukpt_tool_mode != DUKPT_TOOL_MODE_AES) {
+					argp_error(state, "Bidirectional encrypt/decrypt (--encrypt-both / --decrypt-both) is only allowed for derivation mode (--mode) AES");
+					return EINVAL;
 				}
 			}
 
@@ -1490,6 +1532,12 @@ static int do_tdes_mode(void)
 
 			return 0;
 		}
+
+		case DUKPT_TOOL_ACTION_ENCRYPT_BOTH:
+		case DUKPT_TOOL_ACTION_DECRYPT_BOTH: {
+			fprintf(stderr, "Bidirectional encrypt/decrypt (--encrypt-both / --decrypt-both) is only allowed for derivation mode (--mode) AES\n");
+			return 1;
+		}
 	}
 
 	// This should never happen
@@ -1901,7 +1949,9 @@ static int do_aes_mode(void)
 		case DUKPT_TOOL_ACTION_ENCRYPT_REQUEST:
 		case DUKPT_TOOL_ACTION_DECRYPT_REQUEST:
 		case DUKPT_TOOL_ACTION_ENCRYPT_RESPONSE:
-		case DUKPT_TOOL_ACTION_DECRYPT_RESPONSE: {
+		case DUKPT_TOOL_ACTION_DECRYPT_RESPONSE:
+		case DUKPT_TOOL_ACTION_ENCRYPT_BOTH:
+		case DUKPT_TOOL_ACTION_DECRYPT_BOTH: {
 			uint8_t iv_buf[DUKPT_AES_BLOCK_LEN];
 
 			// Validate IV length
@@ -1995,6 +2045,40 @@ static int do_aes_mode(void)
 					);
 					if (r) {
 						fprintf(stderr, "dukpt_aes_decrypt_response() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_ENCRYPT_BOTH:
+					r = dukpt_aes_encrypt_both(
+						txn_key,
+						txn_key_len,
+						ksn,
+						key_type,
+						iv_buf,
+						txn_data,
+						txn_data_len,
+						txn_data
+					);
+					if (r) {
+						fprintf(stderr, "dukpt_aes_encrypt_both() failed; r=%d\n", r);
+						return 1;
+					}
+					break;
+
+				case DUKPT_TOOL_ACTION_DECRYPT_BOTH:
+					r = dukpt_aes_decrypt_both(
+						txn_key,
+						txn_key_len,
+						ksn,
+						key_type,
+						iv_buf,
+						txn_data,
+						txn_data_len,
+						txn_data
+					);
+					if (r) {
+						fprintf(stderr, "dukpt_aes_decrypt_both() failed; r=%d\n", r);
 						return 1;
 					}
 					break;
