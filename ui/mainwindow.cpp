@@ -2,7 +2,7 @@
  * @file mainwindow.cpp
  * @brief Main window of DUKPT User Interface
  *
- * Copyright 2022-2025 Leon Lynch
+ * Copyright 2022-2026 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,11 +82,6 @@ MainWindow::MainWindow(QWidget* parent)
 
 	pinActionComboBox->addItem("Encrypt PIN", DUKPT_UI_PIN_ACTION_ENCRYPT);
 	pinActionComboBox->addItem("Decrypt PIN", DUKPT_UI_PIN_ACTION_DECRYPT);
-
-	dataActionComboBox->addItem("Encrypt request", DUKPT_UI_DATA_ACTION_ENCRYPT_REQUEST);
-	dataActionComboBox->addItem("Decrypt request", DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST);
-	dataActionComboBox->addItem("Encrypt response", DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE);
-	dataActionComboBox->addItem("Decrypt response", DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE);
 
 	// Display copyright, license and disclaimer notice
 	outputText->appendHtml(QStringLiteral(
@@ -574,6 +569,8 @@ MainWindow::dukpt_ui_data_action_t MainWindow::getDataAction() const
 		case DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST:
 		case DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE:
 		case DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE:
+		case DUKPT_UI_DATA_ACTION_ENCRYPT_BOTH:
+		case DUKPT_UI_DATA_ACTION_DECRYPT_BOTH:
 			return static_cast<dukpt_ui_data_action_t>(data);
 
 		default:
@@ -593,11 +590,45 @@ MainWindow::dukpt_ui_mac_action_t MainWindow::getMacAction() const
 		case DUKPT_UI_MAC_ACTION_CMAC_RESPONSE:
 		case DUKPT_UI_MAC_ACTION_HMAC_SHA256_REQUEST:
 		case DUKPT_UI_MAC_ACTION_HMAC_SHA256_RESPONSE:
+		case DUKPT_UI_MAC_ACTION_CMAC_BOTH:
+		case DUKPT_UI_MAC_ACTION_HMAC_SHA256_BOTH:
 			return static_cast<dukpt_ui_mac_action_t>(data);
 
 		default:
 			return DUKPT_UI_MAC_ACTION_UNKNOWN;
 	}
+}
+
+void MainWindow::selectDataAction(dukpt_ui_data_action_t dataAction)
+{
+	int index;
+
+	index = dataActionComboBox->findData(dataAction);
+	if (index != -1) {
+		dataActionComboBox->setCurrentIndex(index);
+	}
+}
+
+void MainWindow::updateDataActions(dukpt_ui_mode_t mode)
+{
+	dukpt_ui_data_action_t dataAction;
+
+	// Remember current data action
+	dataAction = getDataAction();
+
+	// Build data action list based on mode
+	dataActionComboBox->clear();
+	dataActionComboBox->addItem("Encrypt request", DUKPT_UI_DATA_ACTION_ENCRYPT_REQUEST);
+	dataActionComboBox->addItem("Decrypt request", DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST);
+	dataActionComboBox->addItem("Encrypt response", DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE);
+	dataActionComboBox->addItem("Decrypt response", DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE);
+	if (mode == DUKPT_UI_MODE_AES) {
+		dataActionComboBox->addItem("Encrypt (bidirectional)", DUKPT_UI_DATA_ACTION_ENCRYPT_BOTH);
+		dataActionComboBox->addItem("Decrypt (bidirectional)", DUKPT_UI_DATA_ACTION_DECRYPT_BOTH);
+	}
+
+	// Restore current data action (if possible)
+	selectDataAction(dataAction);
 }
 
 void MainWindow::selectMacAction(dukpt_ui_mac_action_t macAction)
@@ -627,15 +658,17 @@ void MainWindow::updateMacActions(dukpt_ui_mode_t mode)
 	} else if (mode == DUKPT_UI_MODE_AES) {
 		macActionComboBox->addItem("CMAC request", DUKPT_UI_MAC_ACTION_CMAC_REQUEST);
 		macActionComboBox->addItem("CMAC response", DUKPT_UI_MAC_ACTION_CMAC_RESPONSE);
+		macActionComboBox->addItem("CMAC (bidirectional)", DUKPT_UI_MAC_ACTION_CMAC_BOTH);
 		macActionComboBox->addItem("HMAC-SHA256 request", DUKPT_UI_MAC_ACTION_HMAC_SHA256_REQUEST);
 		macActionComboBox->addItem("HMAC-SHA256 response", DUKPT_UI_MAC_ACTION_HMAC_SHA256_RESPONSE);
-
-		// Restore current MAC action (if possible)
-		selectMacAction(macAction);
+		macActionComboBox->addItem("HMAC-SHA256 (bidirectional)", DUKPT_UI_MAC_ACTION_HMAC_SHA256_BOTH);
 	} else {
 		// Unknown mode
 		return;
 	}
+
+	// Restore current MAC action (if possible)
+	selectMacAction(macAction);
 }
 
 void MainWindow::log(dukpt_ui_log_level_t level, QString&& str)
@@ -778,6 +811,7 @@ void MainWindow::on_modeComboBox_currentIndexChanged(int index)
 	on_inputKeyTypeComboBox_currentIndexChanged(inputKeyTypeComboBox->currentIndex());
 	updateOutputFormats(mode);
 	updateEncryptDecryptKeyTypes(mode);
+	updateDataActions(mode);
 	updateMacKeyTypes(mode);
 	updateMacActions(mode);
 }
@@ -1282,6 +1316,28 @@ void MainWindow::on_encryptDecryptPushButton_clicked()
 				logSuccess("Response decryption successful");
 				return;
 
+			case DUKPT_UI_DATA_ACTION_ENCRYPT_BOTH:
+				outputData = encryptBoth(txnKey);
+				if (outputData.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Encrypted (both): ", outputData);
+				logSuccess("Bidirectional encryption successful");
+				return;
+
+			case DUKPT_UI_DATA_ACTION_DECRYPT_BOTH:
+				outputData = decryptBoth(txnKey);
+				if (outputData.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Decrypted (both): ", outputData);
+				logSuccess("Bidirectional decryption successful");
+				return;
+
 			default:
 				logFailure("Invalid data action");
 				return;
@@ -1433,6 +1489,28 @@ void MainWindow::on_macPushButton_clicked()
 
 				logVector("Response HMAC-SHA256: ", output);
 				logSuccess("Response HMAC-SHA256 successful");
+				return;
+
+			case DUKPT_UI_MAC_ACTION_CMAC_BOTH:
+				output = cmacBoth(txnKey);
+				if (output.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Bidirectional CMAC: ", output);
+				logSuccess("Bidirectional CMAC successful");
+				return;
+
+			case DUKPT_UI_MAC_ACTION_HMAC_SHA256_BOTH:
+				output = hmacBoth(txnKey);
+				if (output.empty()) {
+					logFailure("Action failed");
+					return;
+				}
+
+				logVector("Bidirectional HMAC-SHA256: ", output);
+				logSuccess("Bidirectional HMAC-SHA256 successful");
 				return;
 
 			default:
@@ -2572,6 +2650,104 @@ std::vector<std::uint8_t> MainWindow::decryptResponse(const std::vector<std::uin
 	return {};
 }
 
+std::vector<std::uint8_t> MainWindow::encryptBoth(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	std::vector<std::uint8_t> outputData;
+
+	if (mode != DUKPT_UI_MODE_AES) {
+		logError("Bidirectional encryption is only allowed for AES mode");
+		return {};
+	}
+
+	// Validate transaction data
+	if (!validateTxnData(encDecData)) {
+		return {};
+	}
+
+	// Ensure that IV is non-empty and valid
+	if (!prepareIv()) {
+		return {};
+	}
+
+	// Output data will always be the same length as input data
+	outputData.resize(encDecData.size());
+
+	dukpt_aes_key_type_t key_type;
+
+	r = prepareAesKeyType(encryptDecryptKeyType);
+	if (r < 0) {
+		return {};
+	}
+	key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+	r = dukpt_aes_encrypt_both(
+		txnKey.data(),
+		txnKey.size(),
+		ksn.data(),
+		key_type,
+		iv.data(),
+		encDecData.data(),
+		encDecData.size(),
+		outputData.data()
+	);
+	if (r) {
+		logError(QString::asprintf("dukpt_aes_encrypt_both() failed; r=%d\n", r));
+		return {};
+	}
+
+	return outputData;
+}
+
+std::vector<std::uint8_t> MainWindow::decryptBoth(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	std::vector<std::uint8_t> outputData;
+
+	if (mode != DUKPT_UI_MODE_AES) {
+		logError("Bidirectional decryption is only allowed for AES mode");
+		return {};
+	}
+
+	// Validate transaction data
+	if (!validateTxnData(encDecData)) {
+		return {};
+	}
+
+	// Ensure that IV is non-empty and valid
+	if (!prepareIv()) {
+		return {};
+	}
+
+	// Output data will always be the same length as input data
+	outputData.resize(encDecData.size());
+
+	dukpt_aes_key_type_t key_type;
+
+	r = prepareAesKeyType(encryptDecryptKeyType);
+	if (r < 0) {
+		return {};
+	}
+	key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+	r = dukpt_aes_decrypt_both(
+		txnKey.data(),
+		txnKey.size(),
+		ksn.data(),
+		key_type,
+		iv.data(),
+		encDecData.data(),
+		encDecData.size(),
+		outputData.data()
+	);
+	if (r) {
+		logError(QString::asprintf("dukpt_aes_decrypt_both() failed; r=%d\n", r));
+		return {};
+	}
+
+	return outputData;
+}
+
 std::vector<std::uint8_t> MainWindow::macRequest(const std::vector<std::uint8_t>& txnKey)
 {
 	int r;
@@ -2832,6 +3008,98 @@ std::vector<std::uint8_t> MainWindow::hmacResponse(const std::vector<std::uint8_
 	);
 	if (r) {
 		logError(QString::asprintf("dukpt_aes_generate_response_hmac_sha256() failed; r=%d\n", r));
+		return {};
+	}
+
+	return hmac;
+}
+
+std::vector<std::uint8_t> MainWindow::cmacBoth(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	dukpt_aes_key_type_t key_type;
+	std::vector<std::uint8_t> cmac;
+
+	if (mode != DUKPT_UI_MODE_AES) {
+		logError("Bidirectional CMAC is only allowed for AES mode");
+		return {};
+	}
+
+	if (macKeyType != DUKPT_UI_KEY_TYPE_AES128 &&
+		macKeyType != DUKPT_UI_KEY_TYPE_AES192 &&
+		macKeyType != DUKPT_UI_KEY_TYPE_AES256
+	) {
+		logError("CMAC computation is only allowed for AES working keys");
+		return {};
+	}
+
+	// AES-CMAC length
+	cmac.resize(DUKPT_AES_CMAC_LEN);
+
+	r = prepareCmacKeyType(macKeyType);
+	if (r < 0) {
+		return {};
+	}
+	key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+	// Do it
+	r = dukpt_aes_generate_both_cmac(
+		txnKey.data(),
+		txnKey.size(),
+		ksn.data(),
+		key_type,
+		macData.data(),
+		macData.size(),
+		cmac.data()
+	);
+	if (r) {
+		logError(QString::asprintf("dukpt_aes_generate_both_cmac() failed; r=%d\n", r));
+		return {};
+	}
+
+	return cmac;
+}
+
+std::vector<std::uint8_t> MainWindow::hmacBoth(const std::vector<std::uint8_t>& txnKey)
+{
+	int r;
+	dukpt_aes_key_type_t key_type;
+	std::vector<std::uint8_t> hmac;
+
+	if (mode != DUKPT_UI_MODE_AES) {
+		logError("Bidirectional HMAC is only allowed for AES mode");
+		return {};
+	}
+
+	if (macKeyType != DUKPT_UI_KEY_TYPE_HMAC128 &&
+		macKeyType != DUKPT_UI_KEY_TYPE_HMAC192 &&
+		macKeyType != DUKPT_UI_KEY_TYPE_HMAC256
+	) {
+		logError("HMAC computation is only allowed for HMAC working keys");
+		return {};
+	}
+
+	r = prepareHmacKeyType(macKeyType);
+	if (r < 0) {
+		return {};
+	}
+	key_type = static_cast<dukpt_aes_key_type_t>(r);
+
+	// HMAC-SHA256 length
+	hmac.resize(DUKPT_AES_HMAC_SHA256_LEN);
+
+	// Do it
+	r = dukpt_aes_generate_both_hmac_sha256(
+		txnKey.data(),
+		txnKey.size(),
+		ksn.data(),
+		key_type,
+		macData.data(),
+		macData.size(),
+		hmac.data()
+	);
+	if (r) {
+		logError(QString::asprintf("dukpt_aes_generate_both_hmac_sha256() failed; r=%d\n", r));
 		return {};
 	}
 
