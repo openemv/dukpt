@@ -15,7 +15,7 @@ on:
     - cron: '15 4 20 * *'
 
 env:
-  TR31_VERSION: 0.6.4
+  TR31_VERSION: 0.6.6
 
 jobs:
   analyze:
@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Ubuntu 24.04", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "Debug" }
+          - { name: "Ubuntu 26.04", os: "ubuntu-26.04", ubuntu_release_name: "resolute", build_type: "Debug" }
 
     name: ${{ matrix.name }} build (CodeQL)
     runs-on: ${{ matrix.os }}
@@ -38,7 +38,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+        sudo apt-get install -y libmbedtls-dev qt6-base-dev
 
     - name: Install TR-31 release
       run: |

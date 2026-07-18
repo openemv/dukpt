@@ -36,9 +36,10 @@ See [usage](#usage) for more examples.
 Installation
 ------------
 
-* For Ubuntu 22.04 LTS (Jammy) or 24.04 LTS (Noble) install the appropriate
-  Ubuntu [release package](https://github.com/openemv/dukpt/releases)
-* For Fedora 42 or Fedora 43, install the appropriate
+* For Ubuntu 22.04 LTS (Jammy), 24.04 LTS (Noble), or 26.04 LTS (Resolute),
+  install the appropriate Ubuntu
+  [release package](https://github.com/openemv/dukpt/releases)
+* For Fedora 43 or Fedora 44, install the appropriate Fedora
   [release package](https://github.com/openemv/dukpt/releases)
 * For Gentoo, use the
   [OpenEMV overlay](https://github.com/openemv/openemv-overlay), set the

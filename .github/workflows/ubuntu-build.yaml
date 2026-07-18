@@ -10,7 +10,7 @@ name: Ubuntu build
 on: [push]
 
 env:
-  TR31_VERSION: 0.6.5
+  TR31_VERSION: 0.6.6
 
 jobs:
   build-ubuntu-debug:
@@ -19,8 +19,9 @@ jobs:
       matrix:
         include:
           - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy", deps: "none", build_dukpt_ui: NO }
-          - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy", deps: "tr31/qt", build_dukpt_ui: YES }
-          - { name: "Ubuntu 24.04", os: ubuntu-24.04, ubuntu_release_name: "noble", deps: "tr31/qt", build_dukpt_ui: YES }
+          - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy", deps: "tr31/qt5", build_dukpt_ui: YES }
+          - { name: "Ubuntu 24.04", os: ubuntu-24.04, ubuntu_release_name: "noble", deps: "tr31/qt5", build_dukpt_ui: YES }
+          - { name: "Ubuntu 26.04", os: ubuntu-26.04, ubuntu_release_name: "resolute", deps: "tr31/qt6", build_dukpt_ui: YES }
 
     name: ${{ matrix.name }} build (static/debug/${{ matrix.deps }})
     runs-on: ${{ matrix.os }}
@@ -41,8 +42,12 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install Qt5
-      if: contains(matrix.deps, 'qt')
+      if: contains(matrix.deps, 'qt5')
       run: sudo apt-get install -y qtbase5-dev
+
+    - name: Install Qt6
+      if: contains(matrix.deps, 'qt6')
+      run: sudo apt-get install -y qt6-base-dev
 
     - name: Checkout
       uses: actions/checkout@v6
@@ -55,8 +60,8 @@ jobs:
         cmake -B build \
           -DCMAKE_BUILD_TYPE="Debug" \
           -DCMAKE_REQUIRE_FIND_PACKAGE_tr31=${{ contains(matrix.deps, 'tr31') && 'YES' || 'NO' }} \
-          -DCMAKE_DISABLE_FIND_PACKAGE_Qt5=${{ !contains(matrix.deps, 'qt') && 'YES' || 'NO' }} \
-          -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=${{ !contains(matrix.deps, 'qt') && 'YES' || 'NO' }} \
+          -DCMAKE_DISABLE_FIND_PACKAGE_Qt5=${{ !contains(matrix.deps, 'qt5') && 'YES' || 'NO' }} \
+          -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=${{ !contains(matrix.deps, 'qt6') && 'YES' || 'NO' }} \
           -DBUILD_DUKPT_UI=${{ matrix.build_dukpt_ui }}
 
     - name: Build
@@ -70,8 +75,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Ubuntu 24.04 build (debug/sanitizers)", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "Debug" }
-          - { name: "Ubuntu 24.04 build (release/sanitizers)", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "RelWithDebInfo" }
+          - { name: "Ubuntu 26.04 build (debug/sanitizers)", os: "ubuntu-26.04", ubuntu_release_name: "resolute", build_type: "Debug" }
+          - { name: "Ubuntu 26.04 build (release/sanitizers)", os: "ubuntu-26.04", ubuntu_release_name: "resolute", build_type: "RelWithDebInfo" }
 
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -80,7 +85,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+        sudo apt-get install -y libmbedtls-dev qt6-base-dev
 
     - name: Install TR-31 release
       run: |
@@ -113,7 +118,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "Ubuntu 24.04", os: "ubuntu-24.04", ubuntu_release_name: "noble", build_type: "RelWithDebInfo" }
+          - { name: "Ubuntu 26.04", os: "ubuntu-26.04", ubuntu_release_name: "resolute", build_type: "RelWithDebInfo" }
 
     name: ${{ matrix.name }} build (hardening)
     runs-on: ${{ matrix.os }}
@@ -122,7 +127,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libmbedtls-dev qtbase5-dev
+        sudo apt-get install -y libmbedtls-dev qt6-base-dev
 
     - name: Install TR-31 release
       run: |
@@ -158,6 +163,7 @@ jobs:
         include:
           - { name: "Ubuntu 22.04", os: ubuntu-22.04, ubuntu_release_name: "jammy" }
           - { name: "Ubuntu 24.04", os: ubuntu-24.04, ubuntu_release_name: "noble" }
+          - { name: "Ubuntu 26.04", os: ubuntu-26.04, ubuntu_release_name: "resolute" }
 
     name: ${{ matrix.name }} build (release)
     runs-on: ${{ matrix.os }}
@@ -166,7 +172,15 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libmbedtls-dev doxygen qtbase5-dev
+        sudo apt-get install -y libmbedtls-dev doxygen
+
+    - name: Install Qt5
+      if: matrix.os != 'ubuntu-26.04'
+      run: sudo apt-get install -y qtbase5-dev
+
+    - name: Install Qt6
+      if: matrix.os == 'ubuntu-26.04'
+      run: sudo apt-get install -y qt6-base-dev
 
     - name: Install TR-31 release
       run: |
