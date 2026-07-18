@@ -2,7 +2,7 @@
  * @file dukpt_aes.c
  * @brief ANSI X9.24-3:2017 AES DUKPT implementation
  *
- * Copyright 2021-2023, 2025 Leon Lynch
+ * Copyright 2021-2023, 2025-2026 Leon Lynch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1727,6 +1727,227 @@ exit:
 	return r;
 }
 
+int dukpt_aes_generate_both_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* cmac
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t cmac_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t cmac_key_len;
+
+	// Determine length of CMAC key
+	// This function only supports AES CMAC keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&cmac_key_len
+	);
+	if (r) {
+		return r;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive AES CMAC key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_MAC_BOTH,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		cmac_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Generate AES-CMAC
+	r = crypto_aes_cmac(cmac_key, cmac_key_len, buf, buf_len, cmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	crypto_cleanse(cmac, DUKPT_AES_CMAC_LEN);
+exit:
+	crypto_cleanse(cmac_key, sizeof(cmac_key));
+
+	return r;
+}
+
+int dukpt_aes_verify_both_cmac(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* cmac
+)
+{
+	int r;
+	uint8_t cmac_verify[DUKPT_AES_CMAC_LEN];
+
+	r = dukpt_aes_generate_both_cmac(
+		txn_key,
+		txn_key_len,
+		ksn,
+		key_type,
+		buf,
+		buf_len,
+		cmac_verify
+	);
+	if (r) {
+		goto error;
+	}
+
+	if (crypto_memcmp_s(cmac_verify, cmac, sizeof(cmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	crypto_cleanse(cmac_verify, sizeof(cmac_verify));
+
+	return r;
+}
+
+int dukpt_aes_generate_both_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	void* hmac
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t hmac_key[DUKPT_AES_KEY_LEN(HMAC256)];
+	size_t hmac_key_len;
+
+	// Determine length of HMAC key
+	r = dukpt_aes_get_working_key_length_hmac(
+		txn_key_len,
+		key_type,
+		&hmac_key_len
+	);
+	if (r) {
+		return r;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive HMAC key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_MAC_BOTH,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		hmac_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Generate HMAC
+	r = crypto_hmac_sha256(hmac_key, hmac_key_len, buf, buf_len, hmac);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	crypto_cleanse(hmac, DUKPT_AES_HMAC_SHA256_LEN);
+exit:
+	crypto_cleanse(hmac_key, sizeof(hmac_key));
+
+	return r;
+}
+
+int dukpt_aes_verify_both_hmac_sha256(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* buf,
+	size_t buf_len,
+	const void* hmac
+)
+{
+	int r;
+	uint8_t hmac_verify[DUKPT_AES_HMAC_SHA256_LEN];
+
+	r = dukpt_aes_generate_both_hmac_sha256(
+		txn_key,
+		txn_key_len,
+		ksn,
+		key_type,
+		buf,
+		buf_len,
+		hmac_verify
+	);
+	if (r) {
+		goto error;
+	}
+
+	if (crypto_memcmp_s(hmac_verify, hmac, sizeof(hmac_verify)) != 0) {
+		r = 1;
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+exit:
+	crypto_cleanse(hmac_verify, sizeof(hmac_verify));
+
+	return r;
+}
+
 int dukpt_aes_encrypt_request(
 	const void* txn_key,
 	size_t txn_key_len,
@@ -1971,6 +2192,146 @@ int dukpt_aes_decrypt_response(
 	// Derive data encryption key
 	r = dukpt_aes_create_derivation_data(
 		DUKPT_AES_KEY_USAGE_DATA_ENCRYPTION_DECRYPT,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		data_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Decrypt transaction data
+	r = crypto_aes_decrypt(data_key, data_key_len, iv, buf, buf_len, plaintext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	crypto_cleanse(plaintext, buf_len);
+exit:
+	crypto_cleanse(data_key, sizeof(data_key));
+
+	return r;
+}
+
+int dukpt_aes_encrypt_both(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* ciphertext
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t data_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t data_key_len;
+
+	// Determine length of data encryption key
+	// This function only supports AES keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&data_key_len
+	);
+	if (r) {
+		return r;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive data encryption key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_DATA_ENCRYPTION_BOTH,
+		key_type,
+		ksn,
+		tc,
+		&derivation_data
+	);
+	if (r) {
+		goto error;
+	}
+	r = dukpt_aes_derive_key(
+		txn_key,
+		txn_key_len,
+		&derivation_data,
+		data_key
+	);
+	if (r) {
+		goto error;
+	}
+
+	// Encrypt transaction data
+	r = crypto_aes_encrypt(data_key, data_key_len, iv, buf, buf_len, ciphertext);
+	if (r) {
+		goto error;
+	}
+
+	// Success
+	r = 0;
+	goto exit;
+
+error:
+	crypto_cleanse(ciphertext, buf_len);
+exit:
+	crypto_cleanse(data_key, sizeof(data_key));
+
+	return r;
+}
+
+int dukpt_aes_decrypt_both(
+	const void* txn_key,
+	size_t txn_key_len,
+	const uint8_t* ksn,
+	enum dukpt_aes_key_type_t key_type,
+	const void* iv,
+	const void* buf,
+	size_t buf_len,
+	void* plaintext
+)
+{
+	int r;
+	uint32_t tc;
+	struct dukpt_aes_derivation_data_t derivation_data;
+	uint8_t data_key[DUKPT_AES_KEY_LEN(AES256)];
+	size_t data_key_len;
+
+	// Determine length of data encryption key
+	// This function only supports AES keys
+	r = dukpt_aes_get_working_key_length_aes(
+		txn_key_len,
+		key_type,
+		&data_key_len
+	);
+	if (r) {
+		return r;
+	}
+
+	// Extract transaction counter value from KSN
+	tc = dukpt_aes_ksn_get_tc(ksn);
+
+	// Derive data encryption key
+	r = dukpt_aes_create_derivation_data(
+		DUKPT_AES_KEY_USAGE_DATA_ENCRYPTION_BOTH,
 		key_type,
 		ksn,
 		tc,

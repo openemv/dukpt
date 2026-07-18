@@ -2,7 +2,7 @@
  * @file mainwindow.h
  * @brief Main window of DUKPT User Interface
  *
- * Copyright 2022-2023 Leon Lynch
+ * Copyright 2022-2024, 2026 Leon Lynch
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -124,8 +124,12 @@ private: // helper enums and helper functions for inputs
 		DUKPT_UI_DATA_ACTION_DECRYPT_REQUEST,
 		DUKPT_UI_DATA_ACTION_ENCRYPT_RESPONSE,
 		DUKPT_UI_DATA_ACTION_DECRYPT_RESPONSE,
+		DUKPT_UI_DATA_ACTION_ENCRYPT_BOTH,
+		DUKPT_UI_DATA_ACTION_DECRYPT_BOTH,
 	};
 	dukpt_ui_data_action_t getDataAction() const;
+	void selectDataAction(dukpt_ui_data_action_t dataAction);
+	void updateDataActions(dukpt_ui_mode_t mode);
 
 	enum dukpt_ui_mac_action_t {
 		DUKPT_UI_MAC_ACTION_UNKNOWN = -1,
@@ -135,6 +139,8 @@ private: // helper enums and helper functions for inputs
 		DUKPT_UI_MAC_ACTION_CMAC_RESPONSE,
 		DUKPT_UI_MAC_ACTION_HMAC_SHA256_REQUEST,
 		DUKPT_UI_MAC_ACTION_HMAC_SHA256_RESPONSE,
+		DUKPT_UI_MAC_ACTION_CMAC_BOTH,
+		DUKPT_UI_MAC_ACTION_HMAC_SHA256_BOTH,
 	};
 	dukpt_ui_mac_action_t getMacAction() const;
 	void selectMacAction(dukpt_ui_mac_action_t macAction);
@@ -260,6 +266,8 @@ private:
 	std::vector<std::uint8_t> decryptRequest(const std::vector<std::uint8_t>& txnKey);
 	std::vector<std::uint8_t> encryptResponse(const std::vector<std::uint8_t>& txnKey);
 	std::vector<std::uint8_t> decryptResponse(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> encryptBoth(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> decryptBoth(const std::vector<std::uint8_t>& txnKey);
 
 	// MAC helper functions
 	std::vector<std::uint8_t> macRequest(const std::vector<std::uint8_t>& txnKey);
@@ -268,6 +276,8 @@ private:
 	std::vector<std::uint8_t> cmacResponse(const std::vector<std::uint8_t>& txnKey);
 	std::vector<std::uint8_t> hmacRequest(const std::vector<std::uint8_t>& txnKey);
 	std::vector<std::uint8_t> hmacResponse(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> cmacBoth(const std::vector<std::uint8_t>& txnKey);
+	std::vector<std::uint8_t> hmacBoth(const std::vector<std::uint8_t>& txnKey);
 };
 
 #endif
