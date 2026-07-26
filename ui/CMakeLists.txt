@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(dukpt-ui
-	VERSION 1.2.5
+	VERSION 1.3.0
 	DESCRIPTION "DUKPT User Interface using Qt"
 	HOMEPAGE_URL "https://github.com/openemv/dukpt"
 	LANGUAGES CXX
@@ -80,7 +80,7 @@ if(DUKPT_UI_IS_TOP_LEVEL)
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../crypto/cmake/Modules/")
 
 	# If this is the top-level project, look for the platform dukpt libraries
-	find_package(dukpt 1.2.0 REQUIRED)
+	find_package(dukpt 1.3.0 REQUIRED)
 else()
 	# Otherwise the parent project must provide the dukpt targets
 	if(NOT TARGET dukpt::dukpt_tdes OR NOT TARGET dukpt::dukpt_aes)
@@ -148,7 +148,7 @@ if(APPLE AND BUILD_MACOSX_BUNDLE)
 			MACOSX_BUNDLE_BUNDLE_NAME Dukpt
 			MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION}
 			MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION}
-			MACOSX_BUNDLE_COPYRIGHT "Copyright 2021-2025 Leon Lynch"
+			MACOSX_BUNDLE_COPYRIGHT "Copyright 2021-2026 Leon Lynch"
 			MACOSX_BUNDLE_GUI_IDENTIFIER org.openemv.${CMAKE_PROJECT_NAME}
 			MACOSX_BUNDLE_ICON_FILE "openemv_dukpt.icns"
 			RESOURCE icons/openemv_dukpt.icns
