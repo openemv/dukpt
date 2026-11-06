@@ -80,11 +80,18 @@ if(DUKPT_UI_IS_TOP_LEVEL)
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../crypto/cmake/Modules/")
 
 	# If this is the top-level project, look for the platform dukpt libraries
-	find_package(dukpt 1.3.0 REQUIRED)
+	find_package(dukpt 1.3.0 REQUIRED CONFIG)
+
+	# If this is the top-level project, look for the platform tr31 libraries
+	find_package(tr31 0.6.0 REQUIRED CONFIG)
 else()
 	# Otherwise the parent project must provide the dukpt targets
 	if(NOT TARGET dukpt::dukpt_tdes OR NOT TARGET dukpt::dukpt_aes)
 		message(FATAL_ERROR "Parent project must provide dukpt libraries")
+	endif()
+
+	if(NOT TARGET tr31::tr31)
+		message(FATAL_ERROR "Parent project must provide tr31 library")
 	endif()
 endif()
 
@@ -123,8 +130,6 @@ find_package_handle_standard_args(Qt${QT_VERSION_MAJOR}Widgets CONFIG_MODE)
 qt_wrap_ui(UI_SRCS mainwindow.ui)
 qt_wrap_cpp(MOC_SRCS mainwindow.h betterplaintextedit.h validators.h)
 qt_add_resources(QRC_SRCS icons.qrc)
-
-find_package(tr31 0.6.0 REQUIRED CONFIG)
 
 add_executable(dukpt-ui dukpt-ui.cpp mainwindow.cpp validators.cpp ${UI_SRCS} ${MOC_SRCS} ${QRC_SRCS})
 target_include_directories(dukpt-ui PRIVATE
@@ -288,7 +293,6 @@ endif()
 install(
 	TARGETS
 		dukpt-ui
-	EXPORT dukptTargets # For use by install(EXPORT) command
 	RUNTIME
 		COMPONENT dukpt_ui_runtime
 	BUNDLE

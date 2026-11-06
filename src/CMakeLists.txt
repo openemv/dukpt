@@ -5,8 +5,6 @@
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.22)
-
 # Check whether compiler supports __builtin_popcount()
 include(CheckCSourceCompiles)
 check_c_source_compiles("int main(void) { return __builtin_popcount(42); }" HAS_BUILTIN_POPCOUNT)

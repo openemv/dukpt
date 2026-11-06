@@ -5,8 +5,6 @@
 # See LICENSE file.
 ##############################################################################
 
-cmake_minimum_required(VERSION 3.22)
-
 if(BUILD_TESTING)
 	add_executable(dukpt_tdes_test dukpt_tdes_test.c)
 	target_link_libraries(dukpt_tdes_test dukpt_tdes)
