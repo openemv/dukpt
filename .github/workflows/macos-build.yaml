@@ -41,6 +41,8 @@ jobs:
     - name: Install TR-31 using brew
       if: ${{ contains(matrix.deps, 'tr31') && matrix.fetch_deps == 'NO' }}
       run: |
+        brew tap openemv/tap
+        brew trust openemv/tap
         brew install openemv/tap/tr31
         echo "CMAKE_REQUIRE_FIND_PACKAGE_tr31=YES" >> $GITHUB_ENV
 
